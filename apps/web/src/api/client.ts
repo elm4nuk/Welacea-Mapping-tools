@@ -46,7 +46,8 @@ export const api = {
   createAnnotation: (id: string, body: Schema['AnnotationCreate']) => request<Annotation>(root + `/photos/${id}/annotations`, json('POST', body)),
   updateAnnotation: (a: Annotation, body: Schema['AnnotationUpdate']) => request<Annotation>(root + '/annotations/' + a.id, json('PATCH', body, a.revision)),
   deleteAnnotation: (a: Annotation) => request<void>(root + '/annotations/' + a.id, json('DELETE', undefined, a.revision)),
-  analyze: (id: string) => request<Schema['AnalysisResult']>(root + `/photos/${id}/analyze`, json('POST', { on_existing: 'reject' })),
+  analyze: (id: string, onExisting: Schema['AnalyzeRequest']['on_existing'] = 'reject') =>
+    request<Schema['AnalysisResult']>(root + `/photos/${id}/analyze`, json('POST', { on_existing: onExisting })),
   runs: (id: string, signal?: AbortSignal) => request<Schema['AnalysisRunPage']>(root + `/photos/${id}/analysis-runs?limit=200`, { signal }),
   report: (id: string, signal?: AbortSignal) => request<Schema['SurveyReport']>(root + `/surveys/${id}/report`, { signal }),
   importBackup: (file: File) => { const body = new FormData(); body.append('file', file);

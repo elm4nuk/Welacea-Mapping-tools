@@ -31,7 +31,9 @@ p { line-height: 1.65; }
 .app-main { min-width: 0; padding: 28px clamp(16px, 2.3vw, 36px); }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .status-pill { border: 1px solid #c4d5be; border-radius: 30px; padding: 8px 14px; font-size: 12px; white-space: nowrap; background: #eff5e5; }
-.model-status { color: #63715e; font-size: 13px; margin: 18px 0; }
+.model-status { color: #526357; font-size: 13px; margin: 18px 0; border-left: 4px solid #5d8767; padding: 8px 12px; background: #eff5e9; }
+.model-status.unavailable { border-left-color: #9b6a24; background: #f6f0df; }
+.model-status p { margin: 2px 0; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .survey-toolbar { border-bottom: 1px solid #d5ddcf; padding-bottom: 16px; margin-bottom: 24px; }
 .photo-workspace { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; }
@@ -51,6 +53,7 @@ p { line-height: 1.65; }
 .wallacea-editor .toolbar button { font-size: 12px; padding: 8px; }
 .wallacea-editor label { font-size: 12px; }
 .session-actions { margin-bottom: 12px; }
+.analysis-rerun p { margin-top: 0; }
 .empty-state { border: 1px solid #d5ddcf; border-radius: 18px; padding: clamp(24px, 5vw, 60px); background: #fcfcf8; margin: 28px 0; }
 .empty-state h2 { font: 500 clamp(28px, 3vw, 42px)/1.2 Georgia, serif; max-width: 580px; }
 .empty-state p { color: #596954; max-width: 660px; }
