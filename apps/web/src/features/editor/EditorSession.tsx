@@ -8,7 +8,7 @@ import { editorReducer } from './model';
 import type { EditorState, Finding } from './model';
 import { Button } from '../../components/ui/button';
 import { exportAnnotatedPng } from './export';
-import { analysisError, modelStatus, runStatus } from './analysis';
+import { analysisError, modelPresentation, modelStatus, runStatus } from './analysis';
 import type { AnalysisPhase } from './analysis';
 export function EditorSession({ photo, survey, model, inferenceTimeoutSeconds, onDirty }: {
   photo: Photo; survey: Survey; model?: Schema['ModelStatus']; inferenceTimeoutSeconds?: number;
@@ -132,7 +132,8 @@ export function EditorSession({ photo, survey, model, inferenceTimeoutSeconds, o
       const result = await api.analyze(photo.id, onExisting);
       if (!alive.current) return;
       setAnalysisPhase('succeeded');
-      setMessage(`Analisis selesai. ${result.candidates.length} kandidat model menunggu review. ${result.notice}`);
+      const presentation = modelPresentation(result.run.model_id);
+      setMessage(`Analisis selesai. ${result.candidates.length} ${presentation.candidate} menunggu review. ${result.notice}`);
       try {
         const data = await api.annotations(photo.id);
         if (!alive.current) return;
@@ -155,6 +156,11 @@ export function EditorSession({ photo, survey, model, inferenceTimeoutSeconds, o
   }
   if (query.isPending || (!initialized.current && !query.isError)) return <p role="status">Memuat anotasi...</p>;
   if (query.isError) return <div role="alert">{query.error.message}<Button onClick={() => void query.refetch()}>Coba lagi</Button></div>;
+  const modelByRunId = Object.fromEntries((runs.data?.items ?? []).map(run => [run.id, {
+    id: run.model_id ?? undefined, version: run.model_version ?? undefined,
+  }]));
+  const deepForest = [model?.model_id, ...(runs.data?.items ?? []).map(run => run.model_id)]
+    .some(modelId => modelPresentation(modelId).isDeepForest);
   return <section aria-busy={busy}>
     <div className="toolbar session-actions">
       <Button disabled={busy || !dirty || blocked || survey.is_demo} onClick={() => void save()}>Simpan anotasi</Button>
@@ -182,7 +188,7 @@ export function EditorSession({ photo, survey, model, inferenceTimeoutSeconds, o
     {image && <fieldset disabled={busy || survey.is_demo} className="editor-fieldset">
       <div style={busy || survey.is_demo ? { pointerEvents: 'none' } : undefined}>
         <PhotoEditor photo={{ key: photo.id, name: photo.original_name, image, isIllustration: survey.is_demo }}
-          findings={findings} onChange={change}
+          findings={findings} onChange={change} modelByRunId={modelByRunId}
           onUndo={() => { dispatch({ type: 'undo', photoKey: photo.id }); setDirty(true); }}
           onRedo={() => { dispatch({ type: 'redo', photoKey: photo.id }); setDirty(true); }}
           canUndo={Boolean(h?.past.length)}
@@ -192,6 +198,7 @@ export function EditorSession({ photo, survey, model, inferenceTimeoutSeconds, o
     </fieldset>}
     <details open={analysisPhase !== 'idle'}><summary>Status model dan riwayat analisis foto</summary>
       {modelDisplay && <p><b>{modelDisplay.label}</b>{modelDisplay.metadata ? ` / ${modelDisplay.metadata}` : ''}. {modelDisplay.detail}</p>}
+      {deepForest && <p className="notice">{modelPresentation('DeepForest').disclaimer}</p>}
       {runs.isPending && <p>Memuat riwayat...</p>}
       {runs.isError && <p role="alert">{runs.error.message}</p>}
       {runs.data?.items.length === 0 && <p>Belum ada run analisis.</p>}

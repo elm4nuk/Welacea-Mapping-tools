@@ -3,6 +3,18 @@ import type { Schema } from '../../api/client';
 
 export type AnalysisPhase = 'idle' | 'running' | 'succeeded' | 'failed';
 
+/** Until the contract exposes output semantics, only opt into crown wording when the API identifies DeepForest. */
+export function modelPresentation(modelId: string | null | undefined) {
+  const isDeepForest = /(^|[^a-z0-9])deep[\s_-]*forest([^a-z0-9]|$)/i.test(modelId ?? '');
+  return {
+    isDeepForest,
+    candidate: isDeepForest ? 'kandidat tajuk pohon' : 'kandidat tanaman',
+    disclaimer: isDeepForest
+      ? 'DeepForest adalah baseline kandidat tajuk pohon dan belum tervalidasi untuk semua tanaman pertanian.'
+      : '',
+  };
+}
+
 export function modelStatus(model: Schema['ModelStatus']) {
   const metadata = [model.model_id, model.model_version].filter((value): value is string => Boolean(value));
   if (model.state === 'not_configured') {

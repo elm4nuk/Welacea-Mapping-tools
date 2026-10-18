@@ -16,6 +16,8 @@ test('API check maps to inspect; bbox editor uses top-left instead of API centre
   expect(body.bbox).toEqual(a.bbox);
   expect(body).not.toHaveProperty('x');
   expect(body).not.toHaveProperty('y');
+  expect(f.analysisRunId).toBe(a.analysis_run_id ?? undefined);
+  expect(f.modelLabel).toBe(a.model_label ?? undefined);
 });
 test('point body retains normalized coordinates; creates omit model metadata', () => {
   const f = toFinding(fixture as Annotation);

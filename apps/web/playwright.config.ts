@@ -5,6 +5,12 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   fullyParallel: false,
   workers: 1,
+  webServer: process.env.WALLACEA_E2E_START_WEB ? {
+    command: 'pnpm dev --port 5174',
+    url: process.env.WALLACEA_E2E_WEB_URL ?? 'http://127.0.0.1:5174',
+    reuseExistingServer: false,
+    timeout: 30_000,
+  } : undefined,
   use: { baseURL: process.env.WALLACEA_E2E_WEB_URL ?? 'http://127.0.0.1:5174',
     trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   projects: [

@@ -60,6 +60,14 @@ function Workspace() {
       setMessage('Foto dihapus.');
     });
   }
+  async function createDemo() {
+    await action(async () => {
+      const demo = await api.createDemoSurvey();
+      await surveys.refetch();
+      onDirty(false); setSurveyId(demo.id); setPhotoId(''); setPage('editor'); setForm(undefined);
+      setMessage('Contoh ilustrasi dibuat sebagai data baca-saja. Ini bukan foto drone dan bukan hasil analisis AI.');
+    });
+  }
   async function upload(files: FileList | null) {
     if (!files || !survey || !health.data || busy) return;
     const target = survey.id;
@@ -94,6 +102,7 @@ function Workspace() {
       <div className="brand"><span className="brand-mark" aria-hidden="true">W</span><div><b>WALLACEA</b><small>Ruang kerja survei</small></div></div>
       <p className="sidebar-caption">FOTO / PENANDAAN / PEMERIKSAAN</p>
       <Button disabled={busy} onClick={() => setForm('create')}>+ Survei baru</Button>
+      <Button variant="outline" disabled={busy || !health.data} onClick={() => void createDemo()}>Buka contoh ilustrasi</Button>
       <h2>Survei</h2>
       {surveys.isPending && <p role="status">Memuat survei...</p>}
       {surveys.isError && <p role="alert">{surveys.error.message}<button onClick={() => void surveys.refetch()}>Coba lagi</button></p>}
@@ -146,7 +155,10 @@ function Workspace() {
       {!survey && !form && <section className="empty-state"><span className="eyebrow">PENGAMATAN YANG BISA DITINJAU</span>
         <h2>Satu foto, satu pemeriksaan yang jelas.</h2><p>Buat atau pilih survei, unggah foto asli, lalu tandai tanaman dan temuan untuk diperiksa.</p>
         <p>Hitungan dimulai dari anotasi yang Anda terima. Tidak ada hasil AI contoh yang dianggap nyata.</p>
-        <Button onClick={() => setForm('create')}>Buat survei</Button></section>}
+        <div className="toolbar"><Button onClick={() => setForm('create')}>Buat survei</Button>
+          <Button variant="outline" disabled={!health.data || busy} onClick={() => void createDemo()}>Lihat contoh ilustrasi</Button></div>
+        <p>Contoh dibuat oleh aplikasi untuk mengenalkan editor; bukan foto udara berlisensi dan tidak melalui inferensi.</p>
+      </section>}
       {survey && <>
         <div className="toolbar survey-toolbar no-print">
           <Button variant={page === 'editor' ? 'default' : 'outline'} disabled={busy} onClick={() => { if (page !== 'editor' && leave()) { onDirty(false); setPage('editor'); } }}>Foto & editor</Button>

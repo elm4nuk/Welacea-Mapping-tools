@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { ApiError } from '../../api/client';
-import { analysisError, modelStatus, runStatus } from './analysis';
+import { analysisError, modelPresentation, modelStatus, runStatus } from './analysis';
 import type { Schema } from '../../api/client';
 
 test('model status only exposes metadata supplied by the API', () => {
@@ -27,4 +27,11 @@ test('analysis errors distinguish timeout, conflicts, model state and connection
 test('run status is localized and omits absent model metadata', () => {
   const run = { status: 'failed', model_id: null, model_version: null } as Schema['AnalysisRun'];
   expect(runStatus(run)).toEqual({ status: 'Analisis gagal', metadata: '' });
+});
+
+test('DeepForest wording is enabled only by model identity supplied by the API', () => {
+  expect(modelPresentation('DeepForest-v1')).toMatchObject({ isDeepForest: true, candidate: 'kandidat tajuk pohon' });
+  expect(modelPresentation('detector-tanaman')).toMatchObject({ isDeepForest: false, candidate: 'kandidat tanaman' });
+  expect(modelPresentation('notdeepforest')).toMatchObject({ isDeepForest: false });
+  expect(modelPresentation(undefined).disclaimer).toBe('');
 });
