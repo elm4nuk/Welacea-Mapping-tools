@@ -40,6 +40,22 @@ async function addPoint(page: Page, x: string, y: string) {
   await page.getByRole('button', { name: 'Tambah titik dari koordinat', exact: true }).click();
 }
 
+test('real API: built-in example stays labelled as a read-only illustration', async ({ page, request }) => {
+  await page.goto('/');
+  const openExample = page.getByRole('button', { name: 'Buka contoh ilustrasi', exact: true });
+  await expect(openExample).toBeEnabled();
+  await openExample.click();
+  await expect(page.getByRole('status').filter({ hasText: 'bukan foto drone dan bukan hasil analisis AI' })).toBeVisible();
+  const body = await (await request.get(base + '/api/v1/surveys?limit=200')).json();
+  const demo: Survey = body.items.find((item: Survey) => item.is_demo && item.name === 'Parsel demonstrasi');
+  expect(demo).toBeTruthy(); created.push(demo.id);
+  await expect(page.getByText('CONTOH / ILUSTRASI - terpisah dari survei nyata', { exact: false })).toBeVisible();
+  await expect(page.getByLabel('+ Pilih foto untuk diunggah')).toBeDisabled();
+  await page.locator('.photo-card').first().locator('button').first().click();
+  await expect(page.getByText('Contoh / ilustrasi — bukan foto drone nyata', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Analisis foto', exact: true })).toBeDisabled();
+});
+
 test('real API: survey, multi upload, EXIF, edit, undo/redo, save, reload, PNG/CSV/report', async ({ page, request }, info) => {
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));

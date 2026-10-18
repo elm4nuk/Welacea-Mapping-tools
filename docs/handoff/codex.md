@@ -1,4 +1,4 @@
-# Codex frontend handoff — 18 October 2026
+# Codex frontend handoff — 19 October 2026
 
 ## Inference UX integration follow-up
 
@@ -20,28 +20,38 @@
   "tanaman terkonfirmasi". Confidence is labelled as a model score.
 - Reports now state counts per photo and explicitly avoid GPS and whole-field
   unique-plant claims.
-- Verification on the integrated branch: `pnpm typecheck:web`, `pnpm build:web`,
-  `pnpm --filter @wallacea/web test` (17 tests), and `git diff --check` passed.
-  Playwright passed 15/15 against a real FastAPI contract-revision-1 process with
-  no configured model, across desktop/tablet/mobile. It used synthetic images and
-  imported synthetic candidates, not trained-model inference. A later isolated
-  Playwright rerun stalled in the local browser harness and was stopped; its
-  isolated API itself passed `/health` before cleanup.
+- Candidate view models retain API-provided `analysis_run_id` and `model_label`.
+  The review panel resolves model ID/version from the real run history. When that
+  API model ID identifies DeepForest, plant detections are called “kandidat tajuk
+  pohon” and carry the required baseline-validation caveat; no model name is
+  inferred when metadata is absent.
+- The existing `POST /demo/surveys` endpoint is now reachable from the dashboard.
+  It is consistently labelled as a generated, read-only illustration—not a drone
+  photo and not ML output. No licensed aerial sample was provided.
+- Playwright has an opt-in `WALLACEA_E2E_START_WEB=1` mode so the test runner can
+  own the Vite lifecycle while using a separate real FastAPI process/database.
+- Verification on the integrated branch: OpenAPI generation, `pnpm typecheck:web`,
+  `pnpm build:web`, `pnpm --filter @wallacea/web test` (18 tests), peer dependency
+  check, and `git diff --check` passed. Playwright passed 18/18 in one final run
+  across desktop/tablet/mobile, including the new read-only illustration check,
+  against a real FastAPI contract-revision-1 process with no configured model.
+  Synthetic files/imported candidates remain test data, not trained inference.
 - No real model weights, K919 photos, or model-accuracy measurements were
-  available. CR-FE-001 remains the only non-blocking contract request; no new
-  contract change is required for this follow-up.
+  available. CR-FE-001 remains open. CR-FE-002 requests a licensed sample-photo
+  catalog, and CR-FE-003 requests explicit candidate semantics instead of parsing
+  a supplied model ID. Both new requests are non-blocking.
 
 Status: FRONTEND_READY for the manual-survey MVP and API integration below.
 
 ## Branch, commits and contract
 
-- Branch: agent/codex-frontend.
-- Worktree: D:\coding\wallacea-worktrees\codex-frontend.
-- BASE_COMMIT: 15a7408312eff3fe03995c58de4dc46659fcc890.
-- Implementation SHA: 339792d1b2a135930b774e8b24d238ef19a180b6.
-- This handoff is committed after the implementation. Resolve the complete delivery
-  SHA with: git rev-parse agent/codex-frontend.
-- Read Claude's committed handoff at agent/claude-backend (9925e1e at final check).
+- Current branch: `agent/codex-inference-integration`; delivery SHA is the commit
+  containing this handoff. Resolve it with `git rev-parse agent/codex-inference-integration`.
+- Current workspace: `D:\coding\Walacea software`. Claude's backend worktree remains
+  separate at `D:\coding\wallacea-worktrees\claude-backend`.
+- Base frontend landed on `origin/main` in `5ae429d`; Claude commits `e91fc82` and
+  `9925e1e` were cherry-picked onto this branch as `03c7690` and `8a14cc3`.
+- The preceding inference UX integration commit is `3a3f68f`.
 - API v1 revision 1 / OpenAPI info.version 1.1.0. Types generated inside apps/web.
 - No merge, push, deployment, backend edit, migration edit or contract edit performed.
 
@@ -124,14 +134,14 @@ Windows, Node 24.18.0, pnpm 12.9.1, Chromium 156 via Playwright.
 
 - Frozen-lockfile install: passed; peer check: no issues.
 - OpenAPI type generation, typecheck and production build: passed.
-- Lazy editor/report loading removes large-chunk warnings. Main JS ~418 kB;
-  editor chunk ~351 kB, before gzip.
-- Vitest: 13 tests passed in 2 files. Coordinates at zoom/pan/resize and oriented
+- Lazy editor/report loading removes large-chunk warnings. Main JS ~421 kB;
+  editor chunk ~355 kB, before gzip.
+- Vitest: 18 tests passed in 3 files. Coordinates at zoom/pan/resize and oriented
   dimensions, boxes, review counts, isolated undo/redo, snapshot immutability,
-  validation, CSV, API adapters and fresh history after conflict reload.
-- Final Playwright run: 15 tests passed in 58.1 seconds, five scenarios repeated
-  at desktop 1600x1000, tablet 820x1180 and mobile 390x844.
-- Actual uvicorn/FastAPI from baseline 15a7408, port 18080, dedicated temporary
+  validation, CSV, API adapters, model wording and fresh history after conflict reload.
+- Playwright: 18/18 passed in 55.1 seconds at desktop 1600x1000, tablet 820x1180
+  and mobile 390x844.
+- Actual uvicorn/FastAPI contract revision 1, port 18080, dedicated temporary
   data directory, no configured model. No mock API.
 - Survey create/edit; JPEG EXIF Orientation 6 and WebP multi-upload; actual
   oriented display/dimensions; PNG upload; duplicate warning; corrupt image;
@@ -148,7 +158,8 @@ Windows, Node 24.18.0, pnpm 12.9.1, Chromium 156 via Playwright.
   survey edit and destructive confirmation checked against actual API responses.
 - Actual PNG/CSV downloads and Chromium PDF generation with print media.
   Desktop/tablet/mobile screenshots reviewed; no horizontal page overflow.
-- git diff --check: passed. Main worktree remained clean.
+- git diff --check: passed. `graphify-out/` remains untracked and intentionally
+  excluded from the delivery commit.
 
 Images are generated synthetic PNG/WebP/JPEG, not drone photos. Imported
 candidates are synthetic contract data, not trained model inference.
@@ -172,15 +183,19 @@ QA surveys were cleaned up. Runtime database and QA images are not committed.
 - No new-format backup export endpoint; use Claude's runtime backup procedure.
 - CR-FE-001 in docs/requests/codex-api.md requests clearer optional-but-non-null
   PATCH schema restrictions. Non-blocking; frontend uses runtime-valid requests.
-- Codex did not rerun backend unit tests; Claude's report is separate.
-- Final integration with the completed backend branch is Claude's responsibility.
+- CR-FE-002 and CR-FE-003 in docs/requests/codex-demo-semantics.md request a
+  licensed sample-photo catalog and explicit candidate semantics. Both are
+  optional additions; current UI stays honest without them.
+- Codex did not rerun backend unit tests; Claude's 117-test report remains the
+  backend verification record. This turn exercised the backend through browser E2E.
 
 ## Integration
 
-Read committed handoff:
+Read the committed handoff:
 
-    git show agent/codex-frontend:docs/handoff/codex.md
+    git show agent/codex-inference-integration:docs/handoff/codex.md
 
-Integrate the completed frontend and backend only on the separate integration
-branch described in Claude's handoff. Rerun real API E2E there. No merge into main
-or public deployment is included.
+The frontend already consumes Claude's contract revision 1 on this integration
+branch. No merge into main, push, or public deployment is included. A final real
+model run remains necessary after compatible weights and representative photos
+are supplied.

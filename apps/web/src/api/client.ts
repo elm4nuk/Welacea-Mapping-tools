@@ -38,6 +38,7 @@ export const api = {
   health: (signal?: AbortSignal) => request<Schema['Health']>(root + '/health', { signal }),
   surveys: (offset = 0, signal?: AbortSignal) => request<Schema['SurveyPage']>(root + `/surveys?limit=200&offset=${offset}`, { signal }),
   createSurvey: (body: Schema['SurveyCreate']) => request<Survey>(root + '/surveys', json('POST', body)),
+  createDemoSurvey: () => request<Survey>(root + '/demo/surveys', json('POST')),
   updateSurvey: (s: Survey, body: Schema['SurveyUpdate']) => request<Survey>(root + '/surveys/' + s.id, json('PATCH', body, s.revision)),
   deleteSurvey: (s: Survey) => request<void>(root + '/surveys/' + s.id, json('DELETE', undefined, s.revision)),
   photos: (id: string, offset = 0, signal?: AbortSignal) => request<Schema['PhotoPage']>(root + `/surveys/${id}/photos?limit=200&offset=${offset}`, { signal }),

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Circle, Group, Image as CanvasImage, Layer, Rect, Stage, Text } from 'react-konva';
 import type { Finding, Kind, Point, Viewport } from './model';
 import { boxBetween, counts, findingStatus, fitImage, normalizedPointer, photoCsv, zoomAt } from './model';
+import { modelPresentation } from './analysis';
 import './editor.css';
 
 export type EditorPhoto = {
@@ -21,6 +22,7 @@ type Props = {
   canRedo: boolean;
   persistenceLabel?: string;
   integrated?: boolean;
+  modelByRunId?: Record<string, { id?: string; version?: string }>;
 };
 const labels: Record<Kind, string> = {
   plant: 'Tanaman', inspect: 'Perlu diperiksa', gap: 'Dugaan titik kosong',
@@ -213,7 +215,10 @@ function PhotoEditorCanvas(props: Props) {
     </main><aside aria-label="Temuan foto">
       <h2>Temuan <small>{findings.length}</small></h2>
       {findings.length === 0 && <p>Belum ada anotasi. Tambahkan titik atau bounding box pada foto.</p>}
-      <ul className="finding-list">{findings.map((f, i) => { const status = findingStatus(f); return <li key={f.id}>
+      <ul className="finding-list">{findings.map((f, i) => {
+        const model = f.analysisRunId ? props.modelByRunId?.[f.analysisRunId] : undefined;
+        const status = findingStatus(f, modelPresentation(model?.id).isDeepForest);
+        return <li key={f.id}>
         <button aria-pressed={f.id === selected} onClick={() => setSelected(f.id)}>
           <span>{i + 1}. {status.confirmed || labels[f.kind]}</span>
           <small>{status.source} / {status.review}</small>
@@ -247,6 +252,14 @@ function PhotoEditorCanvas(props: Props) {
         </form>
         {active.source === 'model' && active.confidence !== undefined && <p>Skor model: {(active.confidence * 100).toFixed(1)}%.
           Ini skor keluaran model untuk kandidat, bukan akurasi survei atau lahan.</p>}
+        {active.source === 'model' && (() => {
+          const runModel = active.analysisRunId ? props.modelByRunId?.[active.analysisRunId] : undefined;
+          const metadata = [runModel?.id, runModel?.version].filter(Boolean).join(' / ');
+          const presentation = modelPresentation(runModel?.id);
+          return <>{metadata && <p>Model dari API: {metadata}.</p>}
+            {active.modelLabel && <p>Label keluaran model: {active.modelLabel}.</p>}
+            {presentation.disclaimer && <p className="notice">{presentation.disclaimer}</p>}</>;
+        })()}
         <div className="toolbar"><button onClick={() => edit({ review: 'accepted' })}>Terima</button>
           <button onClick={() => edit({ review: 'rejected' })}>Tolak</button>
           <button onClick={() => {

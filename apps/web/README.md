@@ -65,8 +65,21 @@ Vite preview does not provide the development API proxy.
 - Pending model output is labelled as a candidate and is excluded from plant
   counts. Only accepted plant annotations are labelled and counted as confirmed
   plants. Confidence is presented as a model score, not survey accuracy.
+- Each candidate retains its API-provided analysis-run link. The review panel
+  shows model ID/version and detector label only when supplied by the API.
+  API-identified DeepForest runs use “kandidat tajuk pohon” and state that this
+  baseline has not been validated for every agricultural crop. Other models keep
+  the generic “kandidat tanaman” wording.
 - Reports state counts per photo. Image coordinates are not GPS, and sums across
   overlapping photos are not claimed as unique plants for the whole field.
+
+## Built-in illustration
+
+The empty dashboard and sidebar can call the real `POST /api/v1/demo/surveys`
+endpoint. This creates the backend-generated, read-only illustration and its
+manual example marks. The UI labels it as an illustration, not a drone photo and
+not ML inference. No licensed aerial sample was supplied, so the frontend does
+not offer a sample-photo picker or claim a source that is not in the contract.
 
 ## Browser checks with the real API
 
@@ -85,6 +98,13 @@ In a third terminal:
 
     pnpm --filter @wallacea/web exec playwright install chromium
     $env:WALLACEA_E2E_PYTHON = 'C:\absolute\path\to\api\.venv\Scripts\python.exe'
+    pnpm --filter @wallacea/web test:e2e
+
+For an isolated run, Playwright can start and stop Vite itself while the dedicated
+API remains running:
+
+    $env:API_PROXY_TARGET = 'http://127.0.0.1:18080'
+    $env:WALLACEA_E2E_START_WEB = '1'
     pnpm --filter @wallacea/web test:e2e
 
 The Python interpreter needs Pillow (already in the API lockfile). Override

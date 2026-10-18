@@ -71,6 +71,8 @@ test('manual, pending, accepted and rejected findings have distinct honest label
   });
   expect(findingStatus(finding('accepted', 'a', { source: 'model' })).confirmed).toBe('Tanaman terkonfirmasi');
   expect(findingStatus(finding('rejected', 'a', { source: 'model', review: 'rejected' }))).toMatchObject({ review: 'Ditolak', confirmed: '' });
+  expect(findingStatus(finding('crown', 'a', { source: 'model', review: 'pending' }), true).source).toBe('Kandidat tajuk pohon');
+  expect(findingStatus(finding('accepted-crown', 'a', { source: 'model' }), true).confirmed).toBe('Tajuk pohon terkonfirmasi');
 });
 
 test('add/edit/undo/redo is isolated per photo; a new edit clears redo', () => {
