@@ -1,0 +1,73 @@
+@import "tailwindcss";
+@import "./features/editor/editor.css";
+:root { font-family: Inter, system-ui, sans-serif; color: #213d30; background: #f6f5ef; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input, select, textarea { font: inherit; }
+button, a, input, select, textarea { outline-color: #866014; }
+button { cursor: pointer; }
+button:disabled { cursor: default; opacity: .55; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid #866014; outline-offset: 3px; }
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+input, textarea, select { border: 1px solid #9bab9b; border-radius: 8px; padding: 10px; min-height: 44px; background: white; }
+input[type=file] { width: 100%; font-size: 12px; }
+label { display: grid; gap: 6px; }
+h1, h2, h3 { font-weight: 650; line-height: 1.25; }
+h1 { font-size: clamp(24px, 2.4vw, 34px); margin: 8px 0; }
+h2 { font-size: 20px; margin: 18px 0; }
+p { line-height: 1.65; }
+.app-shell { display: grid; grid-template-columns: 244px minmax(0, 1fr); min-height: 100dvh; }
+.app-sidebar { background: #163e30; color: #eef5e7; padding: 28px 18px; display: flex; flex-direction: column; gap: 14px; }
+.brand { display: flex; align-items: center; gap: 10px; letter-spacing: .06em; }
+.brand small { display: block; font-size: 11px; font-weight: 400; opacity: .8; letter-spacing: .03em; margin-top: 4px; }
+.brand-mark { display: grid; place-items: center; border-radius: 12px; width: 42px; height: 46px; background: #d9eeb5; color: #163e30; font: 700 26px Georgia, serif; }
+.sidebar-caption { font-size: 9px; letter-spacing: .1em; color: #c0d8c6; }
+.survey-item { display: grid; gap: 6px; width: 100%; text-align: left; padding: 14px; border-radius: 10px; min-height: 80px; margin-bottom: 8px; overflow-wrap: anywhere; }
+.survey-item span, .survey-item small { font-size: 12px; color: #cfdfd0; }
+.survey-item:hover { background: #23513e; }
+.survey-item[aria-current=page] { background: #335d45; border-left: 3px solid #c5e89a; }
+.sidebar-footer { margin-top: auto; font-size: 12px; color: #cbd9cc; }
+.import-label { margin-top: 18px; }
+.app-main { min-width: 0; padding: 28px clamp(16px, 2.3vw, 36px); }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.status-pill { border: 1px solid #c4d5be; border-radius: 30px; padding: 8px 14px; font-size: 12px; white-space: nowrap; background: #eff5e5; }
+.model-status { color: #63715e; font-size: 13px; margin: 18px 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.survey-toolbar { border-bottom: 1px solid #d5ddcf; padding-bottom: 16px; margin-bottom: 24px; }
+.photo-workspace { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; }
+.photo-sidebar { min-width: 0; font-size: 12px; }
+.upload-zone { background: #eaf1e0; border: 1px dashed #91a67e; padding: 16px 10px; border-radius: 10px; font-weight: 600; }
+.photo-card { border: 1px solid #d5ddcf; border-radius: 10px; background: white; margin: 14px 0; padding: 8px; }
+.photo-card.active { outline: 2px solid #386d4c; outline-offset: 2px; }
+.photo-strip { padding: 4px; max-height: 70vh; overflow: auto; }
+.photo-card button { display: grid; width: 100%; text-align: left; min-height: 44px; padding: 5px; }
+.photo-card img { width: 100%; height: 98px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; }
+.photo-card b, .upload-row b { overflow-wrap: anywhere; }
+.photo-card small { color: #526357; margin: 6px 0; }
+.editor-area { min-width: 0; }
+.wallacea-editor { padding: 16px 0; }
+.wallacea-editor .editor-layout { grid-template-columns: minmax(0,1fr) 240px; gap: 16px; }
+.wallacea-editor .toolbar { gap: 6px; }
+.wallacea-editor .toolbar button { font-size: 12px; padding: 8px; }
+.wallacea-editor label { font-size: 12px; }
+.session-actions { margin-bottom: 12px; }
+.empty-state { border: 1px solid #d5ddcf; border-radius: 18px; padding: clamp(24px, 5vw, 60px); background: #fcfcf8; margin: 28px 0; }
+.empty-state h2 { font: 500 clamp(28px, 3vw, 42px)/1.2 Georgia, serif; max-width: 580px; }
+.empty-state p { color: #596954; max-width: 660px; }
+.survey-form { background: white; padding: 24px; border: 1px solid #c8d5bf; border-radius: 12px; margin-bottom: 24px; }
+.survey-form fieldset { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.survey-form label { font-size: 14px; }
+.survey-form textarea { min-height: 100px; }
+.error { background: #fbede7; color: #8d3421; padding: 12px; border-radius: 8px; overflow-wrap: anywhere; }
+.success { background: #e9f4e5; color: #23513e; padding: 12px; border-radius: 8px; }
+.notice { background: #f1ebda; color: #5b471d; padding: 12px; border-radius: 8px; }
+.report { background: white; padding: 28px; border: 1px solid #d5ddcf; border-radius: 12px; }
+.report-rows { display: grid; gap: 12px; margin: 20px 0; }
+.report-rows article { border-bottom: 1px solid #ddd; padding: 12px; break-inside: avoid; }
+pre { max-height: 300px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
+.upload-row { padding: 12px 0; border-bottom: 1px solid #d5ddcf; }
+progress { width: 100%; accent-color: #164b38; }
+@media (max-width: 1200px) { .wallacea-editor .editor-layout { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) { .app-shell { grid-template-columns: 200px minmax(0,1fr); } .photo-workspace { grid-template-columns: 1fr; } .photo-strip { display: flex; gap: 12px; overflow-x: auto; max-height: none; } .photo-strip .photo-card { flex: 0 0 160px; } .upload-zone { max-width: 340px; } .topbar { flex-wrap: wrap; } }
+@media (max-width: 700px) { .app-shell { grid-template-columns: 1fr; } .app-sidebar { padding: 18px; } .app-sidebar nav { display: flex; overflow-x: auto; gap: 10px; } .survey-item { min-width: 190px; } .sidebar-footer { margin: 0; } .sidebar-caption { display:none; } .survey-form fieldset { grid-template-columns: 1fr; } .status-pill { white-space: normal; } .app-main { padding: 20px 12px; } }
+@media print { .no-print, .app-sidebar, .topbar, .survey-form { display:none !important; } .app-shell, .app-main { display:block; padding:0; background:white; } .report { border:0; padding:0; } .report h1 { font-size:24pt; } @page { size:A4; margin:18mm; } }
