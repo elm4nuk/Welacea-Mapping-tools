@@ -1,109 +1,125 @@
-# Handoff Claude (backend & integrasi) — 2026-10-18
+# Handoff Claude (backend, ML, kontrak) — 2026-10-19
 
 ## Commit
 
 | | SHA | Branch |
 |---|---|---|
-| BASE_COMMIT (kontrak siap) | `15a7408312eff3fe03995c58de4dc46659fcc890` | `main`, titik awal kedua worktree |
-| Pekerjaan backend setelah baseline | `e91fc82` | `agent/claude-backend` |
-| Handoff ini | commit setelah `e91fc82` | `agent/claude-backend` |
+| BASE_COMMIT | `15a7408` | `main` (titik awal worktree) |
+| Backend MVP + toolkit ML awal | `e91fc82`, `9925e1e` | `agent/claude-backend` |
+| Workspace `ml/` (dataset, training, evaluasi, notebook) | lihat `git log agent/claude-backend` | `agent/claude-backend` |
+| Detector DeepForest + kontrak **revisi 2** | lihat `git log agent/claude-backend` | `agent/claude-backend` |
 
-Worktree: backend `D:\coding\wallacea-worktrees\claude-backend`, frontend `D:\coding\wallacea-worktrees\codex-frontend`.
+Ambil SHA terbaru: `git rev-parse agent/claude-backend`. Tidak ada push, merge ke `main`, atau deploy.
+`origin/main` sudah berisi frontend Codex (PR #2); branch ini **belum** di-rebase/merge ke sana.
 
-## Status
+## Status singkat
 
-- **CONTRACT_READY**: kontrak API v1 **revisi 1**, `packages/contracts/openapi.yaml` (`info.version` 1.1.0),
-  37 fixtures dari respons API sungguhan. Tidak ada perubahan kontrak setelah baseline.
-- Backend MVP selesai untuk mode manual + jalur model yang jujur. **Belum ada integrasi**: branch frontend
-  belum menyatakan `FRONTEND_READY` (saat dicek 17:35, perubahan Codex masih belum di-commit).
+- **Inferensi ML nyata berjalan lewat `POST /photos/{id}/analyze`** dengan DeepForest pretrained
+  (kandidat **tajuk pohon**, CPU) — diuji dengan server uvicorn sungguhan + 3 foto contoh NEON.
+- Model jagung tim (YOLO11n fine-tune pada dataset publik UAVmulticrop) juga berjalan lewat adapter
+  Ultralytics; dievaluasi pada situs yang tidak terlihat (lihat `ml/README.md` § Status).
+- **Belum ada foto K919 MAX.** Semua hasil hanya pada foto contoh/dataset publik.
+- Kontrak **revisi 2** (`info.version` 1.2.0): **aditif** di `GET /health → model`.
 
-## Scope selesai
+## Untuk Codex (frontend)
 
-- Survei CRUD + pagination + `If-Match` opsional; survei contoh `POST /demo/surveys` (PNG ilustrasi berlabel).
-- Upload foto per berkas: validasi isi (JPEG/MPO/PNG/WebP), 20 MB, 60 MP, berkas terpotong/animasi ditolak,
-  EXIF orientation → dimensi pasca-orientasi + `display` terorientasi, `captured_at`, `has_exif_gps`
-  (tidak dipakai sebagai lokasi), sha256, nama storage acak, thumbnail ≤ 512 px, warning duplikat,
-  cleanup berkas saat gagal, 413 sebelum body di-spool.
-- Anotasi point/bbox ternormalisasi, validasi finite/0–1/bbox dalam gambar, maks 3000/foto,
-  revision + `If-Match` wajib (update atomik bersyarat), 409 dengan `details.current`.
-- Analisis: interface `Detector`, `UnconfiguredDetector` (503 `MODEL_NOT_CONFIGURED`, tanpa run palsu),
-  `UltralyticsDetector` (bobot `.pt` lokal, label map eksplisit, `model_version` = sidik jari sha256 bobot),
-  run persist, timeout → 504, run terputus restart → `failed/INTERRUPTED`, kontrol run berulang
-  (`reject` / `replace_pending` / `append`), maksimal satu run `running` per foto (indeks unik DB).
-- Impor deteksi (format starter) dengan cek dimensi terorientasi & sha256.
-- Laporan per foto + temuan + disclaimer; CSV (BOM, anti formula injection).
-- Impor backup starter `schemaVersion 1` sebagai salinan, atomik, label demo & catatan terjaga.
-- Toolkit ML (`apps/api/ml`): manifest, split per lahan/penerbangan + cek kebocoran, evaluasi
-  precision/recall/galat hitungan, wrapper training yang menolak tanpa data. **Tidak ada pelatihan dijalankan.**
-- `docs/architecture/REPO_SELECTION.md`: lisensi & rilis dicek ke GitHub 2026-10-18.
+1. Regenerasi tipe dari `packages/contracts/openapi.yaml` (revisi 2). Tidak ada field yang dihapus.
+2. `health.model` kini punya: `adapter` (`ultralytics|deepforest|null`), `target` (`plant|tree_crown|null`),
+   `target_label` (teks siap tampil), `device`, `limitations: string[]`. Contoh respons nyata (server uvicorn,
+   DeepForest dimuat):
 
-## Endpoint (`/api/v1`)
+   ```json
+   "model": {
+     "state": "loaded", "available": true,
+     "model_id": "weecology/deepforest-tree", "model_version": "sha256:d37a7af0b5ba2754",
+     "message": "Model DeepForest termuat di memori.",
+     "adapter": "deepforest", "target": "tree_crown",
+     "target_label": "Kandidat tajuk pohon (DeepForest pretrained)", "device": "cpu",
+     "limitations": [
+       "Model pretrained tajuk pohon dari citra pesawat NEON ±10 cm/px (hutan AS), bukan model tanaman pertanian.",
+       "Belum dievaluasi pada foto K919 MAX; ukuran objek bergantung ketinggian terbang dan resolusi.",
+       "Tanaman semusim kecil (jagung muda, padi, sayuran) umumnya tidak cocok untuk model ini."]
+   }
+   ```
+   Fixture: `health.not-configured.json`, `health.test-double-loaded.json`, **baru**
+   `health.deepforest-weights-missing.json` (state `error`, metadata target tetap ada).
+3. Saran UI (tanpa menebak):
+   - Status pill `App.tsx` saat ini statis "API tersedia / Mode manual" — gunakan `model.state` +
+     `model.target_label`; tampilkan `model.limitations` di dekat tombol analisis.
+   - Kandidat DeepForest tersimpan `kind="plant"`, `model_label="Tree"`, `source="model"`, `pending`. Bila
+     `health.model.target === "tree_crown"`, beri nama kandidat model sebagai `target_label` (bukan "tanaman").
+     Setelah diterima pengguna, hitungan tetap `plant_accepted` per foto (bukan jumlah tanaman unik lahan).
+   - `AnalysisRun.parameters` (objek bebas) berisi `adapter`, `target`, `mode` (`image|tile`), `conf`,
+     `patch_size`, `device`, `hf_repo`, `hf_revision`, `deepforest_version` — boleh ditampilkan sebagai detail run.
+   - Analisis sinkron di CPU: ±1 s untuk 400×400, ±12 s untuk 1249×1035 (diukur). Foto drone penuh bisa
+     puluhan detik; 504 `INFERENCE_TIMEOUT` (batas `limits.inference_timeout_s`) mungkin muncul.
+   - Survei demo tetap read-only: analyze → 409 `DEMO_SURVEY_READONLY` (tidak diubah).
+4. Foto contoh untuk demo unggah: `samples/deepforest-neon/*.png` (atribusi & lisensi di `ATTRIBUTION.md`;
+   NEON CC BY 4.0, distribusi DeepForest MIT). XML di folder itu = anotasi manusia untuk notebook, **bukan**
+   untuk diimpor sebagai hasil inferensi.
 
-`GET /health` · `GET|POST /surveys` · `GET|PATCH|DELETE /surveys/{id}` · `POST /demo/surveys` ·
-`POST|GET /surveys/{id}/photos` · `GET|DELETE /photos/{id}` · `GET /photos/{id}/content|display|thumbnail` ·
-`GET|POST /photos/{id}/annotations` · `PATCH|DELETE /annotations/{id}` · `POST /photos/{id}/analyze` ·
-`POST /photos/{id}/detections/import` · `GET /photos/{id}/analysis-runs` · `GET /surveys/{id}/report` ·
-`GET /surveys/{id}/export.csv` · `POST /imports/starter-backup`. Swagger: `/api/v1/docs`.
+## Menjalankan (Windows PowerShell)
 
-## Menjalankan
+API + DeepForest (CPU):
 
 ```powershell
 cd apps/api
 py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.lock.txt
-.venv\Scripts\python -m app                 # 127.0.0.1:8000
-.venv\Scripts\python -m pytest              # tes
-.venv\Scripts\python scripts\export_contract.py --check
-# web (dari root): pnpm install; pnpm dev:web  → 127.0.0.1:5173, proxy /api
+.venv\Scripts\python -m pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu
+.venv\Scripts\python -m pip install -r requirements-deepforest.txt
+.venv\Scripts\python scripts\download_deepforest.py          # sekali; ±230 MB
+$env:WALLACEA_DETECTOR = "deepforest"
+$env:WALLACEA_MODEL_PATH = "$PWD\var\models\deepforest-tree"
+$env:WALLACEA_MODEL_PRELOAD = "true"
+.venv\Scripts\python -m app                                    # 127.0.0.1:8000
+# web (root): pnpm dev:web → 127.0.0.1:5173
 ```
 
-Dependency: `apps/api/requirements.lock.txt` (FastAPI 0.143.5, Starlette 1.8.0, Pydantic 2.14.1,
-SQLAlchemy 2.0.55, Alembic 1.20.0, Pillow 13.0.0, uvicorn 0.54.0). Opsional: `requirements-ai.txt` (Ultralytics).
-Web baseline: Node 24.18 LTS, pnpm 12.9.1, Vite 8.3.4, React 19.3.1, TypeScript 6.0.3.
+Tanpa langkah DeepForest, API tetap mode manual (`MODEL_NOT_CONFIGURED`). ML/Jupyter: `ml/README.md`
+(`ml\.venv`, kernel "Python (wallacea-ml)", notebook 01–05).
 
-## Tes yang benar-benar dijalankan
+## Sumber & identitas bobot
 
-- `pytest`: **117 lulus** di worktree backend (107 di baseline + 10 toolkit ML), Windows 11, Python 3.12.10.
-  Pipeline analisis memakai **detector test double** → contract test, **bukan** uji akurasi model.
-  Adapter Ultralytics diuji dengan modul `ultralytics` palsu (paket asli tidak dipasang).
-- Checkout bersih baseline: `pnpm install --frozen-lockfile`, `pnpm typecheck:web`, `pnpm build:web`,
-  venv baru + `pip install -r requirements.lock.txt` + `pytest` + `export_contract.py --check` → lulus.
-- Server nyata (`python -m app`, uvicorn): `GET /health` 200, buat survei 201, upload PNG 201,
-  upload 25 MB → 413 sebelum diproses, `netstat` menunjukkan listen hanya di `127.0.0.1`.
+| Model | Sumber | Versi / checksum | Lisensi |
+|---|---|---|---|
+| DeepForest tree | HF `weecology/deepforest-tree` @ `cc21436bc5d572dde8ff5f93c1e71a32f563cace` | `model.safetensors` sha256 `d37a7af0b5ba2754…` → `model_version` `sha256:d37a7af0b5ba2754` | MIT (model card); kode DeepForest 2.1.0 MIT |
+| Backbone konstruksi | `https://download.pytorch.org/models/resnet50-0676ba61.pth` | sha256 `0676ba61b6795bbe…` | torchvision (BSD-3 kode; bobot ImageNet). Nilai ditimpa safetensors |
+| Jagung YOLO11n (eksperimen) | dilatih lokal dari `yolo11n.pt` (ultralytics/assets v8.3.0) + UAVmulticrop CC-BY-4.0 | `sha256:9c2e20232a359fd5` | turunan bobot AGPL-3.0/Enterprise; tidak di Git |
 
-## TIDAK dijalankan / belum terverifikasi
+Semua tercatat di `apps/api/var/models/deepforest-tree/wallacea_model.json` dan
+`ml/artifacts/models/<nama>/model_card.json` (tidak di Git).
 
-- Browser test / E2E UI (menunggu frontend Codex; fase integrasi).
-- Inferensi model tanaman nyata (tidak ada bobot), paket Ultralytics/PyTorch asli.
-- Foto K919 MAX nyata (format, EXIF, resolusi, orientasi belum dilihat).
-- PostgreSQL (struktur siap, belum diuji). SQLAlchemy 2.1 belum diuji (dikunci `<2.1`).
+## Tes yang benar-benar dijalankan (2026-10-19, Windows 11, Python 3.12.10)
 
-## Limitasi
+| Tes | Hasil | Jenis |
+|---|---|---|
+| `apps/api` pytest, venv lengkap (DeepForest + bobot) | **116 lulus** | kontrak + 1 inferensi nyata |
+| `apps/api` pytest, venv minimum (tanpa numpy/torch/deepforest) | lulus, 3 skip beralasan | kontrak |
+| `export_contract.py --check` | cocok | kontrak |
+| `ml` pytest | **33 lulus** | pipeline (fixture sintetis), bukan akurasi |
+| DeepForest muat + infer dengan **socket diblokir** | lulus (muat 1.5 s, 49 kandidat) | tanpa unduhan saat request |
+| E2E HTTP uvicorn :8011 (DeepForest, preload) | health `loaded` dalam 7 s; 3 foto → 201, semua `pending`; review 0→1; analyze ulang 409 `ANALYSIS_EXISTS`; demo 409 `DEMO_SURVEY_READONLY` | integrasi nyata |
+| Orientasi EXIF, model nyata | JPEG piksel diputar + EXIF 6 → 48/49 kotak IoU≥0.8 dengan PNG asli | konsistensi editor↔model |
+| Notebook 05 dieksekusi (nbconvert, kernel wallacea-ml) | sukses; angka di `ml/README.md` § Status B | perbandingan vs anotasi manusia (3 foto) |
+| Model jagung via API (TestClient) | 144 & 288 kandidat `pending`, `model_version` = model card | integrasi nyata |
 
-- Tanpa autentikasi; hanya untuk loopback. Satu proses, SQLite.
-- Inferensi sinkron; thread yang melewati timeout tidak bisa dihentikan paksa (hasil dibuang, lock detector tertahan sampai selesai).
-- Undo penghapusan kandidat model tidak bisa memulihkan `source=model` (POST manual selalu manual) — gunakan `rejected`.
-- Belum ada ekspor backup format baru (hanya impor starter). Backup = salin `apps/api/var/` saat API mati.
-- `captured_at` tanpa zona waktu (EXIF umumnya tidak menyimpannya). HEIC/RAW tidak didukung.
-- Foto survei contoh dari backup starter (SVG) diganti placeholder PNG; posisi penanda contoh tidak lagi cocok dengan gambar ilustrasi asli.
+Pembanding terhadap anotasi manusia (3 foto NEON, IoU 0.5, conf 0.35): precision 0.659, recall 0.650, AP 0.537,
+FP 127, terlewat 132. Foto ini tidak independen dari data pengembang model → **bukan** akurasi produk.
 
-## Blocker
+## Keterbatasan (jujur)
 
-- Dataset & bobot model tanaman belum ada → jalur AI hanya bisa diuji dengan test double.
-- Kualitas/format foto K919 belum diketahui → batas 20 MB/60 MP dan dukungan format perlu dicek dengan foto nyata.
+- DeepForest = **tajuk pohon** dari citra pesawat NEON 10 cm. Untuk lahan pertanian (jagung, padi, sayuran)
+  dan foto K919 pada ketinggian berbeda, hasilnya kemungkinan buruk; **belum diuji**. Untuk sawit/kebun pohon
+  lebih masuk akal, tetap belum diuji pada K919.
+- `patch_size` 400 disetel untuk ±10 cm/px; GSD K919 belum diketahui → perlu disetel ulang setelah ada foto.
+- CPU lambat untuk foto penuh; thread inferensi yang melewati timeout tidak bisa dihentikan paksa.
+- Windows Smart App Control memblokir `pandas` 3.0.6 di mesin uji → dikunci 3.0.5.
+- Model jagung: P/R 0.46/0.47 pada situs baru; tidak dipakai sebagai default demo.
 
-## Catatan untuk Codex
+## Blocker / langkah berikut
 
-- Kontrak: `kind` = `plant | check | gap` (bukan `inspect`); bbox `[left, top, width, height]`; editor pakai `display_url`.
-- Berkas editor yang sempat ada sebagai untracked di folder utama (`apps/web/src/features/editor/*`) tidak
-  dimasukkan ke baseline. Saat dicek 17:35 berkas itu sudah tidak ada di folder utama dan ada `src/features/`
-  (belum di-commit) di worktree Codex.
-- Usulan perubahan kontrak → `docs/requests/codex-*.md` di branch frontend.
-
-## Langkah berikut
-
-1. Tunggu `FRONTEND_READY` + SHA dari Codex; baca `git show agent/codex-frontend:docs/handoff/codex.md`.
-2. Integrasi di `integration/wallacea-mvp` dari baseline: merge `agent/claude-backend` + `agent/codex-frontend`,
-   jalankan API + web, typecheck, build, pytest, E2E alur satu foto dengan API sungguhan + kondisi tanpa model.
-3. Uji dengan beberapa foto K919 nyata (orientasi, ukuran, EXIF).
-4. Tim AI/ML: mulai labeling satu tanaman sesuai `apps/api/ml/README.md`.
+1. Foto K919 MAX nyata (beberapa penerbangan, catat ketinggian) → uji orientasi/EXIF/ukuran + label ±20 foto.
+2. Codex: regenerasi tipe revisi 2, pakai `target_label`/`limitations` (lihat di atas).
+3. Integrasi `integration/wallacea-mvp`: merge `agent/claude-backend` dengan `origin/main` (frontend).
+4. Tentukan tanaman target nyata; latih model tim (`ml/`) bila DeepForest tidak cocok.
