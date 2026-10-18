@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Circle, Group, Image as CanvasImage, Layer, Rect, Stage, Text } from 'react-konva';
 import type { Finding, Kind, Point, Viewport } from './model';
-import { boxBetween, counts, fitImage, normalizedPointer, photoCsv, zoomAt } from './model';
+import { boxBetween, counts, findingStatus, fitImage, normalizedPointer, photoCsv, zoomAt } from './model';
 import './editor.css';
 
 export type EditorPhoto = {
@@ -95,10 +95,10 @@ function PhotoEditorCanvas(props: Props) {
       <p>{props.persistenceLabel ?? 'Pratinjau komponen - perubahan belum disimpan ke server.'}</p></div>
       <button onClick={downloadCsv}>Ekspor CSV foto</button></header>
     <div className="metrics" aria-live="polite">
-      <span><b>{summary.plants}</b> Tanaman diterima</span>
+      <span><b>{summary.plants}</b> Tanaman terkonfirmasi</span>
       <span><b>{summary.inspections}</b> Pemeriksaan</span>
       <span><b>{summary.gaps}</b> Dugaan kosong</span>
-      <span><b>{summary.pending}</b> Belum ditinjau</span>
+      <span><b>{summary.pending}</b> Kandidat menunggu review</span>
     </div>
     <div className="editor-layout"><main>
       <div className="toolbar" aria-label="Alat editor">
@@ -165,9 +165,11 @@ function PhotoEditorCanvas(props: Props) {
             draggable={tool === 'pan'} onDragEnd={e => setView(v => ({ ...v, x: e.target.x(), y: e.target.y() }))}>
             <CanvasImage image={photo.image} width={size.width} height={size.height} />
             {findings.map((f, index) => {
-              if (f.review === 'rejected') return null;
-              const common = { stroke: colors[f.kind], strokeWidth: (f.id === selected ? 4 : 2) / view.scale,
-                dash: f.review === 'pending' ? [6 / view.scale, 4 / view.scale] : undefined,
+              const common = { stroke: f.review === 'rejected' ? '#66736c' : f.review === 'pending' ? '#b56518' : colors[f.kind],
+                strokeWidth: (f.id === selected ? 4 : 2) / view.scale,
+                dash: f.review === 'pending' ? [6 / view.scale, 4 / view.scale]
+                  : f.review === 'rejected' ? [2 / view.scale, 5 / view.scale] : undefined,
+                opacity: f.review === 'rejected' ? 0.5 : 1,
                 onClick: () => { if (tool === 'select') setSelected(f.id); },
                 onTap: () => { if (tool === 'select') setSelected(f.id); } };
               return <Group key={f.id}>
@@ -176,7 +178,8 @@ function PhotoEditorCanvas(props: Props) {
                   : <Circle {...common} x={f.point.x * size.width} y={f.point.y * size.height}
                     radius={7 / view.scale} fill="#ffffffbb" />}
                 <Text x={f.point.x * size.width + 10 / view.scale} y={f.point.y * size.height - 15 / view.scale}
-                  text={(index + 1) + (f.kind === 'plant' ? ' T' : f.kind === 'inspect' ? ' P' : ' K')}
+                  text={(index + 1) + (f.kind === 'plant' ? ' T' : f.kind === 'inspect' ? ' P' : ' K')
+                    + (f.source === 'manual' ? ' MAN' : f.review === 'pending' ? ' KAND' : f.review === 'accepted' ? ' OK' : ' TOLAK')}
                   fill="#ffffff" stroke="#163e30" strokeWidth={0.4 / view.scale}
                   fontStyle="bold" fontSize={14 / view.scale} listening={false} />
               </Group>;
@@ -205,14 +208,16 @@ function PhotoEditorCanvas(props: Props) {
         <button>{coordinateGeometry === 'point' ? 'Tambah titik dari koordinat' : 'Tambah box dari koordinat'}</button>
         {coordinateError && <p role="alert">{coordinateError}</p>}</form>
       <p>Hitungan berlaku per foto. Foto bertumpang tindih tidak menghasilkan jumlah tanaman unik lahan.</p>
-      <p>Legenda: T = tanaman, P = perlu diperiksa, K = dugaan kosong. Nomor sesuai daftar temuan; garis putus-putus = pending.</p>
+      <p>Legenda: T = tanaman, P = perlu diperiksa, K = dugaan kosong; MAN = penanda manual; KAND = kandidat pending;
+        OK = kandidat diterima; TOLAK = kandidat ditolak. Garis putus panjang = pending, garis putus pendek/pudar = ditolak.</p>
     </main><aside aria-label="Temuan foto">
       <h2>Temuan <small>{findings.length}</small></h2>
       {findings.length === 0 && <p>Belum ada anotasi. Tambahkan titik atau bounding box pada foto.</p>}
-      <ul className="finding-list">{findings.map((f, i) => <li key={f.id}>
+      <ul className="finding-list">{findings.map((f, i) => { const status = findingStatus(f); return <li key={f.id}>
         <button aria-pressed={f.id === selected} onClick={() => setSelected(f.id)}>
-          {i + 1}. {labels[f.kind]} · {f.review === 'pending' ? 'Belum ditinjau' : f.review === 'accepted' ? 'Diterima' : 'Ditolak'}
-        </button></li>)}</ul>
+          <span>{i + 1}. {status.confirmed || labels[f.kind]}</span>
+          <small>{status.source} / {status.review}</small>
+        </button></li>; })}</ul>
       {active && <div className="finding-form" key={active.id}>
         <label htmlFor={formId + '-kind'}>Kategori</label>
         <select id={formId + '-kind'} value={active.kind} onChange={e => edit({ kind: e.target.value as Kind })}>
@@ -240,8 +245,8 @@ function PhotoEditorCanvas(props: Props) {
           {correctionError && <p role="alert">{correctionError}</p>}
           <button>Terapkan koreksi lokal</button>
         </form>
-        {active.source === 'model' && active.confidence !== undefined && <p>Confidence model: {(active.confidence * 100).toFixed(1)}%.
-          Bukan akurasi lahan.</p>}
+        {active.source === 'model' && active.confidence !== undefined && <p>Skor model: {(active.confidence * 100).toFixed(1)}%.
+          Ini skor keluaran model untuk kandidat, bukan akurasi survei atau lahan.</p>}
         <div className="toolbar"><button onClick={() => edit({ review: 'accepted' })}>Terima</button>
           <button onClick={() => edit({ review: 'rejected' })}>Tolak</button>
           <button onClick={() => {

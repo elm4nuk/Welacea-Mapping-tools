@@ -1,5 +1,36 @@
 # Codex frontend handoff — 18 October 2026
 
+## Inference UX integration follow-up
+
+- Branch: `agent/codex-inference-integration`, based on `origin/main` after PR #2,
+  with Claude commits `e91fc82` and `9925e1e` cherry-picked as `03c7690` and
+  `8a14cc3`. Delivery SHA is the commit containing this handoff.
+- The health model states now render honestly as not configured, available, or
+  unavailable. Model metadata is omitted unless the API supplies it.
+- One-photo analysis now has explicit running/succeeded/failed presentation,
+  guards repeat submission, refreshes run history after success and failure, and
+  maps timeout, conflict, model, inference, and network errors without clearing
+  the current annotations.
+- `ANALYSIS_EXISTS` exposes the contract's `replace_pending` and `append` choices
+  with an explanation of what is preserved. No progress percentage is shown
+  because contract revision 1 does not provide one.
+- Manual annotations, pending model candidates, accepted candidates, and rejected
+  candidates now have distinct labels and canvas styles. Rejected candidates stay
+  visible in a subdued style for review; only accepted plants are counted as
+  "tanaman terkonfirmasi". Confidence is labelled as a model score.
+- Reports now state counts per photo and explicitly avoid GPS and whole-field
+  unique-plant claims.
+- Verification on the integrated branch: `pnpm typecheck:web`, `pnpm build:web`,
+  `pnpm --filter @wallacea/web test` (17 tests), and `git diff --check` passed.
+  Playwright passed 15/15 against a real FastAPI contract-revision-1 process with
+  no configured model, across desktop/tablet/mobile. It used synthetic images and
+  imported synthetic candidates, not trained-model inference. A later isolated
+  Playwright rerun stalled in the local browser harness and was stopped; its
+  isolated API itself passed `/health` before cleanup.
+- No real model weights, K919 photos, or model-accuracy measurements were
+  available. CR-FE-001 remains the only non-blocking contract request; no new
+  contract change is required for this follow-up.
+
 Status: FRONTEND_READY for the manual-survey MVP and API integration below.
 
 ## Branch, commits and contract

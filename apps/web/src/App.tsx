@@ -4,6 +4,7 @@ import { api, apiUrl, uploadPhoto } from './api/client';
 import type { Survey, Photo } from './api/client';
 import { Button } from './components/ui/button';
 import { SurveyForm } from './components/SurveyForm';
+import { modelStatus } from './features/editor/analysis';
 const Report = lazy(() => import('./components/Report').then(m => ({ default: m.Report })));
 const EditorSession = lazy(() => import('./features/editor/EditorSession').then(m => ({ default: m.EditorSession })));
 import './app.css';
@@ -36,6 +37,7 @@ function Workspace() {
     getNextPageParam: last => last.offset + last.items.length < last.total ? last.offset + last.items.length : undefined });
   const allPhotos = photos.data?.pages.flatMap(p => p.items) ?? [];
   const photo = allPhotos.find(p => p.id === photoId);
+  const model = health.data ? modelStatus(health.data.model) : undefined;
   function leave() { return !dirtyRef.current || window.confirm('Perubahan lokal belum disimpan. Tinggalkan draf foto ini?'); }
   function chooseSurvey(s: Survey) {
     if (busy || s.id === surveyId || !leave()) return;
@@ -121,11 +123,13 @@ function Workspace() {
     <main className="app-main">
       <header className="topbar no-print"><div><span className="eyebrow">SURVEI PERTANIAN / SETELAH PENERBANGAN</span>
         <h1>{survey?.name ?? 'Mulai dari foto lahan Anda'}</h1></div>
-        <span className="status-pill">{health.isPending ? 'Memeriksa API...' : health.isError ? 'API tidak terjangkau' : 'API tersedia / Mode manual'}</span></header>
+        <span className="status-pill">{health.isPending ? 'Memeriksa API...' : health.isError ? 'API tidak terjangkau'
+          : `API tersedia / ${model?.available ? 'Model tersedia' : 'Mode manual'}`}</span></header>
       {health.isError && <p role="alert" className="error no-print">{health.error.message} <Button onClick={() => void health.refetch()}>Coba koneksi lagi</Button></p>}
-      {health.data && <p className="model-status no-print">{health.data.model.available
-        ? 'Model: ' + health.data.model.model_id + ' / ' + health.data.model.model_version
-        : 'Model tanaman belum dikonfigurasi. Penandaan manual dapat digunakan.'}</p>}
+      {health.data && model && <div className={'model-status no-print ' + (model.available ? 'available' : 'unavailable')}>
+        <p><b>{model.label}</b>{model.metadata ? ` / ${model.metadata}` : ''}. {model.detail}</p>
+        {!model.available && <p>Penandaan manual tetap dapat digunakan. <button onClick={() => void health.refetch()}>Periksa status lagi</button></p>}
+      </div>}
       {error && <p role="alert" className="error no-print">{error}</p>}
       {message && <p role="status" className="success no-print">{message}</p>}
       {busy && <p role="status" className="no-print">Memproses permintaan...</p>}
@@ -181,7 +185,8 @@ function Workspace() {
             {photos.hasNextPage && <button disabled={photos.isFetchingNextPage} onClick={() => void photos.fetchNextPage()}>Foto lainnya</button>}
           </aside>
           <section className="editor-area">
-            {photo ? <EditorSession key={photo.id} photo={photo} survey={survey} onDirty={onDirty} />
+            {photo ? <EditorSession key={photo.id} photo={photo} survey={survey} model={health.data?.model}
+              inferenceTimeoutSeconds={health.data?.limits.inference_timeout_s} onDirty={onDirty} />
               : <div className="empty-state"><h2>Pilih foto untuk mulai menandai</h2><p>Foto menjadi pusat pekerjaan. Gunakan titik atau bounding box; tinjau kandidat AI sebelum menerima.</p></div>}
             {dirty && <p className="no-print">Ada draf lokal pada foto aktif.</p>}
           </section>

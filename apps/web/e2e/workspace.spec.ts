@@ -64,7 +64,7 @@ test('real API: survey, multi upload, EXIF, edit, undo/redo, save, reload, PNG/C
   await page.getByRole('button', { name: 'Simpan anotasi', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Tersimpan di server.' })).toBeVisible();
   expect((await (await request.get(base + '/api/v1/photos/' + oriented.id + '/annotations')).json()).items).toHaveLength(1);
-  await page.getByRole('button', { name: 'Deteksi AI', exact: true }).click();
+  await page.getByRole('button', { name: 'Analisis foto', exact: true }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'Model tanaman belum dikonfigurasi.' })).toBeVisible();
   const pngPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Ekspor gambar anotasi', exact: true }).click();
@@ -84,7 +84,7 @@ test('real API: survey, multi upload, EXIF, edit, undo/redo, save, reload, PNG/C
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button', { name: 'Laporan', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Laporan survei WALLACEA' })).toBeVisible();
-  await expect(page.locator('.report')).toContainText('1 tanaman diterima');
+  await expect(page.locator('.report')).toContainText('1 tanaman terkonfirmasi');
   const csvPromise = page.waitForEvent('download');
   await page.getByRole('link', { name: 'Unduh CSV laporan' }).click();
   const csv = await csvPromise; const csvPath = info.outputPath('report.csv'); await csv.saveAs(csvPath);
@@ -111,14 +111,14 @@ test('real API: pending review and revision conflict preserve local draft', asyn
   expect(candidates.status()).toBe(201);
   await page.reload(); await page.locator('.survey-item').filter({ hasText: s.name }).click();
   await selectPhoto(page, 'landscape.png');
-  await expect(page.locator('.metrics').getByText('Tanaman diterima')).toContainText('0');
+  await expect(page.locator('.metrics').getByText('Tanaman terkonfirmasi')).toContainText('0');
   await page.locator('.finding-list button').first().click();
   await page.getByRole('button', { name: 'Terima', exact: true }).click();
   await page.locator('.finding-list button').nth(1).click();
   await page.getByRole('button', { name: 'Tolak', exact: true }).click();
   await page.getByRole('button', { name: 'Simpan anotasi', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Tersimpan di server.' })).toBeVisible();
-  await expect(page.locator('.metrics').getByText('Tanaman diterima')).toContainText('1');
+  await expect(page.locator('.metrics').getByText('Tanaman terkonfirmasi')).toContainText('1');
   await page.locator('.finding-list button').first().click();
   const annotations = (await (await request.get(base + '/api/v1/photos/' + p.id + '/annotations')).json()).items;
   const accepted = annotations.find((a: { review_status: string }) => a.review_status === 'accepted');

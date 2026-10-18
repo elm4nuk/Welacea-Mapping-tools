@@ -48,6 +48,26 @@ Vite preview does not provide the development API proxy.
   capabilities/data. No map package, invented coordinates, or photogrammetry
   claims are included.
 
+## Photo analysis and review
+
+- Model availability is read from `GET /api/v1/health`. The UI distinguishes a
+  model that is not configured, available, or unavailable, and only shows the
+  model ID/version when those values are supplied by the API.
+- Analysis is synchronous. While the request is open the UI says that analysis
+  is running and does not invent a progress percentage. The button is guarded
+  against duplicate submission.
+- `MODEL_NOT_CONFIGURED`, `MODEL_UNAVAILABLE`, `INFERENCE_TIMEOUT`,
+  `INFERENCE_FAILED`, `ANALYSIS_IN_PROGRESS`, `ANALYSIS_EXISTS`, and connection
+  failures have distinct messages. Existing annotations remain in the editor.
+- On `ANALYSIS_EXISTS`, the user can either replace old pending candidates or
+  append a new result. Both choices preserve manual annotations and reviewed
+  model candidates according to the API contract.
+- Pending model output is labelled as a candidate and is excluded from plant
+  counts. Only accepted plant annotations are labelled and counted as confirmed
+  plants. Confidence is presented as a model score, not survey accuracy.
+- Reports state counts per photo. Image coordinates are not GPS, and sums across
+  overlapping photos are not claimed as unique plants for the whole field.
+
 ## Browser checks with the real API
 
 Use a separate API port and data directory, not a user's database. For example,

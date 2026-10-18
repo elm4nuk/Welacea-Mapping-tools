@@ -106,6 +106,15 @@ export function counts(findings: Finding[]) {
   };
 }
 
+export function findingStatus(finding: Finding) {
+  const source = finding.source === 'manual' ? 'Penanda manual'
+    : finding.kind === 'plant' ? 'Kandidat tanaman' : 'Kandidat model';
+  const review = finding.review === 'pending' ? 'Menunggu review'
+    : finding.review === 'accepted' ? 'Diterima' : 'Ditolak';
+  const confirmed = finding.kind === 'plant' && finding.review === 'accepted' ? 'Tanaman terkonfirmasi' : '';
+  return { source, review, confirmed };
+}
+
 /** Quote every field and neutralize spreadsheet formulas, including leading whitespace. */
 export function csvCell(value: unknown): string {
   let text = String(value ?? '');

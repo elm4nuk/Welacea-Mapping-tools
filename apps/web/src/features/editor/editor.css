@@ -21,7 +21,8 @@
 .editor-layout aside { background: white; border: 1px solid #d9dfd2; border-radius: 12px; padding: 20px; }
 .canvas-host { overflow: hidden; background: #e2e5db; border-radius: 12px; margin: 16px 0; touch-action: none; }
 .finding-list { list-style: none; padding: 0; max-height: 320px; overflow: auto; }
-.finding-list button { width: 100%; text-align: left; margin-bottom: 8px; }
+.finding-list button { display: grid; gap: 4px; width: 100%; text-align: left; margin-bottom: 8px; }
+.finding-list small { color: #526357; }
 .finding-form, .finding-form form { display: grid; gap: 12px; }
 .finding-form textarea { min-height: 100px; resize: vertical; }
 .notice { display: block; padding: 12px; border-radius: 8px; background: #f1ebda; color: #5b471d; }
