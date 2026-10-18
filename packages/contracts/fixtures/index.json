@@ -23,6 +23,7 @@
   "error.revision-conflict.json": "ErrorEnvelope",
   "error.validation.json": "ErrorEnvelope",
   "export.csv": "raw",
+  "health.deepforest-weights-missing.json": "Health",
   "health.not-configured.json": "Health",
   "health.test-double-loaded.json": "Health",
   "photo-page.json": "PhotoPage",

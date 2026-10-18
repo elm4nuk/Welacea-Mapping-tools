@@ -1,8 +1,8 @@
 {
   "items": [
     {
-      "id": "1be45c246b3e4f3aa964a9129d061a20",
-      "photo_id": "652038478d264e26a0a7287c56218228",
+      "id": "1749c23c7a9e49ee9fd40bd5ffa8185d",
+      "photo_id": "e474b420c1b340b98d83188b7f162f96",
       "run_type": "import",
       "model_id": "tim-ml-jagung-v0",
       "model_version": "2026-10-01",
@@ -13,8 +13,8 @@
         "on_existing": "reject",
         "sha256_verified": true
       },
-      "started_at": "2026-10-18T10:25:17.820879Z",
-      "finished_at": "2026-10-18T10:25:17.821893Z",
+      "started_at": "2026-10-18T17:12:52.431110Z",
+      "finished_at": "2026-10-18T17:12:52.432106Z",
       "error_code": null
     }
   ],

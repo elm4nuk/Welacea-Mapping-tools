@@ -21,7 +21,7 @@ info:
     * Konkurensi penanda: `ETag`/`If-Match` berisi `revision` (wajib untuk PATCH/DELETE annotation).
 
     '
-  version: 1.1.0
+  version: 1.2.0
 paths:
   /api/v1/health:
     get:
@@ -1720,6 +1720,43 @@ components:
         message:
           type: string
           title: Message
+        adapter:
+          anyOf:
+          - type: string
+            enum:
+            - ultralytics
+            - deepforest
+          - type: 'null'
+          title: Adapter
+          description: Jenis detector aktif. null bila mode manual / konfigurasi salah.
+        target:
+          anyOf:
+          - type: string
+            enum:
+            - plant
+            - tree_crown
+          - type: 'null'
+          title: Target
+          description: Objek yang dideteksi model. tree_crown = tajuk pohon (DeepForest pretrained), BUKAN semua tanaman.
+            Kandidat tetap disimpan sebagai kind=plant (lihat Annotation.model_label).
+        target_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Label
+          description: Teks siap tampil, mis. 'Kandidat tajuk pohon (DeepForest pretrained)'.
+        device:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Device
+          description: cpu | cuda | auto. Inferensi CPU dapat memakan puluhan detik per foto besar.
+        limitations:
+          items:
+            type: string
+          type: array
+          title: Limitations
+          description: Keterbatasan model yang perlu ditampilkan ke pengguna.
       type: object
       required:
       - state

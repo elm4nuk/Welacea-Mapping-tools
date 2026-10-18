@@ -78,6 +78,15 @@ class ModelStatus(BaseModel):
     model_id: str | None = None
     model_version: str | None = Field(None, description="Sidik jari bobot (sha256 terpotong) bila diketahui.")
     message: str
+    # Revisi 2 (aditif): apa yang sebenarnya dideteksi model, agar UI tidak menebak.
+    adapter: Literal["ultralytics", "deepforest"] | None = Field(
+        None, description="Jenis detector aktif. null bila mode manual / konfigurasi salah.")
+    target: Literal["plant", "tree_crown"] | None = Field(
+        None, description="Objek yang dideteksi model. tree_crown = tajuk pohon (DeepForest pretrained), BUKAN semua "
+                          "tanaman. Kandidat tetap disimpan sebagai kind=plant (lihat Annotation.model_label).")
+    target_label: str | None = Field(None, description="Teks siap tampil, mis. 'Kandidat tajuk pohon (DeepForest pretrained)'.")
+    device: str | None = Field(None, description="cpu | cuda | auto. Inferensi CPU dapat memakan puluhan detik per foto besar.")
+    limitations: list[str] = Field(default_factory=list, description="Keterbatasan model yang perlu ditampilkan ke pengguna.")
 
 
 class Capabilities(BaseModel):

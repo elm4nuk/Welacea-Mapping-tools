@@ -1,6 +1,6 @@
 {
   "survey": {
-    "id": "c9df6006efab469c805f445452f4527a",
+    "id": "ca1e876ca027471296890fb07a690f4f",
     "name": "Kebun Jagung Blok A",
     "crop_type": "Jagung",
     "location_label": "Desa Contoh, petak 2",
@@ -9,19 +9,19 @@
     "is_demo": false,
     "revision": 1,
     "photo_count": 2,
-    "created_at": "2026-10-18T10:25:17.691702Z",
-    "updated_at": "2026-10-18T10:25:17.691702Z"
+    "created_at": "2026-10-18T17:12:52.302319Z",
+    "updated_at": "2026-10-18T17:12:52.302319Z"
   },
-  "generated_at": "2026-10-18T10:25:17.850055Z",
+  "generated_at": "2026-10-18T17:12:52.459258Z",
   "photos": [
     {
-      "photo_id": "652038478d264e26a0a7287c56218228",
+      "photo_id": "e474b420c1b340b98d83188b7f162f96",
       "original_name": "DJI_0001.JPG",
       "width": 90,
       "height": 160,
       "captured_at": "2026-10-18T07:45:10",
       "duplicate_photo_ids": [
-        "5908050d974f41469165e744baf36d34"
+        "5a5a8530b78b4f74b5c3358793e7ec58"
       ],
       "counts": {
         "plant_accepted": 0,
@@ -34,13 +34,13 @@
       }
     },
     {
-      "photo_id": "5908050d974f41469165e744baf36d34",
+      "photo_id": "5a5a8530b78b4f74b5c3358793e7ec58",
       "original_name": "DJI_0001 (1).JPG",
       "width": 90,
       "height": 160,
       "captured_at": "2026-10-18T07:45:10",
       "duplicate_photo_ids": [
-        "652038478d264e26a0a7287c56218228"
+        "e474b420c1b340b98d83188b7f162f96"
       ],
       "counts": {
         "plant_accepted": 0,
@@ -63,8 +63,8 @@
   },
   "findings": [
     {
-      "annotation_id": "2e216d636d3a4f12b45cb6e3c6168952",
-      "photo_id": "652038478d264e26a0a7287c56218228",
+      "annotation_id": "d5927837e6f2430d9118940915f0290d",
+      "photo_id": "e474b420c1b340b98d83188b7f162f96",
       "photo_name": "DJI_0001.JPG",
       "kind": "gap",
       "review_status": "accepted",
@@ -74,8 +74,8 @@
       "note": "Ternyata titik kosong."
     },
     {
-      "annotation_id": "a13e870911864ca685bb989951feaf2d",
-      "photo_id": "652038478d264e26a0a7287c56218228",
+      "annotation_id": "8a860f5ffe5a45dca1995ba115034f9e",
+      "photo_id": "e474b420c1b340b98d83188b7f162f96",
       "photo_name": "DJI_0001.JPG",
       "kind": "check",
       "review_status": "accepted",

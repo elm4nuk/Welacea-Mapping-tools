@@ -1,8 +1,8 @@
 {
   "items": [
     {
-      "id": "652038478d264e26a0a7287c56218228",
-      "survey_id": "c9df6006efab469c805f445452f4527a",
+      "id": "e474b420c1b340b98d83188b7f162f96",
+      "survey_id": "ca1e876ca027471296890fb07a690f4f",
       "original_name": "DJI_0001.JPG",
       "width": 90,
       "height": 160,
@@ -14,12 +14,12 @@
       "captured_at": "2026-10-18T07:45:10",
       "georef_status": "none",
       "revision": 5,
-      "created_at": "2026-10-18T10:25:17.725921Z",
-      "content_url": "/api/v1/photos/652038478d264e26a0a7287c56218228/content",
-      "display_url": "/api/v1/photos/652038478d264e26a0a7287c56218228/display",
-      "thumbnail_url": "/api/v1/photos/652038478d264e26a0a7287c56218228/thumbnail",
+      "created_at": "2026-10-18T17:12:52.336700Z",
+      "content_url": "/api/v1/photos/e474b420c1b340b98d83188b7f162f96/content",
+      "display_url": "/api/v1/photos/e474b420c1b340b98d83188b7f162f96/display",
+      "thumbnail_url": "/api/v1/photos/e474b420c1b340b98d83188b7f162f96/thumbnail",
       "duplicate_photo_ids": [
-        "5908050d974f41469165e744baf36d34"
+        "5a5a8530b78b4f74b5c3358793e7ec58"
       ],
       "counts": {
         "plant_accepted": 0,
@@ -32,8 +32,8 @@
       }
     },
     {
-      "id": "5908050d974f41469165e744baf36d34",
-      "survey_id": "c9df6006efab469c805f445452f4527a",
+      "id": "5a5a8530b78b4f74b5c3358793e7ec58",
+      "survey_id": "ca1e876ca027471296890fb07a690f4f",
       "original_name": "DJI_0001 (1).JPG",
       "width": 90,
       "height": 160,
@@ -45,12 +45,12 @@
       "captured_at": "2026-10-18T07:45:10",
       "georef_status": "none",
       "revision": 1,
-      "created_at": "2026-10-18T10:25:17.737961Z",
-      "content_url": "/api/v1/photos/5908050d974f41469165e744baf36d34/content",
-      "display_url": "/api/v1/photos/5908050d974f41469165e744baf36d34/display",
-      "thumbnail_url": "/api/v1/photos/5908050d974f41469165e744baf36d34/thumbnail",
+      "created_at": "2026-10-18T17:12:52.347401Z",
+      "content_url": "/api/v1/photos/5a5a8530b78b4f74b5c3358793e7ec58/content",
+      "display_url": "/api/v1/photos/5a5a8530b78b4f74b5c3358793e7ec58/display",
+      "thumbnail_url": "/api/v1/photos/5a5a8530b78b4f74b5c3358793e7ec58/thumbnail",
       "duplicate_photo_ids": [
-        "652038478d264e26a0a7287c56218228"
+        "e474b420c1b340b98d83188b7f162f96"
       ],
       "counts": {
         "plant_accepted": 0,

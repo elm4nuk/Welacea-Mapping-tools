@@ -22,7 +22,9 @@ def health(db: Session = Depends(get_db), settings: Settings = Depends(get_setti
     return s.Health(
         status="ok", api_version=API_VERSION, contract_revision=CONTRACT_REVISION, database="ok",
         model=s.ModelStatus(state=info.state, available=info.available, model_id=info.model_id,
-                            model_version=info.model_version, message=info.message),
+                            model_version=info.model_version, message=info.message, adapter=info.adapter,
+                            target=info.target, target_label=info.target_label, device=info.device,
+                            limitations=list(info.limitations)),
         capabilities=s.Capabilities(),
         limits=s.Limits(
             max_upload_bytes=settings.max_upload_bytes, max_pixels=settings.max_pixels,

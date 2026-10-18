@@ -3,9 +3,9 @@
     "code": "ANALYSIS_EXISTS",
     "message": "Foto ini sudah dianalisis dengan model dan versi yang sama. Pilih on_existing=replace_pending (ganti kandidat pending) atau append (tambah) bila memang diinginkan.",
     "details": {
-      "run_id": "1be45c246b3e4f3aa964a9129d061a20",
+      "run_id": "1749c23c7a9e49ee9fd40bd5ffa8185d",
       "candidate_count": 2
     },
-    "request_id": "ddc6c5721052445aa0e6179c909493c1"
+    "request_id": "aa67444019fd4aa488b974594fab26dc"
   }
 }

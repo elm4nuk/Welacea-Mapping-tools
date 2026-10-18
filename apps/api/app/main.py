@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import threading
 import uuid
 from contextlib import asynccontextmanager
 
@@ -45,6 +46,14 @@ def run_migrations(engine, url: str) -> None:
     with engine.begin() as conn:
         cfg.attributes["connection"] = conn
         command.upgrade(cfg, "head")
+
+
+def _preload(detector: Detector) -> None:
+    try:
+        detector.preload()
+        log.info("Model dimuat saat startup: %s", detector.info().model_id)
+    except Exception:  # noqa: BLE001 — status error terlihat di /health; analyze tetap memberi 503
+        log.exception("Preload model gagal")
 
 
 def mark_interrupted_runs(sessionmaker) -> int:
@@ -120,6 +129,9 @@ def create_app(settings: Settings | None = None, detector: Detector | None = Non
         n = mark_interrupted_runs(app.state.sessionmaker)
         if n:
             log.warning("%d analysis run terputus ditandai failed (INTERRUPTED)", n)
+        if settings.model_preload and app.state.detector.info().available:
+            # Thread latar: server tetap menerima request; /health menunjukkan state=loaded setelah selesai.
+            threading.Thread(target=_preload, args=(app.state.detector,), name="model-preload", daemon=True).start()
         yield
         app.state.engine.dispose()
 

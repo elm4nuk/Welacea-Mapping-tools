@@ -1,7 +1,7 @@
 {
   "run": {
-    "id": "ee4dee77788040c28a1d7d975464e272",
-    "photo_id": "eb5c98d0c0034e25bbc2a945f9b966b8",
+    "id": "3b19f991ba534bb1bff0cf18f0a6d4e2",
+    "photo_id": "e876d3dca95042968edbc50d0d8aba29",
     "run_type": "inference",
     "model_id": "contract-test-double",
     "model_version": "sha256:0000000000000000",
@@ -12,15 +12,15 @@
       "adapter": "test-double",
       "on_existing": "reject"
     },
-    "started_at": "2026-10-18T10:25:17.971774Z",
-    "finished_at": "2026-10-18T10:25:17.975767Z",
+    "started_at": "2026-10-18T17:12:52.597725Z",
+    "finished_at": "2026-10-18T17:12:52.602242Z",
     "error_code": null
   },
   "candidates": [
     {
-      "id": "d15849580f724f5487c9bac5e2eb8b18",
-      "photo_id": "eb5c98d0c0034e25bbc2a945f9b966b8",
-      "analysis_run_id": "ee4dee77788040c28a1d7d975464e272",
+      "id": "7eba59362aa4460da020dcc6e37a3987",
+      "photo_id": "e876d3dca95042968edbc50d0d8aba29",
+      "analysis_run_id": "3b19f991ba534bb1bff0cf18f0a6d4e2",
       "kind": "plant",
       "geometry_type": "bbox",
       "x": 0.2,
@@ -37,13 +37,13 @@
       "model_label": "tanaman",
       "note": "",
       "revision": 1,
-      "created_at": "2026-10-18T10:25:17.975767Z",
-      "updated_at": "2026-10-18T10:25:17.975767Z"
+      "created_at": "2026-10-18T17:12:52.602242Z",
+      "updated_at": "2026-10-18T17:12:52.602242Z"
     },
     {
-      "id": "458f46103bc64fa99279dcf867fbd928",
-      "photo_id": "eb5c98d0c0034e25bbc2a945f9b966b8",
-      "analysis_run_id": "ee4dee77788040c28a1d7d975464e272",
+      "id": "fe83c528aee646d3ab918cc8b07135ca",
+      "photo_id": "e876d3dca95042968edbc50d0d8aba29",
+      "analysis_run_id": "3b19f991ba534bb1bff0cf18f0a6d4e2",
       "kind": "gap",
       "geometry_type": "bbox",
       "x": 0.6749999999999999,
@@ -60,8 +60,8 @@
       "model_label": "titik_kosong",
       "note": "",
       "revision": 1,
-      "created_at": "2026-10-18T10:25:17.975767Z",
-      "updated_at": "2026-10-18T10:25:17.975767Z"
+      "created_at": "2026-10-18T17:12:52.602242Z",
+      "updated_at": "2026-10-18T17:12:52.602242Z"
     }
   ],
   "replaced_annotation_ids": [],

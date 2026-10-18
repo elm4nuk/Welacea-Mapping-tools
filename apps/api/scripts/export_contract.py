@@ -26,6 +26,7 @@ from PIL import Image  # noqa: E402
 
 from app.config import load_settings  # noqa: E402
 from app.inference import DetectionOutput, Detector, DetectorInfo, RawDetection  # noqa: E402
+from app.inference.deepforest_adapter import DeepForestDetector  # noqa: E402
 from app.main import create_app  # noqa: E402
 
 CONTRACTS = API_ROOT.parents[1] / "packages" / "contracts"
@@ -157,6 +158,11 @@ def build_fixtures() -> dict[str, tuple[str, object]]:
             put("starter-backup-import.response.json", "StarterBackupImportResult",
                 c.post(f"{V1}/imports/starter-backup",
                        files={"file": ("wallacea-backup.json", json.dumps(backup).encode(), "application/json")}))
+
+        # Adapter DeepForest ASLI dengan folder bobot yang belum diunduh: status jujur (error + metadata target).
+        missing = DeepForestDetector(base / "c" / "models" / "deepforest-tree")
+        with TestClient(create_app(load_settings(data_dir=base / "c"), detector=missing)) as c:
+            put("health.deepforest-weights-missing.json", "Health", c.get(f"{V1}/health"))
 
         with TestClient(create_app(load_settings(data_dir=base / "b"), detector=ContractTestDouble())) as c:
             put("health.test-double-loaded.json", "Health", c.get(f"{V1}/health"))
