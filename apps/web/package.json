@@ -7,17 +7,35 @@
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "generate:api": "pnpm --filter @wallacea/api-types generate"
   },
   "dependencies": {
+    "@hookform/resolvers": "5.9.2",
+    "@radix-ui/react-slot": "1.5.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@tanstack/react-query": "5.104.3",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "konva": "10.9.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "react-hook-form": "7.90.0",
+    "react-konva": "19.3.2",
+    "tailwind-merge": "3.7.0",
+    "tailwindcss": "4.3.3",
+    "zod": "4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
     "typescript": "6.0.3",
-    "vite": "8.3.4"
+    "vite": "8.3.4",
+    "vitest": "4.1.12"
   }
 }
