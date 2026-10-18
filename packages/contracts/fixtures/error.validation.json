@@ -1,0 +1,19 @@
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Data permintaan tidak valid.",
+    "details": {
+      "issues": [
+        {
+          "loc": [
+            "body",
+            "x"
+          ],
+          "type": "less_than_equal",
+          "msg": "Input should be less than or equal to 1"
+        }
+      ]
+    },
+    "request_id": "16d16576b8b24d48815ee44c4d3d4b54"
+  }
+}

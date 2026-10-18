@@ -1,0 +1,96 @@
+{
+  "survey": {
+    "id": "c9df6006efab469c805f445452f4527a",
+    "name": "Kebun Jagung Blok A",
+    "crop_type": "Jagung",
+    "location_label": "Desa Contoh, petak 2",
+    "survey_date": "2026-10-18",
+    "notes": "Penerbangan pagi, langit cerah.",
+    "is_demo": false,
+    "revision": 1,
+    "photo_count": 2,
+    "created_at": "2026-10-18T10:25:17.691702Z",
+    "updated_at": "2026-10-18T10:25:17.691702Z"
+  },
+  "generated_at": "2026-10-18T10:25:17.850055Z",
+  "photos": [
+    {
+      "photo_id": "652038478d264e26a0a7287c56218228",
+      "original_name": "DJI_0001.JPG",
+      "width": 90,
+      "height": 160,
+      "captured_at": "2026-10-18T07:45:10",
+      "duplicate_photo_ids": [
+        "5908050d974f41469165e744baf36d34"
+      ],
+      "counts": {
+        "plant_accepted": 0,
+        "plant_pending": 2,
+        "check_accepted": 1,
+        "gap_accepted": 1,
+        "pending_review": 2,
+        "rejected": 0,
+        "total": 4
+      }
+    },
+    {
+      "photo_id": "5908050d974f41469165e744baf36d34",
+      "original_name": "DJI_0001 (1).JPG",
+      "width": 90,
+      "height": 160,
+      "captured_at": "2026-10-18T07:45:10",
+      "duplicate_photo_ids": [
+        "652038478d264e26a0a7287c56218228"
+      ],
+      "counts": {
+        "plant_accepted": 0,
+        "plant_pending": 0,
+        "check_accepted": 0,
+        "gap_accepted": 0,
+        "pending_review": 0,
+        "rejected": 0,
+        "total": 0
+      }
+    }
+  ],
+  "totals": {
+    "photo_count": 2,
+    "plant_accepted_sum_across_photos": 0,
+    "pending_review": 2,
+    "check_accepted": 1,
+    "gap_accepted": 1,
+    "counts_are_unique_plants": false
+  },
+  "findings": [
+    {
+      "annotation_id": "2e216d636d3a4f12b45cb6e3c6168952",
+      "photo_id": "652038478d264e26a0a7287c56218228",
+      "photo_name": "DJI_0001.JPG",
+      "kind": "gap",
+      "review_status": "accepted",
+      "source": "manual",
+      "x": 0.42,
+      "y": 0.31,
+      "note": "Ternyata titik kosong."
+    },
+    {
+      "annotation_id": "a13e870911864ca685bb989951feaf2d",
+      "photo_id": "652038478d264e26a0a7287c56218228",
+      "photo_name": "DJI_0001.JPG",
+      "kind": "check",
+      "review_status": "accepted",
+      "source": "manual",
+      "x": 0.65,
+      "y": 0.6749999999999999,
+      "note": "Daun menguning? Periksa di lapangan."
+    }
+  ],
+  "disclaimers": [
+    "Hitungan tanaman = penanda kind=plant berstatus accepted per foto. Kandidat model pending/rejected tidak dihitung.",
+    "Hitungan antar foto yang bertumpang tindih tidak boleh dijumlahkan sebagai jumlah tanaman unik lahan.",
+    "Posisi penanda adalah koordinat relatif dalam gambar (0–1), bukan lintang/bujur GPS.",
+    "Foto biasa bukan orthomosaic; tidak ada luas lahan yang dihitung.",
+    "Titik kosong dan titik periksa memerlukan pemeriksaan lapangan; ini bukan diagnosis penyakit.",
+    "Confidence adalah keluaran model, bukan akurasi survei."
+  ]
+}

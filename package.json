@@ -1,0 +1,14 @@
+{
+  "name": "wallacea",
+  "private": true,
+  "description": "WALLACEA — workspace survei pertanian dari foto drone (monorepo).",
+  "packageManager": "pnpm@12.9.1",
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @wallacea/web dev",
+    "build:web": "pnpm --filter @wallacea/web build",
+    "typecheck:web": "pnpm --filter @wallacea/web typecheck"
+  }
+}

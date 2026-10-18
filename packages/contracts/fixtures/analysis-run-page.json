@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "id": "1be45c246b3e4f3aa964a9129d061a20",
+      "photo_id": "652038478d264e26a0a7287c56218228",
+      "run_type": "import",
+      "model_id": "tim-ml-jagung-v0",
+      "model_version": "2026-10-01",
+      "input_sha256": "749bbe790252477408d27a34a9bdb25ac98df899980be5f826565bf44723eb41",
+      "status": "succeeded",
+      "candidate_count": 2,
+      "parameters": {
+        "on_existing": "reject",
+        "sha256_verified": true
+      },
+      "started_at": "2026-10-18T10:25:17.820879Z",
+      "finished_at": "2026-10-18T10:25:17.821893Z",
+      "error_code": null
+    }
+  ],
+  "total": 1,
+  "limit": 50,
+  "offset": 0
+}

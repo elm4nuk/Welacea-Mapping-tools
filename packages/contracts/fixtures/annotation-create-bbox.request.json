@@ -1,0 +1,12 @@
+{
+  "kind": "check",
+  "geometry_type": "bbox",
+  "bbox": [
+    0.55,
+    0.6,
+    0.2,
+    0.15
+  ],
+  "note": "Daun menguning? Periksa di lapangan.",
+  "review_status": "accepted"
+}

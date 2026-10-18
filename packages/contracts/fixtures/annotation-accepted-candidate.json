@@ -1,0 +1,23 @@
+{
+  "id": "d15849580f724f5487c9bac5e2eb8b18",
+  "photo_id": "eb5c98d0c0034e25bbc2a945f9b966b8",
+  "analysis_run_id": "ee4dee77788040c28a1d7d975464e272",
+  "kind": "plant",
+  "geometry_type": "bbox",
+  "x": 0.2,
+  "y": 0.225,
+  "bbox": [
+    0.1,
+    0.1,
+    0.2,
+    0.25
+  ],
+  "source": "model",
+  "review_status": "accepted",
+  "confidence": 0.91,
+  "model_label": "tanaman",
+  "note": "",
+  "revision": 2,
+  "created_at": "2026-10-18T10:25:17.975767Z",
+  "updated_at": "2026-10-18T10:25:17.980803Z"
+}

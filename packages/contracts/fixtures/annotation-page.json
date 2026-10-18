@@ -1,0 +1,95 @@
+{
+  "items": [
+    {
+      "id": "2e216d636d3a4f12b45cb6e3c6168952",
+      "photo_id": "652038478d264e26a0a7287c56218228",
+      "analysis_run_id": null,
+      "kind": "gap",
+      "geometry_type": "point",
+      "x": 0.42,
+      "y": 0.31,
+      "bbox": null,
+      "source": "manual",
+      "review_status": "accepted",
+      "confidence": null,
+      "model_label": null,
+      "note": "Ternyata titik kosong.",
+      "revision": 2,
+      "created_at": "2026-10-18T10:25:17.749113Z",
+      "updated_at": "2026-10-18T10:25:17.760164Z"
+    },
+    {
+      "id": "a13e870911864ca685bb989951feaf2d",
+      "photo_id": "652038478d264e26a0a7287c56218228",
+      "analysis_run_id": null,
+      "kind": "check",
+      "geometry_type": "bbox",
+      "x": 0.65,
+      "y": 0.6749999999999999,
+      "bbox": [
+        0.55,
+        0.6,
+        0.2,
+        0.15
+      ],
+      "source": "manual",
+      "review_status": "accepted",
+      "confidence": null,
+      "model_label": null,
+      "note": "Daun menguning? Periksa di lapangan.",
+      "revision": 1,
+      "created_at": "2026-10-18T10:25:17.755125Z",
+      "updated_at": "2026-10-18T10:25:17.755125Z"
+    },
+    {
+      "id": "a3b5535d737c4892a17704484f459824",
+      "photo_id": "652038478d264e26a0a7287c56218228",
+      "analysis_run_id": "1be45c246b3e4f3aa964a9129d061a20",
+      "kind": "plant",
+      "geometry_type": "bbox",
+      "x": 0.275,
+      "y": 0.16,
+      "bbox": [
+        0.2,
+        0.1,
+        0.15,
+        0.12
+      ],
+      "source": "model",
+      "review_status": "pending",
+      "confidence": 0.83,
+      "model_label": null,
+      "note": "",
+      "revision": 1,
+      "created_at": "2026-10-18T10:25:17.821893Z",
+      "updated_at": "2026-10-18T10:25:17.821893Z"
+    },
+    {
+      "id": "be1f50545ce94c41bf9e30be30f375ae",
+      "photo_id": "652038478d264e26a0a7287c56218228",
+      "analysis_run_id": "1be45c246b3e4f3aa964a9129d061a20",
+      "kind": "plant",
+      "geometry_type": "bbox",
+      "x": 0.5700000000000001,
+      "y": 0.45,
+      "bbox": [
+        0.5,
+        0.4,
+        0.14,
+        0.1
+      ],
+      "source": "model",
+      "review_status": "pending",
+      "confidence": 0.47,
+      "model_label": null,
+      "note": "",
+      "revision": 1,
+      "created_at": "2026-10-18T10:25:17.821893Z",
+      "updated_at": "2026-10-18T10:25:17.821893Z"
+    }
+  ],
+  "total": 4,
+  "limit": 3000,
+  "offset": 0,
+  "photo_revision": 5
+}

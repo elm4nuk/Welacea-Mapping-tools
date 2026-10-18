@@ -1,0 +1,69 @@
+{
+  "items": [
+    {
+      "id": "652038478d264e26a0a7287c56218228",
+      "survey_id": "c9df6006efab469c805f445452f4527a",
+      "original_name": "DJI_0001.JPG",
+      "width": 90,
+      "height": 160,
+      "mime_type": "image/jpeg",
+      "size_bytes": 954,
+      "sha256": "749bbe790252477408d27a34a9bdb25ac98df899980be5f826565bf44723eb41",
+      "exif_orientation": 6,
+      "has_exif_gps": false,
+      "captured_at": "2026-10-18T07:45:10",
+      "georef_status": "none",
+      "revision": 5,
+      "created_at": "2026-10-18T10:25:17.725921Z",
+      "content_url": "/api/v1/photos/652038478d264e26a0a7287c56218228/content",
+      "display_url": "/api/v1/photos/652038478d264e26a0a7287c56218228/display",
+      "thumbnail_url": "/api/v1/photos/652038478d264e26a0a7287c56218228/thumbnail",
+      "duplicate_photo_ids": [
+        "5908050d974f41469165e744baf36d34"
+      ],
+      "counts": {
+        "plant_accepted": 0,
+        "plant_pending": 2,
+        "check_accepted": 1,
+        "gap_accepted": 1,
+        "pending_review": 2,
+        "rejected": 0,
+        "total": 4
+      }
+    },
+    {
+      "id": "5908050d974f41469165e744baf36d34",
+      "survey_id": "c9df6006efab469c805f445452f4527a",
+      "original_name": "DJI_0001 (1).JPG",
+      "width": 90,
+      "height": 160,
+      "mime_type": "image/jpeg",
+      "size_bytes": 954,
+      "sha256": "749bbe790252477408d27a34a9bdb25ac98df899980be5f826565bf44723eb41",
+      "exif_orientation": 6,
+      "has_exif_gps": false,
+      "captured_at": "2026-10-18T07:45:10",
+      "georef_status": "none",
+      "revision": 1,
+      "created_at": "2026-10-18T10:25:17.737961Z",
+      "content_url": "/api/v1/photos/5908050d974f41469165e744baf36d34/content",
+      "display_url": "/api/v1/photos/5908050d974f41469165e744baf36d34/display",
+      "thumbnail_url": "/api/v1/photos/5908050d974f41469165e744baf36d34/thumbnail",
+      "duplicate_photo_ids": [
+        "652038478d264e26a0a7287c56218228"
+      ],
+      "counts": {
+        "plant_accepted": 0,
+        "plant_pending": 0,
+        "check_accepted": 0,
+        "gap_accepted": 0,
+        "pending_review": 0,
+        "rejected": 0,
+        "total": 0
+      }
+    }
+  ],
+  "total": 2,
+  "limit": 50,
+  "offset": 0
+}

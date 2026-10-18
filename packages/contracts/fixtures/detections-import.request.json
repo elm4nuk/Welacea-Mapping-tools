@@ -1,0 +1,30 @@
+{
+  "image_width": 90,
+  "image_height": 160,
+  "model": "tim-ml-jagung-v0",
+  "model_version": "2026-10-01",
+  "image_sha256": "749bbe790252477408d27a34a9bdb25ac98df899980be5f826565bf44723eb41",
+  "on_existing": "reject",
+  "detections": [
+    {
+      "label": "plant",
+      "confidence": 0.83,
+      "bbox": [
+        0.2,
+        0.1,
+        0.15,
+        0.12
+      ]
+    },
+    {
+      "label": "plant",
+      "confidence": 0.47,
+      "bbox": [
+        0.5,
+        0.4,
+        0.14,
+        0.1
+      ]
+    }
+  ]
+}

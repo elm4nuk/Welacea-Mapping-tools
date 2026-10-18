@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Foto tidak ditemukan.",
+    "details": {
+      "entity": "photo",
+      "id": "00000000000000000000000000000000"
+    },
+    "request_id": "655b30d5edb0487e9d6d788b46fd2e43"
+  }
+}

@@ -1,0 +1,4 @@
+# OPSIONAL & berat (PyTorch). Pasang hanya bila bobot tanaman lokal milik tim tersedia.
+# Lisensi Ultralytics: AGPL-3.0 atau Enterprise — baca docs/architecture/REPO_SELECTION.md sebelum distribusi.
+-r requirements.lock.txt
+ultralytics>=8.3,<9

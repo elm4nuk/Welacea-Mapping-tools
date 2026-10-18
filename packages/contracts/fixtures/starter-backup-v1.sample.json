@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": "2026-10-18T04:00:00.000Z",
+  "surveys": [
+    {
+      "id": "lama-1",
+      "name": "Kebun Sawit Muda",
+      "crop": "Kelapa sawit",
+      "location": "Blok 3",
+      "date": "2026-10-17",
+      "notes": "Catatan dari starter v0.1",
+      "isDemo": false,
+      "createdAt": "2026-10-17T04:00:00.000Z",
+      "photos": [
+        {
+          "id": "f1",
+          "name": "IMG_0001.png",
+          "width": 40,
+          "height": 30,
+          "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAeCAIAAADRv8uKAAAARUlEQVR4nO3QQQ0AMAzDwC64im7I910IOJ+YwEk+e3cSKaJOYTCR2F9hLHGUVxhLHOUVxhJHeYWxxFFeYSxxlFcYK7b6AY9rATbB9XJnAAAAAElFTkSuQmCC",
+          "createdAt": "2026-10-17T04:00:00.000Z",
+          "annotations": [
+            {
+              "id": "m1",
+              "x": 0.5,
+              "y": 0.5,
+              "kind": "plant",
+              "note": "",
+              "source": "manual",
+              "status": "confirmed"
+            },
+            {
+              "id": "m2",
+              "x": 0.25,
+              "y": 0.4,
+              "kind": "plant",
+              "note": "Model: tim-v0",
+              "source": "ai",
+              "status": "pending",
+              "confidence": 0.7,
+              "box": [
+                0.1,
+                0.2,
+                0.3,
+                0.4
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

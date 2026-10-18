@@ -1,0 +1,27 @@
+{
+  "error": {
+    "code": "REVISION_CONFLICT",
+    "message": "Penanda sudah diubah di tempat lain. Perubahan Anda tidak disimpan; tinjau versi terbaru.",
+    "details": {
+      "current": {
+        "id": "2e216d636d3a4f12b45cb6e3c6168952",
+        "photo_id": "652038478d264e26a0a7287c56218228",
+        "analysis_run_id": null,
+        "kind": "gap",
+        "geometry_type": "point",
+        "x": 0.42,
+        "y": 0.31,
+        "bbox": null,
+        "source": "manual",
+        "review_status": "accepted",
+        "confidence": null,
+        "model_label": null,
+        "note": "Ternyata titik kosong.",
+        "revision": 2,
+        "created_at": "2026-10-18T10:25:17.749113Z",
+        "updated_at": "2026-10-18T10:25:17.760164Z"
+      }
+    },
+    "request_id": "8af89a7272bd48428917914d21309a36"
+  }
+}

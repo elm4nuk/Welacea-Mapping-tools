@@ -1,0 +1,32 @@
+{
+  "status": "ok",
+  "api_version": "1",
+  "contract_revision": 1,
+  "database": "ok",
+  "model": {
+    "state": "not_configured",
+    "available": false,
+    "model_id": null,
+    "model_version": null,
+    "message": "Model tanaman belum dikonfigurasi. Atur WALLACEA_MODEL_PATH ke bobot lokal hasil pelatihan tim."
+  },
+  "capabilities": {
+    "flight_control": false,
+    "live_video": false,
+    "georeferencing": false,
+    "orthomosaic": false
+  },
+  "limits": {
+    "max_upload_bytes": 20971520,
+    "max_pixels": 60000000,
+    "allowed_mime_types": [
+      "image/jpeg",
+      "image/png",
+      "image/webp"
+    ],
+    "max_annotations_per_photo": 3000,
+    "max_detection_payload_bytes": 5242880,
+    "max_backup_bytes": 104857600,
+    "inference_timeout_s": 120.0
+  }
+}

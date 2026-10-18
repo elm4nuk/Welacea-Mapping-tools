@@ -1,0 +1,17 @@
+{
+  "error": {
+    "code": "DETECTION_MISMATCH",
+    "message": "Ukuran gambar pada hasil deteksi tidak sama dengan foto. Dimensi tertukar: model kemungkinan dijalankan pada gambar sebelum orientasi EXIF diterapkan.",
+    "details": {
+      "expected": {
+        "width": 90,
+        "height": 160
+      },
+      "received": {
+        "width": 160,
+        "height": 90
+      }
+    },
+    "request_id": "df2650f51c0e4632a90c765308067490"
+  }
+}

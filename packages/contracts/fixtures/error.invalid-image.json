@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "INVALID_IMAGE",
+    "message": "Gambar rusak atau formatnya tidak didukung. Gunakan JPG, PNG, atau WebP.",
+    "details": {},
+    "request_id": "1b93c811201842af97b63df623cd8c4c"
+  }
+}

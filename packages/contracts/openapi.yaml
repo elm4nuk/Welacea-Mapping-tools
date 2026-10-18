@@ -1,0 +1,2185 @@
+# GENERATED — jangan edit manual. Sumber: apps/api/app (FastAPI/Pydantic).
+# Regenerasi: cd apps/api && .venv/Scripts/python scripts/export_contract.py
+openapi: 3.1.0
+info:
+  title: WALLACEA API
+  description: '
+
+    API lokal WALLACEA untuk survei pertanian dari foto drone **setelah mendarat** (unggah berkas).
+
+
+    * Tidak ada kontrol penerbangan, live video, georeferensi, atau orthomosaic.
+
+    * Koordinat penanda dinormalisasi 0–1 terhadap foto **setelah orientasi EXIF** (`display_url`), bukan GPS.
+
+    * Kandidat model selalu `pending` dan tidak dihitung sampai ditinjau manusia.
+
+    * Tanpa bobot model, `POST /photos/{id}/analyze` → 503 `MODEL_NOT_CONFIGURED`; mode manual tetap berfungsi.
+
+    * Error: `{"error": {"code", "message", "details", "request_id"}}`.
+
+    * Konkurensi penanda: `ETag`/`If-Match` berisi `revision` (wajib untuk PATCH/DELETE annotation).
+
+    '
+  version: 1.1.0
+paths:
+  /api/v1/health:
+    get:
+      tags:
+      - health
+      summary: Status API dan kesiapan model yang sebenarnya
+      operationId: health
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+  /api/v1/surveys:
+    get:
+      tags:
+      - surveys
+      summary: Daftar survei (terbaru dulu)
+      operationId: list_surveys
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyPage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - surveys
+      summary: Buat survei nyata (is_demo selalu false)
+      operationId: create_survey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SurveyCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Survey'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/surveys/{survey_id}:
+    get:
+      tags:
+      - surveys
+      summary: Get Survey
+      operationId: get_survey
+      parameters:
+      - name: survey_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Survey Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Survey'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - surveys
+      summary: Ubah metadata survei. If-Match opsional; bila dikirim harus = revision.
+      operationId: update_survey
+      parameters:
+      - name: survey_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Survey Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SurveyUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Survey'
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    delete:
+      tags:
+      - surveys
+      summary: Hapus survei beserta foto, penanda, dan berkasnya
+      operationId: delete_survey
+      parameters:
+      - name: survey_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Survey Id
+      responses:
+        '204':
+          description: Successful Response
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/demo/surveys:
+    post:
+      tags:
+      - surveys
+      summary: Buat survei CONTOH berisi gambar ilustrasi (bukan foto drone, bukan hasil AI)
+      operationId: create_demo_survey
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Survey'
+  /api/v1/surveys/{survey_id}/photos:
+    post:
+      tags:
+      - photos
+      summary: Unggah SATU foto asli (multipart field `file`). Satu request per berkas agar progres per berkas.
+      description: Isi berkas divalidasi (JPEG/PNG/WebP sungguhan), bukan ekstensi atau content-type klien. Duplikat (sha256
+        sama dalam survei) tetap disimpan dan diberi warning DUPLICATE_IN_SURVEY.
+      operationId: upload_photo
+      parameters:
+      - name: survey_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Survey Id
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_photo'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoUploadResult'
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '413':
+          description: Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '415':
+          description: Format tidak didukung (UNSUPPORTED_MEDIA_TYPE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - photos
+      summary: Daftar foto survei (urutan unggah)
+      operationId: list_photos
+      parameters:
+      - name: survey_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Survey Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoPage'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/photos/{photo_id}:
+    get:
+      tags:
+      - photos
+      summary: Get Photo
+      operationId: get_photo
+      parameters:
+      - name: photo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Photo Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Photo'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - photos
+      summary: Hapus foto, penanda, analysis run, dan berkasnya. If-Match (revision foto) opsional.
+      operationId: delete_photo
+      parameters:
+      - name: photo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Photo Id
+      responses:
+        '204':
+          description: Successful Response
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/photos/{photo_id}/content:
+    get:
+      tags:
+      - photos
+      summary: Berkas asli apa adanya (EXIF utuh). Untuk editor gunakan /display.
+      operationId: photo_content
+      parameters:
+      - name: photo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Photo Id
+      responses:
+        '200':
+          description: Byte gambar
+          content:
+            image/jpeg: {}
+            image/png: {}
+            image/webp: {}
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/photos/{photo_id}/display:
+    get:
+      tags:
+      - photos
+      summary: Gambar terorientasi EXIF; dimensi = Photo.width × Photo.height. Dasar koordinat penanda.
+      operationId: photo_display
+      parameters:
+      - name: photo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Photo Id
+      responses:
+        '200':
+          description: Byte gambar
+          content:
+            image/jpeg: {}
+            image/png: {}
+            image/webp: {}
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/photos/{photo_id}/thumbnail:
+    get:
+      tags:
+      - photos
+      summary: Thumbnail JPEG terorientasi, sisi terpanjang ≤ 512 px
+      operationId: photo_thumbnail
+      parameters:
+      - name: photo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Photo Id
+      responses:
+        '200':
+          description: JPEG
+          content:
+            image/jpeg: {}
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/photos/{photo_id}/annotations:
+    get:
+      tags:
+      - annotations
+      summary: Semua penanda satu foto (default sampai 3000 = batas per foto)
+      operationId: list_annotations
+      parameters:
+      - name: photo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Photo Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 3000
+          minimum: 1
+          default: 3000
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnotationPage'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - annotations
+      summary: Tambah penanda MANUAL. Kandidat model hanya lewat /analyze atau /detections/import.
+      operationId: create_annotation
+      parameters:
+      - name: photo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Photo Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnotationCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Annotation'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/annotations/{annotation_id}:
+    patch:
+      tags:
+      - annotations
+      summary: 'Ubah kind/catatan/status review/geometri. Wajib If-Match: "<revision>".'
+      description: source tidak bisa diubah. Untuk kandidat model, menerima/menolak = ubah review_status. 409 REVISION_CONFLICT
+        mengembalikan details.current (versi server).
+      operationId: update_annotation
+      parameters:
+      - name: annotation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Annotation Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnotationUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Annotation'
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: If-Match wajib (PRECONDITION_REQUIRED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    delete:
+      tags:
+      - annotations
+      summary: Hapus penanda. Wajib If-Match. Untuk kandidat model, lebih baik review_status=rejected.
+      operationId: delete_annotation
+      parameters:
+      - name: annotation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Annotation Id
+      responses:
+        '204':
+          description: Successful Response
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: If-Match wajib (PRECONDITION_REQUIRED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/photos/{photo_id}/analyze:
+    post:
+      tags:
+      - analysis
+      summary: Jalankan detector pada SATU foto (sinkron). Tanpa model → 503 MODEL_NOT_CONFIGURED.
+      description: 'Sinkron: request menunggu sampai inferensi selesai atau melewati `limits.inference_timeout_s` (default
+        120 s) → 504 INFERENCE_TIMEOUT. Latensi bergantung CPU/GPU dan resolusi; tidak ada progres persentase. Tidak ada run
+        yang dibuat bila model belum dikonfigurasi. Run yang terputus karena server restart ditandai failed (error_code=INTERRUPTED)
+        saat startup.'
+      operationId: analyze_photo
+      parameters:
+      - name: photo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Photo Id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AnalyzeRequest'
+              - type: 'null'
+              title: Body
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResult'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Kesalahan server (INTERNAL_ERROR, INFERENCE_FAILED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Model tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: Inferensi melewati batas waktu (INFERENCE_TIMEOUT)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/photos/{photo_id}/detections/import:
+    post:
+      tags:
+      - analysis
+      summary: Impor hasil deteksi JSON (format starter v0.1) sebagai kandidat pending
+      description: image_width/height wajib sama dengan Photo.width/height (terorientasi EXIF); image_sha256 opsional tetapi
+        bila ada wajib sama dengan Photo.sha256. Maks 3000 deteksi, payload 5 MB.
+      operationId: import_detections
+      parameters:
+      - name: photo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Photo Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetectionImportRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResult'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '413':
+          description: Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/photos/{photo_id}/analysis-runs:
+    get:
+      tags:
+      - analysis
+      summary: Riwayat analysis run foto (terbaru dulu)
+      operationId: list_analysis_runs
+      parameters:
+      - name: photo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Photo Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisRunPage'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/surveys/{survey_id}/report:
+    get:
+      tags:
+      - reports
+      summary: 'Laporan: hitungan per foto, temuan periksa/titik kosong, dan disclaimer'
+      operationId: survey_report
+      parameters:
+      - name: survey_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Survey Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyReport'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/surveys/{survey_id}/export.csv:
+    get:
+      tags:
+      - reports
+      summary: Ekspor semua penanda survei sebagai CSV
+      operationId: export_csv
+      parameters:
+      - name: survey_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Survey Id
+      responses:
+        '200':
+          description: CSV UTF-8 (dengan BOM), satu baris per penanda
+          content:
+            text/csv: {}
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/imports/starter-backup:
+    post:
+      tags:
+      - imports
+      summary: Impor backup JSON starter v0.1 (schemaVersion 1) sebagai salinan survei baru
+      operationId: import_starter_backup
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_import_starter_backup'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StarterBackupImportResult'
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '413':
+          description: Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '415':
+          description: Format tidak didukung (UNSUPPORTED_MEDIA_TYPE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    AnalysisResult:
+      properties:
+        run:
+          $ref: '#/components/schemas/AnalysisRun'
+        candidates:
+          items:
+            $ref: '#/components/schemas/Annotation'
+          type: array
+          title: Candidates
+          description: Semua kandidat review_status=pending, source=model.
+        replaced_annotation_ids:
+          items:
+            type: string
+          type: array
+          title: Replaced Annotation Ids
+        notice:
+          type: string
+          title: Notice
+      type: object
+      required:
+      - run
+      - candidates
+      - replaced_annotation_ids
+      - notice
+      title: AnalysisResult
+    AnalysisRun:
+      properties:
+        id:
+          type: string
+          title: Id
+        photo_id:
+          type: string
+          title: Photo Id
+        run_type:
+          type: string
+          enum:
+          - inference
+          - import
+          title: Run Type
+        model_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Id
+        model_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Version
+        input_sha256:
+          type: string
+          title: Input Sha256
+        status:
+          type: string
+          enum:
+          - running
+          - succeeded
+          - failed
+          title: Status
+        candidate_count:
+          type: integer
+          title: Candidate Count
+        parameters:
+          additionalProperties: true
+          type: object
+          title: Parameters
+        started_at:
+          type: string
+          format: date-time
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+        error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Code
+      type: object
+      required:
+      - id
+      - photo_id
+      - run_type
+      - model_id
+      - model_version
+      - input_sha256
+      - status
+      - candidate_count
+      - parameters
+      - started_at
+      - finished_at
+      - error_code
+      title: AnalysisRun
+    AnalysisRunPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AnalysisRun'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+      type: object
+      required:
+      - items
+      - total
+      - limit
+      - offset
+      title: AnalysisRunPage
+    AnalyzeRequest:
+      properties:
+        on_existing:
+          type: string
+          enum:
+          - reject
+          - replace_pending
+          - append
+          title: On Existing
+          description: 'Bila foto sudah punya run sukses dengan model+versi yang sama: reject → 409 ANALYSIS_EXISTS; replace_pending
+            → hapus kandidat pending dari run lama foto ini lalu tambah yang baru; append → tambah tanpa menghapus.'
+          default: reject
+      additionalProperties: false
+      type: object
+      title: AnalyzeRequest
+    Annotation:
+      properties:
+        id:
+          type: string
+          title: Id
+        photo_id:
+          type: string
+          title: Photo Id
+        analysis_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Analysis Run Id
+        kind:
+          type: string
+          enum:
+          - plant
+          - check
+          - gap
+          title: Kind
+        geometry_type:
+          type: string
+          enum:
+          - point
+          - bbox
+          title: Geometry Type
+        x:
+          type: number
+          title: X
+        y:
+          type: number
+          title: Y
+        bbox:
+          anyOf:
+          - items:
+              type: number
+            type: array
+          - type: 'null'
+          title: Bbox
+        source:
+          type: string
+          enum:
+          - manual
+          - model
+          title: Source
+        review_status:
+          type: string
+          enum:
+          - pending
+          - accepted
+          - rejected
+          title: Review Status
+        confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Confidence
+          description: Keluaran model 0–1 (bukan akurasi). Null untuk manual.
+        model_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Label
+          description: Nama kelas asli dari model/impor, bila ada.
+        note:
+          type: string
+          title: Note
+        revision:
+          type: integer
+          title: Revision
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - photo_id
+      - analysis_run_id
+      - kind
+      - geometry_type
+      - x
+      - y
+      - bbox
+      - source
+      - review_status
+      - confidence
+      - model_label
+      - note
+      - revision
+      - created_at
+      - updated_at
+      title: Annotation
+    AnnotationCounts:
+      properties:
+        plant_accepted:
+          type: integer
+          title: Plant Accepted
+          description: 'Hitungan tanaman resmi foto ini: kind=plant & review_status=accepted.'
+        plant_pending:
+          type: integer
+          title: Plant Pending
+        check_accepted:
+          type: integer
+          title: Check Accepted
+        gap_accepted:
+          type: integer
+          title: Gap Accepted
+        pending_review:
+          type: integer
+          title: Pending Review
+          description: Semua penanda pending (belum ditinjau), semua kind.
+        rejected:
+          type: integer
+          title: Rejected
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - plant_accepted
+      - plant_pending
+      - check_accepted
+      - gap_accepted
+      - pending_review
+      - rejected
+      - total
+      title: AnnotationCounts
+    AnnotationCreate:
+      properties:
+        kind:
+          type: string
+          enum:
+          - plant
+          - check
+          - gap
+          title: Kind
+        geometry_type:
+          type: string
+          enum:
+          - point
+          - bbox
+          title: Geometry Type
+          default: point
+        x:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: X
+          description: Wajib untuk point. Untuk bbox dihitung server (pusat kotak).
+        y:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Y
+        bbox:
+          anyOf:
+          - items:
+              type: number
+            type: array
+            maxItems: 4
+            minItems: 4
+            description: '[left, top, width, height], semua 0–1 relatif gambar terorientasi.'
+          - type: 'null'
+          title: Bbox
+          description: Wajib untuk bbox.
+        note:
+          type: string
+          maxLength: 1000
+          title: Note
+          default: ''
+        review_status:
+          type: string
+          enum:
+          - accepted
+          - pending
+          title: Review Status
+          description: Penanda manual boleh langsung accepted. source selalu manual di endpoint ini.
+          default: accepted
+      additionalProperties: false
+      type: object
+      required:
+      - kind
+      title: AnnotationCreate
+    AnnotationPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Annotation'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+        photo_revision:
+          type: integer
+          title: Photo Revision
+      type: object
+      required:
+      - items
+      - total
+      - limit
+      - offset
+      - photo_revision
+      title: AnnotationPage
+    AnnotationUpdate:
+      properties:
+        kind:
+          anyOf:
+          - type: string
+            enum:
+            - plant
+            - check
+            - gap
+          - type: 'null'
+          title: Kind
+        note:
+          anyOf:
+          - type: string
+            maxLength: 1000
+          - type: 'null'
+          title: Note
+        review_status:
+          anyOf:
+          - type: string
+            enum:
+            - pending
+            - accepted
+            - rejected
+          - type: 'null'
+          title: Review Status
+        geometry_type:
+          anyOf:
+          - type: string
+            enum:
+            - point
+            - bbox
+          - type: 'null'
+          title: Geometry Type
+        x:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: X
+        y:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Y
+        bbox:
+          anyOf:
+          - items:
+              type: number
+            type: array
+            maxItems: 4
+            minItems: 4
+            description: '[left, top, width, height], semua 0–1 relatif gambar terorientasi.'
+          - type: 'null'
+          title: Bbox
+      additionalProperties: false
+      type: object
+      title: AnnotationUpdate
+    Body_import_starter_backup:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_import_starter_backup
+    Body_upload_photo:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_photo
+    Capabilities:
+      properties:
+        flight_control:
+          type: boolean
+          const: false
+          title: Flight Control
+          default: false
+        live_video:
+          type: boolean
+          const: false
+          title: Live Video
+          default: false
+        georeferencing:
+          type: boolean
+          const: false
+          title: Georeferencing
+          default: false
+        orthomosaic:
+          type: boolean
+          const: false
+          title: Orthomosaic
+          default: false
+      type: object
+      title: Capabilities
+    DetectionImportRequest:
+      properties:
+        image_width:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: Image Width
+          description: Harus sama dengan Photo.width (terorientasi).
+        image_height:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: Image Height
+        model:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Model
+        model_version:
+          anyOf:
+          - type: string
+            maxLength: 120
+          - type: 'null'
+          title: Model Version
+        image_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[0-9a-f]{64}$
+          - type: 'null'
+          title: Image Sha256
+          description: Bila ada, harus sama dengan Photo.sha256.
+        detections:
+          items:
+            $ref: '#/components/schemas/DetectionIn'
+          type: array
+          maxItems: 3000
+          title: Detections
+        on_existing:
+          type: string
+          enum:
+          - reject
+          - replace_pending
+          - append
+          title: On Existing
+          default: reject
+      type: object
+      required:
+      - image_width
+      - image_height
+      - model
+      - detections
+      title: DetectionImportRequest
+      description: Format impor starter v0.1 (kompatibel), plus field opsional untuk identitas.
+    DetectionIn:
+      properties:
+        label:
+          type: string
+          enum:
+          - plant
+          - check
+          - gap
+          title: Label
+        confidence:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Confidence
+        bbox:
+          items:
+            type: number
+          type: array
+          maxItems: 4
+          minItems: 4
+          title: Bbox
+          description: '[left, top, width, height], semua 0–1 relatif gambar terorientasi.'
+      type: object
+      required:
+      - label
+      - bbox
+      title: DetectionIn
+    ErrorDetail:
+      properties:
+        code:
+          type: string
+          enum:
+          - BAD_REQUEST
+          - VALIDATION_ERROR
+          - NOT_FOUND
+          - METHOD_NOT_ALLOWED
+          - HTTP_ERROR
+          - PRECONDITION_REQUIRED
+          - REVISION_CONFLICT
+          - PAYLOAD_TOO_LARGE
+          - UNSUPPORTED_MEDIA_TYPE
+          - INVALID_IMAGE
+          - IMAGE_TOO_LARGE
+          - ANNOTATION_LIMIT_EXCEEDED
+          - DEMO_SURVEY_READONLY
+          - DETECTION_MISMATCH
+          - ANALYSIS_EXISTS
+          - ANALYSIS_IN_PROGRESS
+          - MODEL_NOT_CONFIGURED
+          - MODEL_UNAVAILABLE
+          - INFERENCE_FAILED
+          - INFERENCE_TIMEOUT
+          - INVALID_BACKUP
+          - INTERNAL_ERROR
+          title: Code
+        message:
+          type: string
+          title: Message
+          description: Pesan untuk pengguna (Bahasa Indonesia).
+        details:
+          additionalProperties: true
+          type: object
+          title: Details
+        request_id:
+          type: string
+          title: Request Id
+      type: object
+      required:
+      - code
+      - message
+      - request_id
+      title: ErrorDetail
+    ErrorEnvelope:
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorDetail'
+      type: object
+      required:
+      - error
+      title: ErrorEnvelope
+    Finding:
+      properties:
+        annotation_id:
+          type: string
+          title: Annotation Id
+        photo_id:
+          type: string
+          title: Photo Id
+        photo_name:
+          type: string
+          title: Photo Name
+        kind:
+          type: string
+          enum:
+          - check
+          - gap
+          title: Kind
+        review_status:
+          type: string
+          enum:
+          - pending
+          - accepted
+          - rejected
+          title: Review Status
+        source:
+          type: string
+          enum:
+          - manual
+          - model
+          title: Source
+        x:
+          type: number
+          title: X
+        y:
+          type: number
+          title: Y
+        note:
+          type: string
+          title: Note
+      type: object
+      required:
+      - annotation_id
+      - photo_id
+      - photo_name
+      - kind
+      - review_status
+      - source
+      - x
+      - y
+      - note
+      title: Finding
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    Health:
+      properties:
+        status:
+          type: string
+          const: ok
+          title: Status
+        api_version:
+          type: string
+          title: Api Version
+        contract_revision:
+          type: integer
+          title: Contract Revision
+        database:
+          type: string
+          const: ok
+          title: Database
+        model:
+          $ref: '#/components/schemas/ModelStatus'
+        capabilities:
+          $ref: '#/components/schemas/Capabilities'
+        limits:
+          $ref: '#/components/schemas/Limits'
+      type: object
+      required:
+      - status
+      - api_version
+      - contract_revision
+      - database
+      - model
+      - capabilities
+      - limits
+      title: Health
+    Limits:
+      properties:
+        max_upload_bytes:
+          type: integer
+          title: Max Upload Bytes
+        max_pixels:
+          type: integer
+          title: Max Pixels
+        allowed_mime_types:
+          items:
+            type: string
+          type: array
+          title: Allowed Mime Types
+        max_annotations_per_photo:
+          type: integer
+          title: Max Annotations Per Photo
+        max_detection_payload_bytes:
+          type: integer
+          title: Max Detection Payload Bytes
+        max_backup_bytes:
+          type: integer
+          title: Max Backup Bytes
+        inference_timeout_s:
+          type: number
+          title: Inference Timeout S
+      type: object
+      required:
+      - max_upload_bytes
+      - max_pixels
+      - allowed_mime_types
+      - max_annotations_per_photo
+      - max_detection_payload_bytes
+      - max_backup_bytes
+      - inference_timeout_s
+      title: Limits
+    ModelStatus:
+      properties:
+        state:
+          type: string
+          enum:
+          - not_configured
+          - configured
+          - loaded
+          - error
+          title: State
+          description: 'not_configured: tidak ada bobot; configured: bobot ada, belum dimuat; loaded: sudah dimuat di memori;
+            error: konfigurasi/dependensi bermasalah.'
+        available:
+          type: boolean
+          title: Available
+          description: True bila analyze dapat dicoba (state configured/loaded).
+        model_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Id
+        model_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Version
+          description: Sidik jari bobot (sha256 terpotong) bila diketahui.
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - state
+      - available
+      - message
+      title: ModelStatus
+    Photo:
+      properties:
+        id:
+          type: string
+          title: Id
+        survey_id:
+          type: string
+          title: Survey Id
+        original_name:
+          type: string
+          title: Original Name
+        width:
+          type: integer
+          title: Width
+          description: Lebar piksel setelah orientasi EXIF.
+        height:
+          type: integer
+          title: Height
+          description: Tinggi piksel setelah orientasi EXIF.
+        mime_type:
+          type: string
+          enum:
+          - image/jpeg
+          - image/png
+          - image/webp
+          title: Mime Type
+        size_bytes:
+          type: integer
+          title: Size Bytes
+        sha256:
+          type: string
+          title: Sha256
+          description: SHA-256 berkas asli (byte persis yang diunggah).
+        exif_orientation:
+          type: integer
+          title: Exif Orientation
+          description: Tag Orientation EXIF berkas asli (1 = normal).
+        has_exif_gps:
+          type: boolean
+          title: Has Exif Gps
+          description: Berkas memuat tag GPS EXIF. Itu posisi kamera, bukan lokasi tanaman; tidak dipakai.
+        captured_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Captured At
+          description: DateTimeOriginal EXIF, ISO tanpa zona waktu (jam lokal kamera).
+        georef_status:
+          type: string
+          const: none
+          title: Georef Status
+        revision:
+          type: integer
+          title: Revision
+          description: Naik setiap kali penanda foto ini berubah.
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        content_url:
+          type: string
+          title: Content Url
+          description: Berkas asli apa adanya (relatif terhadap base URL API).
+        display_url:
+          type: string
+          title: Display Url
+          description: Gambar terorientasi untuk editor; dimensinya = width × height.
+        thumbnail_url:
+          type: string
+          title: Thumbnail Url
+          description: JPEG terorientasi, sisi terpanjang ≤ 512 px.
+        duplicate_photo_ids:
+          items:
+            type: string
+          type: array
+          title: Duplicate Photo Ids
+          description: Foto lain di survei yang sama dengan sha256 identik.
+        counts:
+          $ref: '#/components/schemas/AnnotationCounts'
+      type: object
+      required:
+      - id
+      - survey_id
+      - original_name
+      - width
+      - height
+      - mime_type
+      - size_bytes
+      - sha256
+      - exif_orientation
+      - has_exif_gps
+      - georef_status
+      - revision
+      - created_at
+      - content_url
+      - display_url
+      - thumbnail_url
+      - duplicate_photo_ids
+      - counts
+      title: Photo
+    PhotoPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Photo'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+      type: object
+      required:
+      - items
+      - total
+      - limit
+      - offset
+      title: PhotoPage
+    PhotoReportRow:
+      properties:
+        photo_id:
+          type: string
+          title: Photo Id
+        original_name:
+          type: string
+          title: Original Name
+        width:
+          type: integer
+          title: Width
+        height:
+          type: integer
+          title: Height
+        captured_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Captured At
+        duplicate_photo_ids:
+          items:
+            type: string
+          type: array
+          title: Duplicate Photo Ids
+        counts:
+          $ref: '#/components/schemas/AnnotationCounts'
+      type: object
+      required:
+      - photo_id
+      - original_name
+      - width
+      - height
+      - captured_at
+      - duplicate_photo_ids
+      - counts
+      title: PhotoReportRow
+    PhotoUploadResult:
+      properties:
+        photo:
+          $ref: '#/components/schemas/Photo'
+        warnings:
+          items:
+            $ref: '#/components/schemas/Warning'
+          type: array
+          title: Warnings
+      type: object
+      required:
+      - photo
+      - warnings
+      title: PhotoUploadResult
+    ReportTotals:
+      properties:
+        photo_count:
+          type: integer
+          title: Photo Count
+        plant_accepted_sum_across_photos:
+          type: integer
+          title: Plant Accepted Sum Across Photos
+          description: Penjumlahan hitungan per foto. BUKAN jumlah tanaman unik bila foto bertumpang tindih.
+        pending_review:
+          type: integer
+          title: Pending Review
+        check_accepted:
+          type: integer
+          title: Check Accepted
+        gap_accepted:
+          type: integer
+          title: Gap Accepted
+        counts_are_unique_plants:
+          type: boolean
+          const: false
+          title: Counts Are Unique Plants
+          default: false
+      type: object
+      required:
+      - photo_count
+      - plant_accepted_sum_across_photos
+      - pending_review
+      - check_accepted
+      - gap_accepted
+      title: ReportTotals
+    StarterBackupImportResult:
+      properties:
+        surveys:
+          items:
+            $ref: '#/components/schemas/Survey'
+          type: array
+          title: Surveys
+        photo_count:
+          type: integer
+          title: Photo Count
+        annotation_count:
+          type: integer
+          title: Annotation Count
+        warnings:
+          items:
+            $ref: '#/components/schemas/Warning'
+          type: array
+          title: Warnings
+      type: object
+      required:
+      - surveys
+      - photo_count
+      - annotation_count
+      - warnings
+      title: StarterBackupImportResult
+    Survey:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        crop_type:
+          type: string
+          title: Crop Type
+        location_label:
+          type: string
+          title: Location Label
+        survey_date:
+          type: string
+          format: date
+          title: Survey Date
+        notes:
+          type: string
+          title: Notes
+        is_demo:
+          type: boolean
+          title: Is Demo
+          description: True = data contoh/ilustrasi, bukan foto drone atau hasil AI.
+        revision:
+          type: integer
+          title: Revision
+        photo_count:
+          type: integer
+          title: Photo Count
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - name
+      - crop_type
+      - location_label
+      - survey_date
+      - notes
+      - is_demo
+      - revision
+      - photo_count
+      - created_at
+      - updated_at
+      title: Survey
+    SurveyCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Name
+        crop_type:
+          type: string
+          maxLength: 80
+          minLength: 1
+          title: Crop Type
+        location_label:
+          type: string
+          maxLength: 150
+          title: Location Label
+          description: Teks bebas, bukan koordinat.
+          default: ''
+        survey_date:
+          type: string
+          format: date
+          title: Survey Date
+        notes:
+          type: string
+          maxLength: 2000
+          title: Notes
+          default: ''
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - crop_type
+      - survey_date
+      title: SurveyCreate
+    SurveyPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Survey'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+      type: object
+      required:
+      - items
+      - total
+      - limit
+      - offset
+      title: SurveyPage
+    SurveyReport:
+      properties:
+        survey:
+          $ref: '#/components/schemas/Survey'
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+        photos:
+          items:
+            $ref: '#/components/schemas/PhotoReportRow'
+          type: array
+          title: Photos
+        totals:
+          $ref: '#/components/schemas/ReportTotals'
+        findings:
+          items:
+            $ref: '#/components/schemas/Finding'
+          type: array
+          title: Findings
+        disclaimers:
+          items:
+            type: string
+          type: array
+          title: Disclaimers
+      type: object
+      required:
+      - survey
+      - generated_at
+      - photos
+      - totals
+      - findings
+      - disclaimers
+      title: SurveyReport
+    SurveyUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 100
+            minLength: 1
+          - type: 'null'
+          title: Name
+        crop_type:
+          anyOf:
+          - type: string
+            maxLength: 80
+            minLength: 1
+          - type: 'null'
+          title: Crop Type
+        location_label:
+          anyOf:
+          - type: string
+            maxLength: 150
+          - type: 'null'
+          title: Location Label
+        survey_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Survey Date
+        notes:
+          anyOf:
+          - type: string
+            maxLength: 2000
+          - type: 'null'
+          title: Notes
+      additionalProperties: false
+      type: object
+      title: SurveyUpdate
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    Warning:
+      properties:
+        code:
+          type: string
+          enum:
+          - DUPLICATE_IN_SURVEY
+          - DEMO_IMAGE_REPLACED
+          - BBOX_DROPPED
+          title: Code
+        message:
+          type: string
+          title: Message
+        details:
+          additionalProperties: true
+          type: object
+          title: Details
+      type: object
+      required:
+      - code
+      - message
+      title: Warning

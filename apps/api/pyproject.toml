@@ -1,0 +1,25 @@
+[project]
+name = "wallacea-api"
+version = "1.1.0"
+description = "WALLACEA API lokal: survei, foto, anotasi, review kandidat, laporan, inferensi jujur."
+requires-python = ">=3.11"
+# Rentang di sini; versi terkunci untuk instalasi ada di requirements.lock.txt.
+dependencies = [
+  "fastapi>=0.140,<0.144",
+  "uvicorn>=0.30,<1.0",
+  "sqlalchemy>=2.0,<2.1",
+  "alembic>=1.13,<2",
+  "python-multipart>=0.0.18,<1.0",
+  "Pillow>=11,<14",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27", "PyYAML>=6"]
+# Berat (PyTorch). Pasang hanya bila tim sudah memiliki bobot tanaman lokal.
+ai = ["ultralytics>=8.3,<9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning", "ignore:Using `httpx`"]
