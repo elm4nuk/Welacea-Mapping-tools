@@ -1,17 +1,15 @@
 """Unit test toolkit ML dengan data sintetis. Menguji logika metrik/split, BUKAN performa model."""
 import json
-import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ml"))
-from wallacea_ml.cli import main as ml_main  # noqa: E402
-from wallacea_ml.evaluate import evaluate, iou  # noqa: E402
-from wallacea_ml.manifest import load_manifest  # noqa: E402
-from wallacea_ml.split import check_leakage, group_split  # noqa: E402
+from wallacea_ml.cli import main as ml_main
+from wallacea_ml.evaluate import evaluate, iou
+from wallacea_ml.manifest import load_manifest
+from wallacea_ml.split import check_leakage, group_split
 
-EXAMPLE = Path(__file__).resolve().parents[1] / "ml" / "dataset_manifest.example.json"
+EXAMPLE = Path(__file__).resolve().parents[1] / "configs" / "manifest.example.json"
 
 
 def sha(n: int) -> str:

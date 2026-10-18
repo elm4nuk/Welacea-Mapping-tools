@@ -1,4 +1,4 @@
-"""Manifest dataset. Satu baris per gambar (atau tile). Lihat ../dataset_manifest.example.json."""
+"""Manifest dataset. Satu baris per gambar (atau tile). Lihat ml/configs/manifest.example.json."""
 from __future__ import annotations
 
 import json
@@ -22,6 +22,8 @@ class ImageEntry:
     plot_id: str | None = None  # petak (untuk galat hitungan per petak)
     parent_image: str | None = None  # bila ini tile/potongan: gambar induk
     sequence: int | None = None      # urutan dalam penerbangan
+    official_split: str | None = None  # split resmi penerbit dataset (train|val|test); dipakai group_by=official
+    source: str | None = None        # asal (berkas anotasi + nama berkas asli) untuk penelusuran
 
 
 @dataclass
@@ -31,6 +33,7 @@ class Manifest:
     images: list[ImageEntry]
     notes: str = ""
     errors: list[str] = field(default_factory=list)
+    domain: str = ""            # "public:<id dataset>" atau "k919" — hasil evaluasi dilaporkan terpisah per domain
 
     @property
     def labeled(self) -> list[ImageEntry]:
@@ -63,9 +66,11 @@ def load_manifest(path: str | Path) -> Manifest:
             errors.append(f"images[{n}]: dimensi tidak valid")
         if e.image in seen:
             errors.append(f"images[{n}]: image duplikat {e.image}")
+        if e.official_split is not None and e.official_split not in ("train", "val", "test"):
+            errors.append(f"images[{n}]: official_split harus train|val|test")
         seen.add(e.image)
         images.append(e)
     if not images:
         errors.append("Manifest tidak memiliki gambar.")
     return Manifest(crop_type=crop, label_map=label_map, images=images, notes=str(data.get("notes") or ""),
-                    errors=errors)
+                    errors=errors, domain=str(data.get("domain") or ""))

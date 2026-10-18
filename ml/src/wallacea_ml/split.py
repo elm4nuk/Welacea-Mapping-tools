@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 from collections import defaultdict
 from dataclasses import dataclass
+from pathlib import Path
 
 from .manifest import ImageEntry, Manifest
 
@@ -34,10 +35,31 @@ def _stable_rank(key: str, seed: str) -> str:
     return hashlib.sha256(f"{seed}:{key}".encode()).hexdigest()
 
 
+def official_split(manifest: Manifest) -> SplitResult:
+    """Pertahankan split resmi penerbit (mis. split geografis dataset sawit). Tidak diacak ulang."""
+    missing = [e.image for e in manifest.images if not e.official_split]
+    if missing:
+        raise ValueError(f"{len(missing)} gambar tanpa official_split; gunakan group_by field/flight.")
+    assignments = {e.image: e.official_split for e in manifest.images}
+    groups = {s: sorted({e.field_id for e in manifest.images if e.official_split == s}) for s in SPLITS}
+    return SplitResult("official", assignments, groups, check_leakage(manifest, assignments, "field"))
+
+
+def external_split(manifest: Manifest) -> SplitResult:
+    """Dataset uji EKSTERNAL (tidak pernah dipakai training/pemilihan model): semua gambar → test."""
+    assignments = {e.image: "test" for e in manifest.images}
+    groups = {"train": [], "val": [], "test": sorted({e.field_id for e in manifest.images})}
+    return SplitResult("external", assignments, groups, check_leakage(manifest, assignments, "field"))
+
+
 def group_split(manifest: Manifest, group_by: str = "field", ratios=(0.7, 0.15, 0.15), seed: str = "wallacea",
                 ) -> SplitResult:
+    if group_by == "official":
+        return official_split(manifest)
+    if group_by == "external":
+        return external_split(manifest)
     if group_by not in ("field", "flight"):
-        raise ValueError("group_by harus 'field' atau 'flight'")
+        raise ValueError("group_by harus 'field', 'flight', 'official', atau 'external'")
     by_parent = {e.image: e for e in manifest.images}
     groups: dict[str, list[ImageEntry]] = defaultdict(list)
     for e in manifest.images:
@@ -82,9 +104,11 @@ def check_leakage(manifest: Manifest, assignments: dict[str, str], group_by: str
     return leaks
 
 
-def yolo_dataset_yaml(manifest: Manifest, root: str) -> str:
+def yolo_dataset_yaml(manifest: Manifest, root: str, list_dir: str) -> str:
+    """`list_dir/<split>.txt` berisi path ABSOLUT gambar (Ultralytics menafsirkan path relatif terhadap cwd).
+    Label dicari Ultralytics dengan mengganti `/images/` → `/labels/` — layout keluaran `prepare`."""
     names = {idx: label for label, idx in manifest.label_map.items()}
-    lines = [f"# Dataset {manifest.crop_type} — dibuat oleh wallacea_ml.split", f"path: {root}",
-             "train: splits/train.txt", "val: splits/val.txt", "test: splits/test.txt", "names:"]
-    lines += [f"  {i}: {names[i]}" for i in sorted(names)]
+    lines = [f"# Dataset {manifest.crop_type} — dibuat oleh wallacea_ml.split", f"path: {root}"]
+    lines += [f"{s}: {Path(list_dir, s + '.txt').as_posix()}" for s in SPLITS]
+    lines += ["names:"] + [f"  {i}: {names[i]}" for i in sorted(names)]
     return "\n".join(lines) + "\n"

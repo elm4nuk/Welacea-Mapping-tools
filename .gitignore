@@ -33,8 +33,6 @@ uploads/
 *.tflite
 *.safetensors
 datasets/
-apps/api/ml/runs/
-apps/api/ml/data/
 
 # --- Node ---
 node_modules/
@@ -51,3 +49,11 @@ test-results/
 Thumbs.db
 .idea/
 .vscode/
+
+# --- ML workspace (ml/) — data, bobot, hasil run tidak masuk Git ---
+ml/data/*
+!ml/data/README.md
+ml/artifacts/*
+!ml/artifacts/README.md
+ml/notebooks/.ipynb_checkpoints/
+.ipynb_checkpoints/

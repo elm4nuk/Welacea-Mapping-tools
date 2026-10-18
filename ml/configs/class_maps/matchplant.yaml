@@ -1,0 +1,2 @@
+# Kategori COCO MatchPlant → label WALLACEA. Diverifikasi: semua 27 JSON hanya punya {id: 1, name: maize}.
+maize: plant
