@@ -26,6 +26,7 @@ Tidak ada antrean (Redis/Celery). Analisis satu foto berjalan **sinkron** dengan
 | `apps/api/alembic/` | Migrasi skema | Claude |
 | `apps/api/tests/` | pytest (kontrak, validasi, persistensi, pipeline) | Claude |
 | `apps/api/scripts/export_contract.py` | Generate snapshot OpenAPI + fixtures dari API sungguhan | Claude |
+| `apps/api/ml/` | Toolkit dataset: manifest, split per lahan/penerbangan, evaluasi, wrapper training | Claude |
 | `packages/contracts/` | `openapi.yaml`, `fixtures/`, `CHANGELOG.md` | Claude |
 | `apps/web/` | Frontend React | Codex |
 | `legacy/starter-v01/` | Starter asli (referensi migrasi, jangan dihapus) | — |
