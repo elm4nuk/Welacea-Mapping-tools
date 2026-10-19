@@ -1,201 +1,112 @@
-# Codex frontend handoff — 19 October 2026
+# Codex UI/UX handoff — 19 October 2026
 
-## Inference UX integration follow-up
+## Delivery
 
-- Branch: `agent/codex-inference-integration`, based on `origin/main` after PR #2,
-  with Claude commits `e91fc82` and `9925e1e` cherry-picked as `03c7690` and
-  `8a14cc3`. Delivery SHA is the commit containing this handoff.
-- The health model states now render honestly as not configured, available, or
-  unavailable. Model metadata is omitted unless the API supplies it.
-- One-photo analysis now has explicit running/succeeded/failed presentation,
-  guards repeat submission, refreshes run history after success and failure, and
-  maps timeout, conflict, model, inference, and network errors without clearing
-  the current annotations.
-- `ANALYSIS_EXISTS` exposes the contract's `replace_pending` and `append` choices
-  with an explanation of what is preserved. No progress percentage is shown
-  because contract revision 1 does not provide one.
-- Manual annotations, pending model candidates, accepted candidates, and rejected
-  candidates now have distinct labels and canvas styles. Rejected candidates stay
-  visible in a subdued style for review; only accepted plants are counted as
-  "tanaman terkonfirmasi". Confidence is labelled as a model score.
-- Reports now state counts per photo and explicitly avoid GPS and whole-field
-  unique-plant claims.
-- Candidate view models retain API-provided `analysis_run_id` and `model_label`.
-  The review panel resolves model ID/version from the real run history. When that
-  API model ID identifies DeepForest, plant detections are called “kandidat tajuk
-  pohon” and carry the required baseline-validation caveat; no model name is
-  inferred when metadata is absent.
-- The existing `POST /demo/surveys` endpoint is now reachable from the dashboard.
-  It is consistently labelled as a generated, read-only illustration—not a drone
-  photo and not ML output. No licensed aerial sample was provided.
-- Playwright has an opt-in `WALLACEA_E2E_START_WEB=1` mode so the test runner can
-  own the Vite lifecycle while using a separate real FastAPI process/database.
-- Verification on the integrated branch: OpenAPI generation, `pnpm typecheck:web`,
-  `pnpm build:web`, `pnpm --filter @wallacea/web test` (18 tests), peer dependency
-  check, and `git diff --check` passed. Playwright passed 18/18 in one final run
-  across desktop/tablet/mobile, including the new read-only illustration check,
-  against a real FastAPI contract-revision-1 process with no configured model.
-  Synthetic files/imported candidates remain test data, not trained inference.
-- No real model weights, K919 photos, or model-accuracy measurements were
-  available. CR-FE-001 remains open. CR-FE-002 requests a licensed sample-photo
-  catalog, and CR-FE-003 requests explicit candidate semantics instead of parsing
-  a supplied model ID. Both new requests are non-blocking.
+- Branch: `agent/codex-uiux-v2`
+- Worktree: `D:\coding\wallacea-worktrees\codex-uiux-v2`
+- Base: `2e8a2d7` (`agent/codex-inference-integration`)
+- Backend/contract source reviewed: `agent/claude-backend` at `a91a594`; the latest
+  additive contract revision 3 (including all revision-2 model fields) was used to regenerate frontend types without editing
+  `packages/contracts` in this branch.
+- Commits: `e85906f` (tokens/components/shell), `de50ecc`
+  (canvas/review/workflow), followed by the delivery commit containing this file.
+  Resolve the final SHA with `git rev-parse agent/codex-uiux-v2`.
+- No push, merge, deployment, backend change, migration change, or contract edit.
 
-Status: FRONTEND_READY for the manual-survey MVP and API integration below.
+## Before and after
 
-## Branch, commits and contract
+Before, the photo competed with permanent survey/photo/review columns, core actions
+were scattered, API/model state was conflated, and coordinate forms dominated the
+editor. After, the real workflow is explicit: **Buat survei → Unggah foto → Analisis
+& review → Laporan**. The desktop canvas occupies the main workspace, the review
+panel can close, and tablet/mobile move navigation, filmstrip, and review into
+Sheets. The toolbar is reduced to select/pan, point/box, zoom/fit, and undo/redo;
+coordinate entry remains keyboard-accessible under Pengaturan lanjutan.
 
-- Current branch: `agent/codex-inference-integration`; delivery SHA is the commit
-  containing this handoff. Resolve it with `git rev-parse agent/codex-inference-integration`.
-- Current workspace: `D:\coding\Walacea software`. Claude's backend worktree remains
-  separate at `D:\coding\wallacea-worktrees\claude-backend`.
-- Base frontend landed on `origin/main` in `5ae429d`; Claude commits `e91fc82` and
-  `9925e1e` were cherry-picked onto this branch as `03c7690` and `8a14cc3`.
-- The preceding inference UX integration commit is `3a3f68f`.
-- API v1 revision 1 / OpenAPI info.version 1.1.0. Types generated inside apps/web.
-- No merge, push, deployment, backend edit, migration edit or contract edit performed.
+API connectivity now follows the health query independently from model readiness.
+The primary action becomes Simpan perubahan for a dirty draft and Analisis foto
+only for a clean, persisted, non-demo photo with a connected API and available
+model. Its disabled reason is visible. Pending, accepted, and rejected candidates
+have icon/text/style distinctions, and only accepted plants count as confirmed.
 
-## Delivered files and behavior
+Reports now use Indonesian survey → per-photo summary → findings hierarchy, preserve
+CSV/annotated PNG/browser PDF, and include overlap/GPS disclaimers and A4 print rules.
+No map, heatmap, inferred GPS, fake inference progress, or fabricated detection was
+added. Existing display orientation, normalized transforms, reducer undo/redo,
+sequential save, If-Match, partial-save blocking, conflict recovery, and exports
+remain in place.
 
-- src/App.tsx: API survey create/edit/delete, pagination, separately labelled demo
-  surveys, photo selection/deletion, multi-file upload, measured transfer progress
-  per file, server-validation status, health-provided limits, rejection messages,
-  duplicate warnings, backup import and confirmation for destructive operations.
-- src/components/SurveyForm.tsx: React Hook Form + Zod with contract field limits,
-  Indonesian labels and API-confirmed save feedback.
-- src/api/client.ts and schema.d.ts: centralized generated API types, base origin,
-  network/API errors, AbortSignal for queries, XHR upload progress and If-Match.
-- features/editor/PhotoEditor.tsx: React Konva oriented image canvas; fit, anchored
-  zoom, pan, select, point/box creation, normalized correction, category/note edit,
-  review and deletion. Coordinate forms support keyboard point/box creation;
-  arrow keys pan the focused canvas in Geser mode. Numbered T/P/K markers and
-  text legend supplement colors; pending uses dashed strokes.
-- features/editor/model.ts: pure transforms, normalized box geometry, bounded
-  per-photo undo/redo snapshots, validation, accepted-only counts and safe CSV.
-- features/editor/adapter.ts: API check maps to inspect; bbox uses top-left/size,
-  while API x/y for bbox is its centre. Bbox PATCH omits x/y.
-- features/editor/EditorSession.tsx: only display_url is used, oriented dimensions
-  checked, explicit draft/save, revisions, partial-save handling, conflict details,
-  fresh server baseline on returning to a photo and cache invalidation after save.
-  Manual deletion undo recreates a manual annotation with a new server ID.
-  Model candidates are rejected instead of deleted to preserve their source.
-- AI: real analyze request and synchronous processing status; honest 503
-  MODEL_NOT_CONFIGURED handling; run/model metadata and confidence shown as model
-  output, never as field accuracy. No fabricated inference fallback.
-- components/Report.tsx and editor/export.ts: actual API counts per photo,
-  inspection notes/review/disclaimers, API CSV, annotated PNG with survey/date/
-  legend/review status and browser print / Save as PDF stylesheet.
-- Backup import: schemaVersion 1 checked locally then sent unchanged to the real
-  multipart endpoint. API imports copies, preserves demo labels and returns warnings.
-- app.css/editor.css: dark green/earth/light green identity, desktop photo/editor/
-  findings layout, stacked smaller layouts, horizontal thumbnail strip, visible
-  focus, touch-sized controls and print stylesheet.
-- Tailwind plus small shadcn/ui-style Button adaptation. THIRD_PARTY.md records
-  provenance and licenses. No full admin template, map, invented GPS or extra GIS.
-- EditorPreview.tsx is explicit development-only, in-memory source. It is not the
-  default application entry, mock service, offline mode or default data adapter.
+## Contract and requests
 
-## Setup, commands and environment
+The generated `ModelStatus` types accept revision-2 `target_label`, `target`,
+`adapter`, `device`, and `limitations`, with conservative revision-1 fallback.
+Revision 3 also adds `AnalysisRun.target` and the licensed sample catalog.
+CR-FE-002 and CR-FE-003 are marked contract-fulfilled; catalog-picker UI remains
+separate follow-up scope.
 
-Node 24.18.0 / pnpm 12.9.1. Baseline React 19.3.1, TypeScript 6.0.3, Vite 8.3.4
-retained. Exact dependency pins and one root pnpm-lock.yaml. API generator lives
-in apps/web/tools/api-types with TypeScript 5.9.3 to satisfy its peer dependency;
-the web application compiler remains baseline TypeScript 6.
+## Verification
 
-From the frontend worktree root:
+Run from this worktree:
 
-    pnpm install --frozen-lockfile
-    pnpm dev:web
     pnpm typecheck:web
     pnpm build:web
     pnpm --filter @wallacea/web test
-    pnpm --filter @wallacea/web generate:api
     pnpm peers check
+    pnpm --filter @wallacea/web test:e2e --reporter=list
+    git diff --check
 
-Start API independently using apps/api/README.md. Default web URL:
-http://127.0.0.1:5173, development proxy /api to http://127.0.0.1:8000.
+Playwright uses a real FastAPI process on port 18080 and a dedicated temporary data
+directory. Projects are exactly 1440×900, 820×1180, and 390×844. Coverage includes
+create/edit/delete, multi-upload, EXIF orientation, duplicate/invalid/oversize files,
+draft/undo/redo/save/reload, pending→accepted/rejected, If-Match conflict with draft
+retention, navigation protection, responsive Sheets, API offline/retry, model not
+configured, CSV, annotated PNG, and Chromium PDF/print media.
 
-- VITE_API_BASE_URL: empty by default = same origin. No secrets in VITE variables.
-- API_PROXY_TARGET: dev proxy target, default http://127.0.0.1:8000.
-- E2E: WALLACEA_E2E_WEB_URL defaults to http://127.0.0.1:5174.
-- E2E: WALLACEA_E2E_API_URL defaults to http://127.0.0.1:18080.
-- E2E: WALLACEA_E2E_PYTHON = Python executable with Pillow.
-- Production needs an /api reverse proxy or configured VITE_API_BASE_URL.
-  Vite preview does not provide the development API proxy.
+Final recorded results are completed immediately before the delivery commit:
 
-Full E2E server/data-directory commands are in apps/web/README.md. Browser setup:
+- revision-3 API type regeneration comparison: passed;
+- typecheck and production build: passed;
+- Vitest: 21 tests passed in 4 files;
+- peer dependency check: passed;
+- Playwright: 18 tests passed across all three viewports;
+- `git diff --check`: passed.
 
-    pnpm --filter @wallacea/web exec playwright install chromium
-    pnpm --filter @wallacea/web test:e2e
+The 18-test matrix used the revision-1-compatible API with no configured model and
+verifies honest unavailable-model behavior. A separate optional Playwright smoke
+test then ran the redesigned desktop UI against Claude's revision-3 API with loaded
+DeepForest CPU weights: upload of the attributed `OSBS_029.png` sample, real
+analysis, accept one/reject one, save, reload, and API persistence all passed in
+5.8 seconds. The API reported model version `sha256:d37a7af0b5ba2754`, target
+`tree_crown`; this is a pretrained forest-canopy baseline, not K919 or agricultural
+accuracy evidence. Synthetic files/candidates in the main matrix remain clearly QA
+contract data.
 
-## Actual verification
+## Screenshot evidence
 
-Windows, Node 24.18.0, pnpm 12.9.1, Chromium 156 via Playwright.
+Matched baseline/after editor captures use the same API/database and same generated
+illustration state. Baseline is commit `2e8a2d7`; after is this delivery branch.
 
-- Frozen-lockfile install: passed; peer check: no issues.
-- OpenAPI type generation, typecheck and production build: passed.
-- Lazy editor/report loading removes large-chunk warnings. Main JS ~421 kB;
-  editor chunk ~355 kB, before gzip.
-- Vitest: 18 tests passed in 3 files. Coordinates at zoom/pan/resize and oriented
-  dimensions, boxes, review counts, isolated undo/redo, snapshot immutability,
-  validation, CSV, API adapters, model wording and fresh history after conflict reload.
-- Playwright: 18/18 passed in 55.1 seconds at desktop 1600x1000, tablet 820x1180
-  and mobile 390x844.
-- Actual uvicorn/FastAPI contract revision 1, port 18080, dedicated temporary
-  data directory, no configured model. No mock API.
-- Survey create/edit; JPEG EXIF Orientation 6 and WebP multi-upload; actual
-  oriented display/dimensions; PNG upload; duplicate warning; corrupt image;
-  21 MB client rejection; photo delete cancel/confirm.
-- Add/edit/undo/redo/save; immediate photo switch and return; browser reload;
-  saved annotations; pointer coordinates after zoom/pan; no accidental pan marker;
-  resize/refit; keyboard box create/correct; pointer box draw; delete/save/undo/save.
-- Synthetic candidates imported through real detections/import endpoint:
-  pending excluded from accepted counts, accept/reject saved, actual If-Match
-  conflict, retained draft, explicit server reload and reset undo history.
-- Actual MODEL_NOT_CONFIGURED/503; network failures simulated by aborting browser
-  API requests, then retry. API process was not shut down for that network test.
-- Invalid backup rejected by API; valid backup imported as labelled demo copy;
-  survey edit and destructive confirmation checked against actual API responses.
-- Actual PNG/CSV downloads and Chromium PDF generation with print media.
-  Desktop/tablet/mobile screenshots reviewed; no horizontal page overflow.
-- git diff --check: passed. `graphify-out/` remains untracked and intentionally
-  excluded from the delivery commit.
+- `docs/handoff/screenshots/uiux-v2/before-desktop.png`
+- `docs/handoff/screenshots/uiux-v2/after-desktop.png`
+- `docs/handoff/screenshots/uiux-v2/before-tablet.png`
+- `docs/handoff/screenshots/uiux-v2/after-tablet.png`
+- `docs/handoff/screenshots/uiux-v2/before-mobile.png`
+- `docs/handoff/screenshots/uiux-v2/after-mobile.png`
 
-Images are generated synthetic PNG/WebP/JPEG, not drone photos. Imported
-candidates are synthetic contract data, not trained model inference.
-Screenshots/downloads/traces remain under ignored apps/web/test-results.
-QA surveys were cleaned up. Runtime database and QA images are not committed.
+Visual inspection confirmed canvas dominance on desktop, no horizontal page
+overflow, readable status/action hierarchy, persistent desktop review, and Sheet
+behavior at tablet/mobile sizes. The images are an explicitly labelled illustration,
+not drone imagery or model output.
 
-## Limits and requests
+## Integration for Claude
 
-- No real K919 photo/quality/EXIF/flight test, physical mobile-device test,
-  model training, actual model inference or accuracy measurement.
-- Saves are sequential, not atomic. Failure can leave partial server changes:
-  draft stays exportable as CSV, further saves are blocked until explicit reload,
-  and a 409 displays server details. No blind retry or conflict overwrite.
-- Undo/redo is per-photo session state and resets when changing photo or loading
-  fresh server data. Undo of manual deletion changes its server ID.
-- Drafts do not survive browser reload. No offline-first/background sync claims.
-  Export existing starter IndexedDB through the old UI before importing it.
-- PDF uses browser printing; Chromium was exercised, not Firefox/Safari.
-- PNG caps its longest image side at 6000 px and adds metadata footer. API originals
-  remain untouched.
-- No new-format backup export endpoint; use Claude's runtime backup procedure.
-- CR-FE-001 in docs/requests/codex-api.md requests clearer optional-but-non-null
-  PATCH schema restrictions. Non-blocking; frontend uses runtime-valid requests.
-- CR-FE-002 and CR-FE-003 in docs/requests/codex-demo-semantics.md request a
-  licensed sample-photo catalog and explicit candidate semantics. Both are
-  optional additions; current UI stays honest without them.
-- Codex did not rerun backend unit tests; Claude's 117-test report remains the
-  backend verification record. This turn exercised the backend through browser E2E.
+Inspect with:
 
-## Integration
+    git show agent/codex-uiux-v2:docs/handoff/codex.md
+    git log --oneline 2e8a2d7..agent/codex-uiux-v2
 
-Read the committed handoff:
-
-    git show agent/codex-inference-integration:docs/handoff/codex.md
-
-The frontend already consumes Claude's contract revision 1 on this integration
-branch. No merge into main, push, or public deployment is included. A final real
-model run remains necessary after compatible weights and representative photos
-are supplied.
+Merge or cherry-pick the three frontend commits into the chosen integration branch.
+Keep Claude's revision-3 contract as authoritative; if it differs from the snapshot
+used here, rerun `pnpm --filter @wallacea/web generate:api` after the contract merge,
+then repeat typecheck, Vitest, and Playwright. Do not replace the editor transform or
+persistence modules during conflict resolution.

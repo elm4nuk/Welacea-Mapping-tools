@@ -1,7 +1,9 @@
 # WALLACEA web
 
-React frontend for API v1, contract revision 1 / OpenAPI 1.1.0. No mock service
-is enabled by default. The application needs the real FastAPI service.
+React frontend for API v1. Generated types consume the additive contract revision
+3 from Claude's latest backend handoff while remaining compatible with revisions
+1–2. No
+mock service is enabled by default. The application needs the real FastAPI service.
 
 ## Run
 
@@ -23,8 +25,13 @@ Vite preview does not provide the development API proxy.
 
 ## Editing and storage
 
+- The primary flow is **Buat survei → Unggah foto → Analisis & review → Laporan**.
+  Desktop uses a collapsible survey sidebar and persistent review panel. Tablet
+  and mobile use Sheets for navigation, photo selection, and candidate review.
 - Choose a survey, upload files, select a photo, then annotate with points or
-  boxes. Canvas tools and normalized coordinate forms are both available.
+  boxes. The compact toolbar keeps select/pan, point/box, zoom/fit, and undo/redo
+  visible. Normalized coordinate forms remain keyboard-accessible under
+  **Pengaturan lanjutan**.
 - The editor loads display_url, whose dimensions already incorporate EXIF.
   Photo coordinates are not GPS. Bounding boxes use normalized top-left/size.
 - Changes, undo and redo are local drafts until **Simpan anotasi** succeeds.
@@ -50,7 +57,9 @@ Vite preview does not provide the development API proxy.
 
 ## Photo analysis and review
 
-- Model availability is read from `GET /api/v1/health`. The UI distinguishes a
+- API connectivity and model readiness are separate statuses. Connectivity is
+  based on the real health query; model availability is read from its response.
+  The UI distinguishes a
   model that is not configured, available, or unavailable, and only shows the
   model ID/version when those values are supplied by the API.
 - Analysis is synchronous. While the request is open the UI says that analysis
@@ -67,9 +76,9 @@ Vite preview does not provide the development API proxy.
   plants. Confidence is presented as a model score, not survey accuracy.
 - Each candidate retains its API-provided analysis-run link. The review panel
   shows model ID/version and detector label only when supplied by the API.
-  API-identified DeepForest runs use “kandidat tajuk pohon” and state that this
-  baseline has not been validated for every agricultural crop. Other models keep
-  the generic “kandidat tanaman” wording.
+  Contract-revision-2 responses use `target_label`, `target`, `adapter`, `device`,
+  and `limitations` directly. Revision-1 responses retain conservative generic
+  wording.
 - Reports state counts per photo. Image coordinates are not GPS, and sums across
   overlapping photos are not claimed as unique plants for the whole field.
 
@@ -117,4 +126,4 @@ Tests generate synthetic PNG/WebP/JPEG images, including EXIF Orientation 6,
 under ignored test-results. Candidate review uses the real detections/import
 endpoint with clearly named synthetic test outputs. This tests contracts and
 workflow, not model inference, accuracy, real devices, or K919 photo quality.
-Chromium viewport projects: 1600x1000, 820x1180 and 390x844.
+Chromium viewport projects: 1440x900, 820x1180 and 390x844.
