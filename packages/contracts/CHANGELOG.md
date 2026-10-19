@@ -13,8 +13,10 @@ Usulan perubahan dari frontend: `docs/requests/codex-*.md`.
   dengan `health.model.target` saat run dibuat, dicatat sejak run dimulai (run `failed` pun membawanya).
   `null` = tidak diketahui (impor deteksi, run sebelum revisi 3) → pakai istilah generik. Nama field `target`
   dipakai (bukan `candidate_semantics` yang diusulkan) agar sama dengan `ModelStatus.target` revisi 2.
-  **Jangan lagi menebak dari `model_id`** — `model_id` DeepForest adalah `"weecology/deepforest-tree"` (huruf
-  kecil), jadi pencocokan string `DeepForest` di frontend tidak akan pernah cocok.
+  Pakai field ini alih-alih menebak dari `model_id`. (Koreksi: regex frontend saat ini
+  `/(^|[^a-z0-9])deep[\s_-]*forest([^a-z0-9]|$)/i` memang cocok dengan `model_id` DeepForest
+  `"weecology/deepforest-tree"` — diverifikasi 2026-10-19 — tetapi nama model bisa berubah/dikonfigurasi lewat
+  `WALLACEA_MODEL_ID`, sedangkan `target` berasal dari adapter.)
 - **CR-FE-002 — katalog foto contoh berlisensi**: `GET /api/v1/samples` → `SamplePage {items: SamplePhoto[], total}`
   dengan `id, title, file_url, filename, media_type, size_bytes, sha256, width, height, source_name, source_url,
   license_name, license_url, attribution, imagery, has_human_annotations`. `GET /api/v1/samples/{id}/file` →
