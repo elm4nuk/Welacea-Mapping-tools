@@ -27,6 +27,7 @@ Status dicatat jujur: **[otomatis]** = ada test yang dijalankan; **[manual]** = 
 | A18 | CORS hanya origin terdaftar; server bind loopback | [otomatis] CORS; [manual] `netstat` saat `python -m app` |
 | A19 | Snapshot OpenAPI = skema yang di-generate; fixtures valid terhadap skema | [otomatis] `test_contract.py` |
 | A20 | Inferensi model tanaman nyata | **[belum]** — tidak ada bobot/dataset |
+| A21 | Toolkit ML: split per lahan/penerbangan menolak kebocoran; metrik precision/recall/galat hitungan benar; `train` menolak tanpa data | [otomatis] `test_ml_toolkit.py` (data sintetis — bukan metrik model) |
 
 ## B. Frontend (pemilik: Codex) — ringkasan dari prompt Codex
 
