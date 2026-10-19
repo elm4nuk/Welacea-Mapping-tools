@@ -1,6 +1,6 @@
 # WALLACEA — Arsitektur
 
-Pemilik: Claude. Kontrak API: revisi 1 (`packages/contracts/openapi.yaml`, `info.version` 1.1.0).
+Pemilik: Claude. Kontrak API: revisi 2 (`packages/contracts/openapi.yaml`, `info.version` 1.2.0).
 
 ## Gambaran
 
@@ -11,7 +11,9 @@ Pemilik: Claude. Kontrak API: revisi 1 (`packages/contracts/openapi.yaml`, `info
    │                              ├─ Storage lokal            ─▶ apps/api/var/uploads/xx/<uuid>.<ext>
    │                              └─ Detector (interface)
    │                                   ├─ UnconfiguredDetector  (default → 503 MODEL_NOT_CONFIGURED)
-   │                                   └─ UltralyticsDetector   (bobot .pt lokal, opsional)
+   │                                   ├─ UltralyticsDetector   (bobot YOLO .pt tim, opsional)
+   │                                   └─ DeepForestDetector    (folder bobot weecology/deepforest-tree lokal,
+   │                                                             kandidat TAJUK POHON, CPU, opsional)
    ▼
  Foto drone disalin manual dari kartu/aplikasi K919 → diunggah per berkas.
 ```
@@ -26,7 +28,7 @@ Tidak ada antrean (Redis/Celery). Analisis satu foto berjalan **sinkron** dengan
 | `apps/api/alembic/` | Migrasi skema | Claude |
 | `apps/api/tests/` | pytest (kontrak, validasi, persistensi, pipeline) | Claude |
 | `apps/api/scripts/export_contract.py` | Generate snapshot OpenAPI + fixtures dari API sungguhan | Claude |
-| `apps/api/ml/` | Toolkit dataset: manifest, split per lahan/penerbangan, evaluasi, wrapper training | Claude |
+| `ml/` | Workspace ML (Python + JupyterLab, venv terpisah): katalog dataset, validasi anotasi, prepare COCO→YOLO, split tanpa kebocoran, training, evaluasi via adapter API, notebook 01–04 | Claude |
 | `packages/contracts/` | `openapi.yaml`, `fixtures/`, `CHANGELOG.md` | Claude |
 | `apps/web/` | Frontend React | Codex |
 | `legacy/starter-v01/` | Starter asli (referensi migrasi, jangan dihapus) | — |
@@ -97,8 +99,15 @@ POST /photos/{id}/analyze {on_existing}
 Saat startup, run yang masih `running` (server mati di tengah) ditandai `failed / INTERRUPTED`.
 Catatan: thread inferensi yang melewati timeout tidak bisa dibunuh paksa; hasilnya dibuang.
 
-`model_version` adaptor Ultralytics = `sha256:` 16 hex pertama dari berkas bobot, jadi run berulang
-dengan bobot berbeda tidak dianggap sama.
+`model_version` = `sha256:` 16 hex pertama berkas bobot (Ultralytics: `.pt`; DeepForest: `model.safetensors`),
+jadi run berulang dengan bobot berbeda tidak dianggap sama.
+
+Detector memuat model **sekali** (lazy saat analisis pertama, atau saat startup dengan `WALLACEA_MODEL_PRELOAD`) dan
+tidak pernah mengunduh. DeepForest: konstruktor 2.1.0 akan mengunduh `config.model.name` dari Hub bila berupa
+repo ID, jadi adapter selalu memberi folder lokal, menyalakan `HF_HUB_OFFLINE`, dan mengarahkan `TORCH_HOME` ke
+folder model (backbone torchvision sudah diunduh skrip). Input = array RGB dari gambar terorientasi API (bukan
+path — DeepForest membaca path tanpa EXIF transpose). Label asli `Tree` → `kind=plant` eksplisit, `model_label=Tree`;
+`/health` menyebut `target=tree_crown` agar UI menamai hasil sebagai kandidat tajuk pohon.
 
 ## Error
 
@@ -156,11 +165,15 @@ jalankan `alembic upgrade head`. Belum diuji di PostgreSQL — perlu uji sebelum
 | `WALLACEA_DATABASE_URL` | `sqlite:///<DATA_DIR>/wallacea.db` |
 | `WALLACEA_ALLOWED_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` |
 | `WALLACEA_AUTO_MIGRATE` | `true` (migrasi saat startup) |
-| `WALLACEA_MODEL_PATH` | kosong → mode manual |
+| `WALLACEA_DETECTOR` | kosong = otomatis (ultralytics bila MODEL_PATH ada) · `none` · `ultralytics` · `deepforest` |
+| `WALLACEA_MODEL_PATH` | kosong → mode manual (DeepForest: folder hasil `scripts/download_deepforest.py`) |
 | `WALLACEA_MODEL_ID` | stem nama berkas bobot |
 | `WALLACEA_LABEL_MAP_JSON` | `{"plant":"plant","check":"check","gap":"gap"}` |
 | `WALLACEA_CONFIDENCE` / `WALLACEA_IMGSZ` | `0.35` / `1280` |
 | `WALLACEA_INFERENCE_TIMEOUT_S` | `120` |
+| `WALLACEA_DEVICE` | `cpu` (DeepForest; `cuda`/`auto` opsional) |
+| `WALLACEA_PATCH_SIZE` / `WALLACEA_PATCH_OVERLAP` | `400` / `0.05` (tile DeepForest) |
+| `WALLACEA_MODEL_PRELOAD` | `false` (`true` = muat model di thread latar saat startup) |
 
 ## Catatan untuk frontend
 

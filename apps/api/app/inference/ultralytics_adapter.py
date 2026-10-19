@@ -13,7 +13,11 @@ from pathlib import Path
 
 from PIL import Image
 
-from .base import DetectionOutput, Detector, DetectorInfo, InferenceFailed, ModelUnavailable, RawDetection
+from .base import (DetectionOutput, Detector, DetectorInfo, InferenceFailed, ModelUnavailable, RawDetection,
+                   normalize_xyxy)
+
+TARGET_LABEL = "Kandidat tanaman (model deteksi tim)"
+LIMITATIONS = ("Hanya akurat untuk tanaman, kamera, dan ketinggian yang sama dengan data latihnya — lihat model card.",)
 
 log = logging.getLogger("wallacea.inference")
 
@@ -65,14 +69,21 @@ class UltralyticsDetector(Detector):
         return self._fp_cache[1]
 
     def info(self) -> DetectorInfo:
+        meta = dict(adapter="ultralytics", target="plant", target_label=TARGET_LABEL, device="auto",
+                    limitations=LIMITATIONS)
         problem = self._config_problem()
         if problem:
-            return DetectorInfo(state="error", message=problem, model_id=self.model_id)
+            return DetectorInfo(state="error", message=problem, model_id=self.model_id, **meta)
         version = self._version()
         if self._model is not None:
-            return DetectorInfo(state="loaded", message="Model termuat di memori.", model_id=self.model_id, model_version=version)
+            return DetectorInfo(state="loaded", message="Model termuat di memori.", model_id=self.model_id,
+                                model_version=version, **meta)
         return DetectorInfo(state="configured", message="Bobot ditemukan; dimuat saat analisis pertama.",
-                            model_id=self.model_id, model_version=version)
+                            model_id=self.model_id, model_version=version, **meta)
+
+    def preload(self) -> None:
+        with self._lock:
+            self._load()
 
     # ------------------------------------------------------------ inference
     def _load(self):
@@ -112,13 +123,13 @@ class UltralyticsDetector(Detector):
                 name = str(result.names[int(cls)])
                 if name not in self.label_map:
                     continue
-                l, r = max(0.0, min(1.0, x1 / width)), max(0.0, min(1.0, x2 / width))
-                t, b = max(0.0, min(1.0, y1 / height)), max(0.0, min(1.0, y2 / height))
-                if r <= l or b <= t:
+                bbox = normalize_xyxy(x1, y1, x2, y2, width, height)
+                if bbox is None:
                     continue
-                out.append(RawDetection(label=self.label_map[name], bbox=[l, t, r - l, b - t],
+                out.append(RawDetection(label=self.label_map[name], bbox=bbox,
                                         confidence=max(0.0, min(1.0, float(score))), model_label=name))
         return DetectionOutput(
             model_id=self.model_id, model_version=self._version(), detections=out,
-            parameters={"adapter": "ultralytics", "conf": self.confidence, "imgsz": self.imgsz, "max_det": self.max_det},
+            parameters={"adapter": "ultralytics", "target": "plant", "conf": self.confidence, "imgsz": self.imgsz,
+                        "max_det": self.max_det},
         )

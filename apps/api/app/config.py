@@ -8,8 +8,10 @@ from pathlib import Path
 
 API_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_DIR = API_ROOT / "var"
+DEFAULT_SAMPLES_DIR = API_ROOT.parents[1] / "samples"   # <repo>/samples (catalog.json + foto contoh berlisensi)
 DEFAULT_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
 DEFAULT_LABEL_MAP = {"plant": "plant", "check": "check", "gap": "gap"}
+DETECTORS = ("", "none", "ultralytics", "deepforest")
 
 
 def _env(name: str, default: str = "") -> str:
@@ -40,15 +42,23 @@ class Settings:
     max_backup_bytes: int = 100 * 1024 * 1024
     thumbnail_max_side: int = 512
 
+    # Detector: "" (otomatis: ultralytics bila MODEL_PATH ada, selain itu manual) | ultralytics | deepforest | none
+    detector: str = ""
     model_path: Path | None = None
     model_id: str | None = None
     label_map_raw: str = ""
     confidence: float = 0.35
     imgsz: int = 1280
     inference_timeout_s: float = 120.0
+    device: str = "cpu"                 # deepforest: cpu | cuda | auto (Ultralytics memilih sendiri)
+    patch_size: int = 400               # deepforest predict_tile
+    patch_overlap: float = 0.05
+    model_preload: bool = False         # muat model saat startup (thread latar), bukan saat request pertama
+    samples_dir: Path = DEFAULT_SAMPLES_DIR  # foto contoh berlisensi (GET /samples); tidak ada → katalog kosong
 
     label_map: dict[str, str] = field(default_factory=dict)
     label_map_error: str | None = None
+    config_error: str | None = None
 
     @property
     def uploads_dir(self) -> Path:
@@ -72,6 +82,13 @@ def load_settings(**overrides) -> Settings:
             label_map = parsed
         except (ValueError, TypeError):
             label_map, label_error = {}, "WALLACEA_LABEL_MAP_JSON tidak valid."
+    detector = _env("WALLACEA_DETECTOR").lower()
+    device = _env("WALLACEA_DEVICE", "cpu").lower()
+    config_error = None
+    if detector not in DETECTORS:
+        config_error = f"WALLACEA_DETECTOR harus salah satu {sorted(d for d in DETECTORS if d)} (atau kosong)."
+    elif detector in ("ultralytics", "deepforest") and not model_raw:
+        config_error = f"WALLACEA_DETECTOR={detector} butuh WALLACEA_MODEL_PATH (bobot/folder model lokal)."
     values = dict(
         data_dir=data_dir,
         database_url=database_url,
@@ -83,8 +100,15 @@ def load_settings(**overrides) -> Settings:
         confidence=_float("WALLACEA_CONFIDENCE", 0.35),
         imgsz=_int("WALLACEA_IMGSZ", 1280),
         inference_timeout_s=_float("WALLACEA_INFERENCE_TIMEOUT_S", 120.0),
+        detector=detector,
+        device=device,
+        patch_size=_int("WALLACEA_PATCH_SIZE", 400),
+        patch_overlap=_float("WALLACEA_PATCH_OVERLAP", 0.05),
+        model_preload=_env("WALLACEA_MODEL_PRELOAD", "false").lower() in ("1", "true", "yes"),
+        samples_dir=Path(_env("WALLACEA_SAMPLES_DIR") or DEFAULT_SAMPLES_DIR).expanduser().resolve(),
         label_map=label_map,
         label_map_error=label_error,
+        config_error=config_error,
     )
     values.update(overrides)
     return Settings(**values)

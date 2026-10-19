@@ -1,14 +1,19 @@
 {
   "status": "ok",
   "api_version": "1",
-  "contract_revision": 1,
+  "contract_revision": 3,
   "database": "ok",
   "model": {
     "state": "not_configured",
     "available": false,
     "model_id": null,
     "model_version": null,
-    "message": "Model tanaman belum dikonfigurasi. Atur WALLACEA_MODEL_PATH ke bobot lokal hasil pelatihan tim."
+    "message": "Model tanaman belum dikonfigurasi. Atur WALLACEA_MODEL_PATH ke bobot lokal hasil pelatihan tim.",
+    "adapter": null,
+    "target": null,
+    "target_label": null,
+    "device": null,
+    "limitations": []
   },
   "capabilities": {
     "flight_control": false,

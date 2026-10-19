@@ -11,6 +11,7 @@ import math
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 from .errors import ERROR_CODES
 
@@ -78,6 +79,15 @@ class ModelStatus(BaseModel):
     model_id: str | None = None
     model_version: str | None = Field(None, description="Sidik jari bobot (sha256 terpotong) bila diketahui.")
     message: str
+    # Revisi 2 (aditif): apa yang sebenarnya dideteksi model, agar UI tidak menebak.
+    adapter: Literal["ultralytics", "deepforest"] | None = Field(
+        None, description="Jenis detector aktif. null bila mode manual / konfigurasi salah.")
+    target: Literal["plant", "tree_crown"] | None = Field(
+        None, description="Objek yang dideteksi model. tree_crown = tajuk pohon (DeepForest pretrained), BUKAN semua "
+                          "tanaman. Kandidat tetap disimpan sebagai kind=plant (lihat Annotation.model_label).")
+    target_label: str | None = Field(None, description="Teks siap tampil, mis. 'Kandidat tajuk pohon (DeepForest pretrained)'.")
+    device: str | None = Field(None, description="cpu | cuda | auto. Inferensi CPU dapat memakan puluhan detik per foto besar.")
+    limitations: list[str] = Field(default_factory=list, description="Keterbatasan model yang perlu ditampilkan ke pengguna.")
 
 
 class Capabilities(BaseModel):
@@ -231,13 +241,16 @@ class AnnotationCreate(StrictIn):
 
 
 class AnnotationUpdate(StrictIn):
-    kind: Kind | None = None
-    note: str | None = Field(None, max_length=1000)
-    review_status: ReviewStatus | None = None
-    geometry_type: GeometryType | None = None
-    x: Unit | None = None
-    y: Unit | None = None
-    bbox: BBox | None = None
+    """Kirim HANYA field yang berubah. Field yang dikirim tidak boleh null, kecuali `bbox: null` saat berubah ke
+    titik. `x`/`y` dikirim bersama dan hanya untuk titik (untuk bbox, pusat dihitung server — jangan kirim x/y)."""
+    # Revisi 3 (CR-FE-001): None hanya nilai "tidak dikirim"; skema tidak lagi mengiklankan null (runtime sama).
+    kind: Kind | SkipJsonSchema[None] = None
+    note: str | SkipJsonSchema[None] = Field(None, max_length=1000)
+    review_status: ReviewStatus | SkipJsonSchema[None] = None
+    geometry_type: GeometryType | SkipJsonSchema[None] = None
+    x: Unit | SkipJsonSchema[None] = Field(None, description="Hanya untuk titik; wajib bersama y.")
+    y: Unit | SkipJsonSchema[None] = Field(None, description="Hanya untuk titik; wajib bersama x.")
+    bbox: BBox | None = Field(None, description="[left, top, width, height] 0–1; null = ubah ke titik.")
 
     @field_validator("bbox")
     @classmethod
@@ -297,6 +310,10 @@ class AnalysisRun(BaseModel):
     started_at: dt.datetime
     finished_at: dt.datetime | None
     error_code: str | None
+    # Revisi 3 (CR-FE-003): semantik kandidat run ini, sama dengan health.model.target saat run dibuat.
+    target: Literal["plant", "tree_crown"] | None = Field(
+        None, description="Arti bbox kandidat run ini: plant = tanaman (model tim), tree_crown = tajuk pohon "
+                          "(DeepForest pretrained). null = tidak diketahui (mis. impor, run lama) → pakai istilah generik.")
 
 
 class AnalysisRunPage(BaseModel):
@@ -393,3 +410,30 @@ class StarterBackupImportResult(BaseModel):
     photo_count: int
     annotation_count: int
     warnings: list[Warning]
+
+
+# ---------------------------------------------------------------- samples (revisi 3, CR-FE-002)
+class SamplePhoto(BaseModel):
+    """Foto contoh berlisensi untuk demo. Diunduh lewat `file_url`, lalu diunggah lewat endpoint upload BIASA.
+    Bukan hasil inferensi; anotasi manusia (bila ada) hanya untuk evaluasi di notebook."""
+    id: str
+    title: str
+    file_url: str = Field(description="Relatif terhadap base API, mis. /api/v1/samples/neon-osbs-029/file")
+    filename: str
+    media_type: str
+    size_bytes: int
+    sha256: str
+    width: int
+    height: int
+    source_name: str
+    source_url: str
+    license_name: str
+    license_url: str
+    attribution: str
+    imagery: str = Field(description="Jenis citra & keterbatasan (mis. pesawat ±10 cm/px, bukan K919).")
+    has_human_annotations: bool
+
+
+class SamplePage(BaseModel):
+    items: list[SamplePhoto]
+    total: int

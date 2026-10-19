@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wallacea-ml"
+version = "0.2.0"
+description = "WALLACEA ML: katalog dataset, inspeksi/validasi anotasi, split tanpa kebocoran, training & evaluasi detektor tanaman."
+requires-python = ">=3.11"
+# Inti eksperimen (tanpa PyTorch). Modul `wallacea_ml.backend` juga mengimpor kode apps/api
+# (orientasi EXIF + adapter detektor), jadi dependensi API dipasang lewat requirements.txt.
+dependencies = [
+  "numpy>=2,<3",
+  "PyYAML>=6",
+  "Pillow>=11,<14",
+]
+
+[project.optional-dependencies]
+notebook = ["jupyterlab>=4.4,<5", "ipykernel>=6.29", "matplotlib>=3.9"]
+dev = ["pytest>=8"]
+# Berat (PyTorch). Lisensi Ultralytics: AGPL-3.0 atau Enterprise — lihat docs/architecture/REPO_SELECTION.md.
+train = ["ultralytics>=8.3,<9"]
+
+[project.scripts]
+wallacea-ml = "wallacea_ml.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]

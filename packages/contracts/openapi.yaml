@@ -21,7 +21,7 @@ info:
     * Konkurensi penanda: `ETag`/`If-Match` berisi `revision` (wajib untuk PATCH/DELETE annotation).
 
     '
-  version: 1.1.0
+  version: 1.3.0
 paths:
   /api/v1/health:
     get:
@@ -970,6 +970,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/samples:
+    get:
+      tags:
+      - samples
+      summary: Katalog foto contoh berlisensi (sumber & lisensi) untuk demo unggah
+      description: Read-only. Berkas diambil lewat `file_url` lalu diunggah dengan endpoint upload biasa. Bukan foto K919
+        dan bukan hasil inferensi. Katalog kosong bila folder samples tidak ada.
+      operationId: list_samples
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SamplePage'
+  /api/v1/samples/{sample_id}/file:
+    get:
+      tags:
+      - samples
+      summary: Unduh berkas foto contoh (byte asli, sha256 = katalog)
+      operationId: sample_file
+      parameters:
+      - name: sample_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Sample Id
+      responses:
+        '200':
+          description: Byte foto contoh
+          content:
+            image/png: {}
+            image/jpeg: {}
+            image/webp: {}
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     AnalysisResult:
@@ -1053,6 +1100,16 @@ components:
           - type: string
           - type: 'null'
           title: Error Code
+        target:
+          anyOf:
+          - type: string
+            enum:
+            - plant
+            - tree_crown
+          - type: 'null'
+          title: Target
+          description: 'Arti bbox kandidat run ini: plant = tanaman (model tim), tree_crown = tajuk pohon (DeepForest pretrained).
+            null = tidak diketahui (mis. impor, run lama) → pakai istilah generik.'
       type: object
       required:
       - id
@@ -1328,51 +1385,41 @@ components:
     AnnotationUpdate:
       properties:
         kind:
-          anyOf:
-          - type: string
-            enum:
-            - plant
-            - check
-            - gap
-          - type: 'null'
+          type: string
+          enum:
+          - plant
+          - check
+          - gap
           title: Kind
         note:
-          anyOf:
-          - type: string
-            maxLength: 1000
-          - type: 'null'
+          type: string
+          maxLength: 1000
           title: Note
         review_status:
-          anyOf:
-          - type: string
-            enum:
-            - pending
-            - accepted
-            - rejected
-          - type: 'null'
+          type: string
+          enum:
+          - pending
+          - accepted
+          - rejected
           title: Review Status
         geometry_type:
-          anyOf:
-          - type: string
-            enum:
-            - point
-            - bbox
-          - type: 'null'
+          type: string
+          enum:
+          - point
+          - bbox
           title: Geometry Type
         x:
-          anyOf:
-          - type: number
-            maximum: 1.0
-            minimum: 0.0
-          - type: 'null'
+          type: number
+          maximum: 1.0
+          minimum: 0.0
           title: X
+          description: Hanya untuk titik; wajib bersama y.
         y:
-          anyOf:
-          - type: number
-            maximum: 1.0
-            minimum: 0.0
-          - type: 'null'
+          type: number
+          maximum: 1.0
+          minimum: 0.0
           title: Y
+          description: Hanya untuk titik; wajib bersama x.
         bbox:
           anyOf:
           - items:
@@ -1383,9 +1430,14 @@ components:
             description: '[left, top, width, height], semua 0–1 relatif gambar terorientasi.'
           - type: 'null'
           title: Bbox
+          description: '[left, top, width, height] 0–1; null = ubah ke titik.'
       additionalProperties: false
       type: object
       title: AnnotationUpdate
+      description: 'Kirim HANYA field yang berubah. Field yang dikirim tidak boleh null, kecuali `bbox: null` saat berubah
+        ke
+
+        titik. `x`/`y` dikirim bersama dan hanya untuk titik (untuk bbox, pusat dihitung server — jangan kirim x/y).'
     Body_import_starter_backup:
       properties:
         file:
@@ -1720,6 +1772,43 @@ components:
         message:
           type: string
           title: Message
+        adapter:
+          anyOf:
+          - type: string
+            enum:
+            - ultralytics
+            - deepforest
+          - type: 'null'
+          title: Adapter
+          description: Jenis detector aktif. null bila mode manual / konfigurasi salah.
+        target:
+          anyOf:
+          - type: string
+            enum:
+            - plant
+            - tree_crown
+          - type: 'null'
+          title: Target
+          description: Objek yang dideteksi model. tree_crown = tajuk pohon (DeepForest pretrained), BUKAN semua tanaman.
+            Kandidat tetap disimpan sebagai kind=plant (lihat Annotation.model_label).
+        target_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Label
+          description: Teks siap tampil, mis. 'Kandidat tajuk pohon (DeepForest pretrained)'.
+        device:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Device
+          description: cpu | cuda | auto. Inferensi CPU dapat memakan puluhan detik per foto besar.
+        limitations:
+          items:
+            type: string
+          type: array
+          title: Limitations
+          description: Keterbatasan model yang perlu ditampilkan ke pengguna.
       type: object
       required:
       - state
@@ -1930,6 +2019,95 @@ components:
       - check_accepted
       - gap_accepted
       title: ReportTotals
+    SamplePage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/SamplePhoto'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: SamplePage
+    SamplePhoto:
+      properties:
+        id:
+          type: string
+          title: Id
+        title:
+          type: string
+          title: Title
+        file_url:
+          type: string
+          title: File Url
+          description: Relatif terhadap base API, mis. /api/v1/samples/neon-osbs-029/file
+        filename:
+          type: string
+          title: Filename
+        media_type:
+          type: string
+          title: Media Type
+        size_bytes:
+          type: integer
+          title: Size Bytes
+        sha256:
+          type: string
+          title: Sha256
+        width:
+          type: integer
+          title: Width
+        height:
+          type: integer
+          title: Height
+        source_name:
+          type: string
+          title: Source Name
+        source_url:
+          type: string
+          title: Source Url
+        license_name:
+          type: string
+          title: License Name
+        license_url:
+          type: string
+          title: License Url
+        attribution:
+          type: string
+          title: Attribution
+        imagery:
+          type: string
+          title: Imagery
+          description: Jenis citra & keterbatasan (mis. pesawat ±10 cm/px, bukan K919).
+        has_human_annotations:
+          type: boolean
+          title: Has Human Annotations
+      type: object
+      required:
+      - id
+      - title
+      - file_url
+      - filename
+      - media_type
+      - size_bytes
+      - sha256
+      - width
+      - height
+      - source_name
+      - source_url
+      - license_name
+      - license_url
+      - attribution
+      - imagery
+      - has_human_annotations
+      title: SamplePhoto
+      description: 'Foto contoh berlisensi untuk demo. Diunduh lewat `file_url`, lalu diunggah lewat endpoint upload BIASA.
+
+        Bukan hasil inferensi; anotasi manusia (bila ada) hanya untuk evaluasi di notebook.'
     StarterBackupImportResult:
       properties:
         surveys:

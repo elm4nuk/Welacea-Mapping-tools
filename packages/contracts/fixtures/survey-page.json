@@ -1,7 +1,7 @@
 {
   "items": [
     {
-      "id": "c9df6006efab469c805f445452f4527a",
+      "id": "966550fad75e4479900af5ba4a657e58",
       "name": "Kebun Jagung Blok A",
       "crop_type": "Jagung",
       "location_label": "Desa Contoh, petak 2",
@@ -10,8 +10,8 @@
       "is_demo": false,
       "revision": 1,
       "photo_count": 0,
-      "created_at": "2026-10-18T10:25:17.691702Z",
-      "updated_at": "2026-10-18T10:25:17.691702Z"
+      "created_at": "2026-10-19T16:27:07.524732Z",
+      "updated_at": "2026-10-19T16:27:07.524732Z"
     }
   ],
   "total": 1,

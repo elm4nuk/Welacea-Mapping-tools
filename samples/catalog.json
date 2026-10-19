@@ -1,0 +1,35 @@
+{
+  "note": "Katalog foto contoh WALLACEA (sumber tunggal untuk API GET /api/v1/samples dan notebook ml/). Foto diunggah lewat endpoint upload biasa; anotasi manusia hanya untuk perbandingan di notebook, BUKAN hasil inferensi.",
+  "checked_at": "2026-10-19",
+  "samples": [
+    {
+      "id": "neon-osbs-029",
+      "title": "Hutan OSBS (Florida) — citra udara NEON 400×400",
+      "file": "deepforest-neon/OSBS_029.png",
+      "sha256": "d9477c6a00e4902c7bee487d4c5582c3b8b9a2f77f3908a29628b816b291e6ee",
+      "annotations": {"file": "deepforest-neon/OSBS_029.xml", "format": "pascal_voc", "sha256": "1f68c4011d7b351c29ca755072e77f3d16e6fd1f995bd05a9dd4eb952b55373c", "labels": {"Tree": 61}}
+    },
+    {
+      "id": "neon-soap-061",
+      "title": "Hutan SOAP (California) — citra udara NEON 400×400",
+      "file": "deepforest-neon/SOAP_061.png",
+      "sha256": "256508f1a62149bec4a80879077a865caf50e8cace095e6564c76befa480d424",
+      "annotations": {"file": "deepforest-neon/SOAP_061.xml", "format": "pascal_voc", "sha256": "4833280af75fd9c47965a93e38945282835e9e725cac412bdb9469d63480947c", "labels": {"Alive": 9, "Dead": 28}}
+    },
+    {
+      "id": "neon-yell-crop",
+      "title": "Hutan YELL (Yellowstone) — citra udara NEON 1249×1035",
+      "file": "deepforest-neon/2019_YELL_2_541000_4977000_image_crop.png",
+      "sha256": "178e58a23cc2642226a364a30f71bd9258ddc1b012c826f12250914a90c7a131",
+      "annotations": {"file": "deepforest-neon/2019_YELL_2_541000_4977000_image_crop.xml", "format": "pascal_voc", "sha256": "cefe4b96888bacbf8af1674f000082e549aa707aa6590d545effb23e43f26631", "labels": {"Tree": 279}}
+    }
+  ],
+  "defaults": {
+    "source_name": "NEON Airborne Observation Platform via DeepForest 2.1.0 (weecology), src/deepforest/data",
+    "source_url": "https://github.com/weecology/DeepForest/tree/v2.1.0/src/deepforest/data",
+    "license_name": "CC BY 4.0 (citra NEON); distribusi & anotasi DeepForest: MIT",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "attribution": "Citra: National Ecological Observatory Network (NEON), Battelle, disponsori NSF — CC BY 4.0. Disalin tanpa perubahan dari DeepForest v2.1.0 (MIT).",
+    "imagery": "Mosaik RGB pesawat ±10 cm/px (bukan drone, bukan K919 MAX). Hutan Amerika Serikat, bukan lahan pertanian."
+  }
+}

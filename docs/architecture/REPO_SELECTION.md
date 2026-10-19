@@ -16,20 +16,20 @@ Frontend memilih repo-nya sendiri (lihat handoff Codex).
 | [Kludex/python-multipart](https://github.com/Kludex/python-multipart) | Parsing multipart | Apache-2.0 | 0.0.32 / 0.0.32 |
 | pytest, httpx, PyYAML | Tes & export kontrak | MIT | lihat `requirements.lock.txt` |
 
-## Opsional, hanya bila tim punya bobot sendiri
+## Opsional (detector model; dipasang terpisah)
 
 | Repo | Peran | Lisensi | Catatan |
 |---|---|---|---|
 | [ultralytics/ultralytics](https://github.com/ultralytics/ultralytics) | Training/inferensi detektor (adapter `app/inference/ultralytics_adapter.py`) | **AGPL-3.0** atau Enterprise | Rilis v8.4.182. Adapter hanya `import` saat analisis; tidak dibundel. Menjalankan layanan jaringan dengan AGPL dapat memicu kewajiban membuka sumber — **putuskan lisensi sebelum produk komersial**. Bobot pretrained Ultralytics juga berlisensi AGPL/Enterprise. |
+| [weecology/DeepForest](https://github.com/weecology/DeepForest) | Detector **kandidat tajuk pohon** pretrained (`app/inference/deepforest_adapter.py`) | MIT (kode); bobot `weecology/deepforest-tree` MIT (model card HF) | v2.1.0 (2026-02-26), diuji CPU. Opsional (`requirements-deepforest.txt`). Bukan model tanaman pertanian. Backbone torchvision `resnet50-0676ba61.pth` ikut diunduh skrip (BSD-3 kode torchvision; bobot ImageNet). |
 
 ## Kandidat setelah baseline diuji (belum dipasang)
 
 | Repo | Peran | Lisensi | Kapan |
 |---|---|---|---|
 | [obss/sahi](https://github.com/obss/sahi) | Inferensi bertile untuk objek kecil | MIT | Hanya bila evaluasi baseline menunjukkan recall rendah karena objek kecil. Dedup antar tile ≠ dedup tanaman antar foto. |
-| [weecology/DeepForest](https://github.com/weecology/DeepForest) | Pembanding kanopi pohon RGB | MIT (kode; cek lisensi bobot) | Hanya untuk tanaman pohon/kanopi; bukan model semua tanaman. |
 | [opencv/opencv](https://github.com/opencv/opencv) | Pemrosesan citra (mis. ketajaman relatif) | Apache-2.0 | Bila ada kebutuhan konkret; Pillow cukup untuk MVP. |
-| [cvat-ai/cvat](https://github.com/cvat-ai/cvat) | **Dipilih** untuk labeling dataset | MIT | Ekspor YOLO/COCO; lihat `apps/api/ml/README.md`. |
+| [cvat-ai/cvat](https://github.com/cvat-ai/cvat) | **Dipilih** untuk labeling dataset | MIT | Ekspor YOLO/COCO; lihat `ml/README.md`. |
 | [HumanSignal/label-studio](https://github.com/HumanSignal/label-studio) | Alternatif labeling | Apache-2.0 | Tidak dipasang (pilih satu: CVAT). |
 
 ## GIS — tahap berikut saja
@@ -46,3 +46,19 @@ Frontend memilih repo-nya sendiri (lihat handoff Codex).
 Tidak ada kode dari repo di atas yang disalin ke repo ini. Pola yang diadaptasi dari starter v0.1
 (`legacy/starter-v01/backend/main.py`, milik proyek ini): pemetaan label via `WALLACEA_LABEL_MAP_JSON`,
 normalisasi kotak `xyxy` → `[left, top, width, height]`, dan penolakan 503 tanpa bobot.
+
+## Dataset publik & bobot (ML)
+
+Detail lengkap dan terverifikasi: `ml/configs/datasets.yaml` (dicek 2026-10-18 ke Zenodo/Mendeley/GitHub API
+dan isi arsip via HTTP Range). Lisensi kode, dataset, dan bobot dibedakan:
+
+| Dataset | Dataset | Kode | Bobot | Peran di WALLACEA |
+|---|---|---|---|---|
+| UAVmulticrop (Zenodo 4890370 v1) | CC-BY-4.0 | — | — | **Baseline jagung** (9 situs → split per situs) |
+| MatchPlant (Zenodo 14856123) | CC-BY-4.0 | MIT ([repo](https://github.com/JacobWashburn-USDA/MatchPlant)) | Faster R-CNN `.pt`, CC-BY-4.0 — **bukan** checkpoint Ultralytics | Uji eksternal jagung |
+| Sawit Ganoderma v2 (Mendeley s23jvbpnr3.2) | CC-BY-4.0 | — | — | Hanya bila tanaman = sawit; split geografis resmi |
+| NeonTreeEvaluation (Zenodo 5914554 v0.2.2) | CC-BY-4.0 | CC0-1.0 | — | Opsional, pembanding tajuk pohon |
+| Bobot awal `yolo11n.pt` (ultralytics/assets v8.3.0) | — | — | AGPL-3.0/Enterprise | Titik awal fine-tune baseline |
+
+Bobot hasil fine-tune dari `yolo11n.pt` mewarisi pertimbangan lisensi Ultralytics (AGPL-3.0/Enterprise);
+dataset CC-BY-4.0 mewajibkan atribusi. Putuskan lisensi sebelum produk komersial.

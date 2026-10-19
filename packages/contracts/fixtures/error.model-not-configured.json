@@ -3,6 +3,6 @@
     "code": "MODEL_NOT_CONFIGURED",
     "message": "Model tanaman belum dikonfigurasi. Atur WALLACEA_MODEL_PATH ke bobot lokal hasil pelatihan tim. Mode manual tetap dapat dipakai.",
     "details": {},
-    "request_id": "9a5f0253739c4b1bbc39f36b4bc6bce7"
+    "request_id": "7d0eaa97f82f4fe9948fd7f4a3890869"
   }
 }

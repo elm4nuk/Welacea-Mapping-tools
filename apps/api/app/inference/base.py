@@ -21,10 +21,25 @@ class DetectorInfo:
     message: str
     model_id: str | None = None
     model_version: str | None = None
+    adapter: str | None = None    # ultralytics | deepforest
+    target: str | None = None     # apa yang dideteksi model: plant | tree_crown
+    target_label: str | None = None  # teks untuk UI, mis. "Kandidat tajuk pohon"
+    device: str | None = None     # cpu | cuda | auto
+    limitations: tuple[str, ...] = ()
 
     @property
     def available(self) -> bool:
         return self.state in ("configured", "loaded")
+
+
+def normalize_xyxy(x1: float, y1: float, x2: float, y2: float, width: int, height: int) -> list[float] | None:
+    """Kotak piksel xyxy (terhadap gambar input terorientasi) → [left, top, width, height] 0–1, di-clip.
+    None bila kotak kosong setelah clip. Dipakai semua adapter agar format kontrak identik."""
+    l, r = max(0.0, min(1.0, x1 / width)), max(0.0, min(1.0, x2 / width))
+    t, b = max(0.0, min(1.0, y1 / height)), max(0.0, min(1.0, y2 / height))
+    if r <= l or b <= t:
+        return None
+    return [l, t, r - l, b - t]
 
 
 @dataclass
@@ -54,6 +69,9 @@ class Detector(ABC):
     @abstractmethod
     def detect(self, image: Image.Image) -> DetectionOutput:
         """image: RGB, sudah diorientasikan EXIF — sama dengan dimensi Photo.width/height."""
+
+    def preload(self) -> None:
+        """Muat model ke memori sebelum request pertama (opsional). Tidak boleh mengunduh apa pun."""
 
 
 class UnconfiguredDetector(Detector):

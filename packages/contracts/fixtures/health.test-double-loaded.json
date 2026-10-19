@@ -1,14 +1,19 @@
 {
   "status": "ok",
   "api_version": "1",
-  "contract_revision": 1,
+  "contract_revision": 3,
   "database": "ok",
   "model": {
     "state": "loaded",
     "available": true,
     "model_id": "contract-test-double",
     "model_version": "sha256:0000000000000000",
-    "message": "TEST DOUBLE untuk fixture kontrak — bukan model tanaman."
+    "message": "TEST DOUBLE untuk fixture kontrak — bukan model tanaman.",
+    "adapter": null,
+    "target": null,
+    "target_label": null,
+    "device": null,
+    "limitations": []
   },
   "capabilities": {
     "flight_control": false,

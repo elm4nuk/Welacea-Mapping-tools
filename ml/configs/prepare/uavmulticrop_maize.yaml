@@ -1,0 +1,16 @@
+# Baseline utama: jagung UAVmulticrop, satu kelas `plant`, grup = SITUS.
+# Unduh dahulu (eksplisit, ±194 MB PNG jagung + JSON):
+#   python -m wallacea_ml datasets sample uavmulticrop UAVmulticrop.zip --pattern "*/maize/*" --limit 200 --max-mb 400
+name: uavmulticrop_maize
+crop_type: maize
+domain: public:uavmulticrop
+label_map: {plant: 0}
+class_map: class_maps/uavmulticrop.yaml
+empty_images_are_negative: false   # dokumentasi dataset tidak menyatakan gambar kosong = negatif
+sources:
+  - annotations: data/raw/uavmulticrop/UAVmulticrop/maize/*.json
+    images_dir: "{ann_dir}/{ann_stem}"            # PNG ada di folder bernama sama dengan JSON sesi
+    match_on: ann_stem                             # mis. 1_hermine_2019_1
+    match: '^(?P<prefix>\d+)_(?P<site>.+)_(?P<year>\d{4})_(?P<n>\d+)$'
+    field_id: "{site}"                             # split per situs (lahan)
+    flight_id: "{site}_{year}_{n}"

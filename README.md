@@ -7,6 +7,7 @@ dan bisa dipakai secara manual. Bukan alat kontrol drone, bukan peta GPS, bukan 
 | Bagian | Path | Stack | Pemilik |
 |---|---|---|---|
 | API | `apps/api` | FastAPI, SQLAlchemy 2, Alembic, SQLite, Pillow | Claude |
+| ML | `ml` | Python + JupyterLab, Ultralytics (opsional, venv terpisah) | Claude |
 | Kontrak | `packages/contracts` | OpenAPI 3.1 (generated) + fixtures | Claude |
 | Web | `apps/web` | React 19 + TypeScript 6 + Vite 8 (pnpm) | Codex |
 | Starter lama | `legacy/starter-v01` | HTML/CSS/JS + IndexedDB (referensi) | — |
@@ -36,6 +37,7 @@ pnpm dev:web                         # http://127.0.0.1:5173 (proxy /api → 127
 ```
 
 Build/typecheck web: `pnpm build:web`, `pnpm typecheck:web`. Tes API: `cd apps/api; .venv\Scripts\python -m pytest`.
+Tes ML: `cd ml; .venv\Scripts\python -m pytest` (setup & notebook: `ml/README.md`).
 
 ## Data dan backup
 
