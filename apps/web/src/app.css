@@ -173,11 +173,11 @@ p { color: var(--muted); line-height: 1.55; }
   .app-shell, .app-shell[data-sidebar-collapsed=true] { grid-template-columns: 1fr; }.app-sidebar { display: none; }.mobile-sidebar { display: flex; }
   .mobile-sidebar .ui-button { width: 100%; justify-content: flex-start; color: inherit; }.mobile-sidebar .ui-button--default { background: #e5f1e8; color: #123e2f; }
   .mobile-menu-trigger { display: inline-flex; flex: 0 0 auto; }.app-main { padding: 16px; }.workspace-header { align-items: flex-start; gap: 10px; }
-  .workspace-header__status { margin-left: auto; }.workspace-header__status .ui-badge { display: none; }.filmstrip__track { display: none; }.filmstrip__header { margin: 0; }.filmstrip__mobile-trigger { display: inline-flex; }
+  .workspace-header__status { margin-left: auto; }.workspace-header__status .ui-badge { display: none; }.workspace-header__status .ui-badge:first-child { display: inline-flex; }.filmstrip__track { display: none; }.filmstrip__header { margin: 0; }.filmstrip__mobile-trigger { display: inline-flex; }
   .upload-panel { align-items: flex-start; }.dashboard-empty { min-height: calc(100dvh - 120px); }
 }
 @media (max-width: 640px) {
-  .app-main { padding: 12px; }.workspace-header { min-height: 54px; margin-bottom: 12px; }.workspace-header h1 { font-size: 22px; }.workspace-header p, .workspace-header .eyebrow { display: none; }
+  .app-main { padding: 12px; }.workspace-header { display: grid; grid-template-columns: auto minmax(0,1fr) auto; min-height: 54px; margin-bottom: 12px; }.workspace-header__title { overflow: hidden; }.workspace-header h1 { overflow: hidden; font-size: 22px; text-overflow: ellipsis; white-space: nowrap; }.workspace-header p, .workspace-header .eyebrow { display: none; }.workspace-header__status { gap: 3px; }.workspace-header__status .ui-badge:first-child { padding-inline: 7px; font-size: 10px; }
   .workflow-steps { margin-bottom: 12px; }.workflow-steps li:not(:last-child)::after { top: 16px; left: calc(50% + 18px); right: calc(-50% + 18px); }.workflow-steps button { display: grid; justify-items: center; gap: 4px; padding: 2px; text-align: center; font-size: 11px; }
   .workflow-steps__icon { width: 28px; min-width: 28px; height: 28px; }.workflow-steps small { display: none; }.upload-panel { display: grid; }.upload-control { width: 100%; }.upload-queue > div { grid-template-columns: 1fr; gap: 4px; }
   .dashboard-empty { grid-template-columns: 1fr; align-content: center; min-height: calc(100dvh - 90px); padding: 24px; }.dashboard-empty h2 { font-size: 36px; }

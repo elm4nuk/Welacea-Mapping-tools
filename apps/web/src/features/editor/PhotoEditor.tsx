@@ -101,8 +101,11 @@ function PhotoEditorCanvas(props: Props) {
           {active.review === 'accepted' ? 'Dikonfirmasi' : active.review === 'rejected' ? 'Ditolak' : 'Belum ditinjau'}</Badge></div>
         <label htmlFor={`${formId}-${suffix}-kind`}>Kategori<select id={`${formId}-${suffix}-kind`} value={active.kind} onChange={event => edit({ kind: event.target.value as Kind })}>
           {Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <label htmlFor={`${formId}-${suffix}-note`}>Catatan<textarea id={`${formId}-${suffix}-note`} value={active.note}
-          onChange={event => edit({ note: event.target.value })} maxLength={1000} /></label>
+        <form className="finding-note" key={`${active.id}-${active.note}`} onSubmit={event => { event.preventDefault();
+          edit({ note: String(new FormData(event.currentTarget).get('note') ?? '') }); }}>
+          <label htmlFor={`${formId}-${suffix}-note`}>Catatan<textarea id={`${formId}-${suffix}-note`} name="note" defaultValue={active.note} maxLength={1000} /></label>
+          <Button variant="outline" size="sm">Terapkan catatan</Button>
+        </form>
         {active.source === 'model' && active.confidence !== undefined && <p><b>Skor model {(active.confidence * 100).toFixed(1)}%</b><br />Skor kandidat, bukan akurasi survei.</p>}
         {active.source === 'model' && (() => {
           const runModel = active.analysisRunId ? props.modelByRunId?.[active.analysisRunId] : undefined;

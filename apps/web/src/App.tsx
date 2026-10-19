@@ -132,8 +132,10 @@ function Workspace() {
       if (file.size > (health.data?.limits.max_backup_bytes ?? 0)) throw new Error('Backup melebihi batas API.');
       const parsed: unknown = JSON.parse(await file.text());
       if (!parsed || typeof parsed !== 'object' || !('schemaVersion' in parsed) || parsed.schemaVersion !== 1) throw new Error('Backup harus memiliki schemaVersion 1. Data belum diimpor.');
-      const result = await api.importBackup(file); await cache.invalidateQueries({ queryKey: ['surveys'] });
-      setUtilitiesOpen(false); setMessage(`Diimpor sebagai salinan: ${result.surveys.length} survei. ${result.warnings.map(warning => warning.message).join(' ')}`);
+      const result = await api.importBackup(file); await surveys.refetch();
+      setUtilitiesOpen(false);
+      if (result.surveys[0]) resetWorkspace(result.surveys[0].id);
+      setMessage(`Diimpor sebagai salinan: ${result.surveys.length} survei. ${result.warnings.map(warning => warning.message).join(' ')}`);
     });
   }
   function openPage(next: 'editor' | 'report') {
@@ -145,8 +147,8 @@ function Workspace() {
     <AppSidebar surveys={allSurveys} activeId={surveyId} collapsed={sidebarCollapsed} mobileOpen={mobileNavOpen} busy={busy}
       loading={surveys.isPending} error={surveys.isError ? surveys.error.message : undefined} hasNextPage={surveys.hasNextPage}
       fetchingMore={surveys.isFetchingNextPage} onCollapsedChange={setSidebarCollapsed} onMobileOpenChange={setMobileNavOpen}
-      onCreate={() => setForm('create')} onDemo={() => void createDemo()} onSelect={chooseSurvey}
-      onMore={() => void surveys.fetchNextPage()} onUtilities={() => setUtilitiesOpen(true)} />
+      onCreate={() => { setForm('create'); setMobileNavOpen(false); }} onDemo={() => void createDemo()} onSelect={chooseSurvey}
+      onMore={() => void surveys.fetchNextPage()} onUtilities={() => { setMobileNavOpen(false); setUtilitiesOpen(true); }} />
     <main className="app-main">
       <WorkspaceHeader survey={survey} apiState={health.isPending ? 'checking' : health.isError ? 'offline' : 'connected'}
         modelLabel={model?.label ?? 'Model diperiksa'} modelAvailable={Boolean(model?.available)} onOpenMenu={() => setMobileNavOpen(true)}
@@ -200,6 +202,7 @@ function Workspace() {
     <Sheet open={utilitiesOpen} onOpenChange={setUtilitiesOpen}><SheetContent side="right">
       <SheetTitle>Pengaturan & utilitas</SheetTitle><SheetDescription>Impor backup starter dan informasi penyimpanan lokal.</SheetDescription>
       <div className="utility-panel"><h3>Impor backup starter</h3><p>Backup schemaVersion 1 akan diimpor sebagai salinan melalui API.</p>
+        {error && <p role="alert" className="banner banner--error">{error}</p>}
         <Button variant="outline" disabled={busy || !health.data} onClick={() => importRef.current?.click()}>Pilih berkas JSON</Button>
         <input ref={importRef} className="sr-only" type="file" accept=".json,application/json" aria-label="Impor backup starter"
           onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void importBackup(file); }} />
