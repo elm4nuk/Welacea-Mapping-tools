@@ -10,7 +10,7 @@
 | Detector DeepForest + kontrak revisi 2 | `733f5d2`, `51ff249` | `agent/claude-backend` |
 | **CONTRACT_READY revisi 3** (jawaban CR-FE-001/002/003) | **`3fe53c5`** (+ koreksi CHANGELOG `b35102f`) | `agent/claude-backend` |
 | Notebook 01–03 + venv bersih | `b7fc097` | `agent/claude-backend` |
-| **Integrasi** backend + frontend Codex | `git rev-parse integration/wallacea-mvp` | `integration/wallacea-mvp` (worktree `D:\coding\wallacea-worktrees\integration`) |
+| **Integrasi** backend + frontend Codex (`codex-inference-integration`, lalu `codex-uiux-v2` @ `67aac04`) | `git rev-parse integration/wallacea-mvp` | `integration/wallacea-mvp` (worktree `D:\coding\wallacea-worktrees\integration`) |
 
 Tidak ada push, merge ke `main`, atau deploy. Integrasi dibuat dari BASE `15a7408`: merge
 `agent/codex-inference-integration` (`2e8a2d7`) lalu `agent/claude-backend`.
@@ -48,6 +48,42 @@ Catatan UI untuk Codex (dari screenshot alur nyata, tidak mengubah frontend):
 - Header masih "API tersedia / Model tersedia" (sudah jujur) — `limitations` revisi 2 belum ditampilkan.
 - Label "T KAND" padat pada foto berisi 49+ kandidat; tinjau kepadatan label pada zoom kecil.
 - Katalog `/samples` (CR-FE-002) siap dipakai untuk tombol "Coba foto contoh".
+
+## Integrasi `agent/codex-uiux-v2` @ `67aac04` (2026-10-20)
+
+Merge ke `integration/wallacea-mvp` tanpa konflik. Cakupan Codex hanya `apps/web`, dokumen/screenshot Codex, dan
+`pnpm-lock.yaml`. Setelah merge: `apps/web` identik dengan `67aac04`, backend identik dengan `agent/claude-backend`.
+
+| Uji (diverifikasi Claude, server milik Claude) | Hasil |
+|---|---|
+| API pytest (+ DeepForest) · kontrak `--check` · ML pytest | 123 lulus · cocok · 36 lulus |
+| install frozen · typecheck · build · vitest · `pnpm peers check` | lulus · lulus · lulus (chunk 526 kB, peringatan) · **21/21** · bersih |
+| Regenerasi tipe dari `openapi.yaml` revisi 3 vs `schema.d.ts` yang di-commit | identik |
+| Playwright `workspace.spec` (API integrasi tanpa model, 18080/5174) | **18/18 lulus**, `ml-smoke` 3 skip (benar: tanpa model) |
+| `ml-smoke.spec` Codex apa adanya (API + DeepForest 18095, Vite integrasi 5185) | desktop **lulus** (5.5 s); tablet & mobile **gagal** (timeout 2 min) |
+| Alur pengguna tablet/mobile (spec sementara Claude: buka Sheet "Pilih foto"/"Review"; dihapus setelah run) | desktop 4.9 s · tablet 6.1 s · mobile 6.4 s **lulus**: analisis nyata 49 kandidat → terima/tolak → simpan → reload → accepted=1/rejected=1 di API, `run.target=tree_crown`, `export.csv` 200 |
+
+**Tabrakan port — hasil awal tidak sah.** Saat verifikasi, sesi Codex menjalankan API (venv backend Claude) dan Vite
+`codex-uiux-v2` di **18090/5180** — port yang juga dipakai Claude. Run tahap-2 pertama Claude (00:35–00:38) ternyata
+mengenai server Codex dengan perubahan `apps/web` yang **belum di-commit** (UI menampilkan "Tajuk pohon terkonfirmasi"
+dan tombol "Foto contoh berlisensi"); hasil itu dibuang. Angka di tabel berasal dari ulang uji di 18095/5185 setelah PID
+pemegang port diverifikasi milik Claude. Usul pembagian port: **Codex 18090/5180**, **Claude 18095/5185** (suite
+`workspace.spec` tetap 18080/5174 bila bebas).
+
+Temuan untuk Codex (pada `67aac04` yang di-commit; frontend tidak diubah Claude):
+1. `e2e/ml-smoke.spec.ts` tablet/mobile: mengklik `.filmstrip-card__select` yang tersembunyi tanpa membuka Sheet
+   "Pilih foto" (`.filmstrip__mobile-trigger`) → timeout; langkah reload sudah memakai `:visible`, langkah awal belum.
+   Review di tablet/mobile juga perlu `.mobile-review-trigger`.
+2. Cleanup `finally { request.delete(...) }` gagal setelah timeout (`Target page, context or browser has been closed`)
+   → survei "QA ML UI …" tertinggal di DB uji. Gunakan `test.afterEach`/request context tersendiri.
+3. Metrik masih "Tanaman terkonfirmasi" walau `health.model.target`/`run.target` = `tree_crown` (subjudul & status
+   model sudah benar). Worktree Codex tampaknya sedang mengubah ini (belum di-commit) — akan diverifikasi setelah commit.
+4. Pill status model di header hanya tampil di desktop; tablet/mobile hanya "API terhubung". Info lengkap (termasuk
+   `limitations`) tetap ada di "Status model dan riwayat analisis foto" di bawah kanvas.
+5. Panel temuan terpilih: tombol "Tolak" dan "Tolak kandidat" muncul bersamaan; daftar temuan menyusut sampai hampir
+   tak terlihat saat satu temuan dipilih (desktop 1440×900).
+
+Screenshot sah (desktop/tablet/mobile, setelah simpan): scratchpad sesi Claude `uiux-v2-verified/` (tidak di Git).
 
 ## Notebook Jupyter (terlacak di Git)
 
