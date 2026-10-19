@@ -16,6 +16,7 @@ Status hasil nyata: lihat [§ Status](#status-2026-10-18).
 ml/
   pyproject.toml          paket wallacea-ml (src layout); extras: notebook, dev, train
   requirements.txt        env eksperimen: lock API + paket ini [notebook,dev] — TANPA PyTorch
+  requirements-pretrained.txt  + torch CPU + DeepForest 2.1.0 (notebook 01–03; versi teruji)
   requirements-train.txt  + Ultralytics (PyTorch; pasang torch CUDA dulu)
   configs/
     datasets.yaml         katalog dataset (URL, versi, lisensi, format, ukuran, status)
@@ -23,8 +24,14 @@ ml/
     prepare/*.yaml        resep COCO → YOLO per dataset (grup lahan/penerbangan)
     train/baseline_yolo.yaml
     manifest.example.json
-  notebooks/01..05_*.ipynb   (+ _build_notebooks.py: generator isi sel)
-  src/wallacea_ml/        datasets, coco, voc, prepare, manifest, inspection, split, train, predict, evaluate, viz, backend
+  notebooks/
+    01_data_inspection.ipynb       foto contoh (katalog samples/), EXIF/orientasi, anotasi manusia
+    02_pretrained_inference.ipynb  DeepForest lewat adapter API, waktu terukur, kandidat
+    03_evaluation.ipynb            banding dengan anotasi manusia (P/R/AP, FP & terlewat)
+    training/01..04_*.ipynb        alur training model tim (dataset publik → YOLO → evaluasi)
+    _build_notebooks.py            generator isi sel (sumber kebenaran)
+  src/wallacea_ml/        samples, pretrained, datasets, coco, voc, prepare, manifest, inspection, split, train,
+                          predict, evaluate, viz, backend
   tests/                  pytest (fixture sintetis: pipeline & konvensi, bukan akurasi)
   data/      (tidak di Git) raw/ prepared/ splits/ k919/
   artifacts/ (tidak di Git) pretrained/ runs/ models/ eval/
@@ -39,8 +46,23 @@ cd ml
 py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install --upgrade pip
 .venv\Scripts\python -m pip install -r requirements.txt          # API lock + jupyterlab, matplotlib, pytest
-.venv\Scripts\python -m pytest                                    # 33 tes pipeline
+.venv\Scripts\python -m pytest                                    # 36 tes pipeline
 ```
+
+Notebook 01–03 (DeepForest pretrained, CPU) — tambahan ±1 GB paket + bobot ±230 MB sekali:
+
+```powershell
+.venv\Scripts\python -m pip install -r requirements-pretrained.txt     # torch CPU 2.11.0 + deepforest 2.1.0
+cd ..\apps\api; .\.venv\Scripts\python scripts\download_deepforest.py; cd ..\..\ml   # atau pakai python venv ML
+```
+
+`download_deepforest.py` bisa dijalankan dengan Python venv mana pun yang punya `huggingface_hub` + `torchvision`
+(mis. `.venv\Scripts\python ..\apps\api\scripts\download_deepforest.py`). Bobot tersimpan di
+`apps\api\var\models\deepforest-tree` (default yang dibaca notebook; ubah lewat env `WALLACEA_DEEPFOREST_DIR`).
+
+**Windows: batas panjang path.** Bila `pip install` gagal dengan `[Errno 2] No such file or directory … .pyi` dan
+petunjuk *Long Path support*, venv berada di folder yang terlalu dalam (berkas stub `jedi` melewati 260 karakter).
+Letakkan repo/venv di path pendek (mis. `D:\coding\…\ml\.venv`) atau aktifkan Long Paths Windows.
 
 Training (berat, opsional). GPU NVIDIA: pasang PyTorch CUDA dulu, lalu Ultralytics:
 
@@ -81,7 +103,7 @@ Semua perintah dari folder `ml/` dengan `.venv\Scripts\python -m wallacea_ml …
 | 10. Prediksi (adapter API) | `predict <manifest> --split-dir … --split val|test --weights <pt> --out …` | 04 |
 | 11. Threshold (VAL) | `threshold pred_val.json --model-card <card>` | 04 |
 | 12. Evaluasi akhir (TEST) | `evaluate pred_test.json --manifest … --split-dir … --model-card <card>` | 04 |
-| DeepForest pretrained | adapter API `backend.build_api_deepforest(...)`, anotasi VOC `voc.load_voc` | 05 |
+| DeepForest pretrained | `samples.load_samples`, `pretrained.run_on_samples`, `voc.load_voc` | 01, 02, 03 |
 
 Contoh lengkap baseline jagung (perintah yang benar-benar dijalankan untuk § Status):
 
@@ -202,7 +224,7 @@ CPU untuk DeepForest). Bukan hasil foto K919: **belum ada foto K919 MAX** di rep
 - Belum dijalankan: uji eksternal MatchPlant (3 TIFF sampel sudah diunduh, `configs/prepare/matchplant.yaml` siap),
   uji pada foto K919.
 
-### B. DeepForest pretrained (kandidat tajuk pohon) — notebook `05_deepforest_pretrained.ipynb`
+### B. DeepForest pretrained (kandidat tajuk pohon) — notebook `02_pretrained_inference` & `03_evaluation`
 
 Bobot `weecology/deepforest-tree` @ `cc21436b…`, `model_version` sha256:d37a7af0b5ba2754, CPU, conf 0.35,
 patch 400. Dijalankan lewat adapter API yang sama dengan `/analyze`:
@@ -213,6 +235,9 @@ patch 400. Dijalankan lewat adapter API yang sama dengan `/analyze`:
 | OSBS_029.png | 400×400 | image | 1.0 s | 61 | 49 | 38 | 11 | 23 |
 | SOAP_061.png | 400×400 | image | 1.2 s | 37 (9 Alive, 28 Dead) | 30 | 21 | 9 | 16 |
 
-Gabungan (IoU 0.5): precision 0.659, recall 0.650, AP 0.537; muat model 8–10 s sekali. Sebagian besar FP
+Gabungan (IoU 0.5): precision 0.659, recall 0.650, AP 0.537; muat model 8–20 s sekali (20.5 s pada venv baru).
+Dieksekusi ulang 2026-10-19 dari venv BERSIH (`requirements-pretrained.txt`, kernel baru per notebook): 01 (8 s),
+02 (80 s; median 3× per foto: 1.1 s / 1.2 s / 15.0 s), 03 (8 s) — 0 error, angka identik.
+`notebooks/05_deepforest_pretrained.ipynb` adalah versi gabungan lama (digantikan 02 + 03). Sebagian besar FP
 berconfidence 0.35–0.45. Foto ini berasal dari ekosistem/sensor yang sama dengan data pengembang model
 (hutan NEON, citra pesawat) — **tidak independen**, dan **bukan** ukuran kinerja pada lahan pertanian/K919.

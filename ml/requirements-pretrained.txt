@@ -1,0 +1,8 @@
+# Environment notebook 01–03 (DeepForest pretrained, CPU). Diuji 2026-10-19, Windows 11, Python 3.12.10.
+#   .venv\Scripts\python -m pip install -r requirements-pretrained.txt
+# torch dari PyPI di Windows = build CPU. GPU NVIDIA: pasang torch CUDA dulu (lihat requirements-train.txt).
+# Bobot TIDAK diunduh di sini: jalankan apps\api\scripts\download_deepforest.py (sekali, eksplisit).
+-r requirements.txt
+torch==2.11.0
+torchvision==0.26.0
+-r ../apps/api/requirements-deepforest.txt

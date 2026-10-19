@@ -1,6 +1,8 @@
-"""Generator notebook 01–04 (sumber kebenaran isi sel). Jalankan ulang setelah mengubah sel:
+"""Generator notebook (sumber kebenaran isi sel): 01–03 prototype (data, inferensi pretrained, evaluasi) dan
+`training/01–04` (alur training model tim). Jalankan ulang setelah mengubah sel:
 
-    .venv\\Scripts\\python notebooks\\_build_notebooks.py
+    .venv\\Scripts\\python notebooks\\_build_notebooks.py --only 02_pretrained_inference.ipynb   # satu notebook
+    .venv\\Scripts\\python notebooks\\_build_notebooks.py                                        # semua (menimpa!)
 
 Notebook hanya memanggil modul `wallacea_ml` — tidak ada logika preprocessing/metrik di notebook.
 """
@@ -35,7 +37,7 @@ def _df(rows):
 """
 
 NB = {
-    "01_dataset_inspection.ipynb": [
+    "training/01_dataset_inspection.ipynb": [
         ("md", """\
 # 01 — Inspeksi dataset
 
@@ -95,7 +97,7 @@ for ax, e in zip(axes if len(sample) > 1 else [axes], sample):
     ax.set_title(f"{e.field_id} · {len(boxes)} box"); ax.axis("off")
 plt.tight_layout(); plt.show()"""),
     ],
-    "02_annotation_validation.ipynb": [
+    "training/02_annotation_validation.ipynb": [
         ("md", """\
 # 02 — Validasi anotasi
 
@@ -163,7 +165,7 @@ print(json.dumps(rep, indent=1))
 assert not rep["leaks"], "Split bocor — jangan training/evaluasi sebelum diperbaiki"
 """),
     ],
-    "03_model_experiments.ipynb": [
+    "training/03_model_experiments.ipynb": [
         ("md", """\
 # 03 — Eksperimen model
 
@@ -213,7 +215,7 @@ if card_path.is_file():
                                           "base_weights", "environment", "ultralytics_metrics_val")}, indent=1))
     print("split:", card["dataset"]["counts"], "| group_by:", card["dataset"]["split_report"]["group_by"])"""),
     ],
-    "04_k919_evaluation.ipynb": [
+    "training/04_k919_evaluation.ipynb": [
         ("md", """\
 # 04 — Evaluasi (publik) dan foto K919
 
@@ -298,108 +300,225 @@ if k_rows and card_path.is_file():
 else:
     print("Lewati: butuh foto K919 dan model card.")"""),
     ],
-    "05_deepforest_pretrained.ipynb": [
+    "01_data_inspection.ipynb": [
         ("md", """\
-# 05 — DeepForest pretrained: inspeksi, inferensi, perbandingan dengan anotasi manusia
+# 01 — Inspeksi data: foto contoh, orientasi, anotasi
 
-Baseline prototype: **kandidat tajuk pohon** dari `weecology/deepforest-tree` (citra pesawat NEON ±10 cm/px).
-Bukan model tanaman pertanian. Inferensi memakai **adapter API yang sama** (`app.inference.DeepForestDetector`)
-dan gambar terorientasi dari `app.imaging` — hasil di sini = hasil `/analyze`.
+Foto contoh berlisensi dari `samples/catalog.json` (katalog yang sama dengan `GET /api/v1/samples`). Setiap
+berkas dicek sha256-nya. Gambar ditampilkan **setelah orientasi EXIF** lewat `app.imaging` — sama dengan editor
+web dan input model. Anotasi manusia (Pascal VOC) hanya untuk evaluasi di notebook 03.
 
-Prasyarat: `apps/api/scripts/download_deepforest.py` sudah dijalankan; `pip install deepforest==2.1.0 pandas==3.0.5`
-di venv ini. Foto contoh: `samples/deepforest-neon/` (atribusi di `ATTRIBUTION.md`).
-
-Metrik hanya dihitung bila ada **anotasi manusia** (XML). Angkanya berlaku untuk 3 foto contoh NEON ini saja —
-**bukan** akurasi pada lahan pertanian atau foto K919."""),
+Kernel: **Python (wallacea-ml)**. Tidak butuh model/bobot."""),
         ("code", SETUP),
-        ("md", "## 1. Foto & anotasi manusia"),
+        ("md", "## 1. Katalog: sumber, lisensi, checksum"),
+        ("code", """\
+from wallacea_ml.samples import load_samples, samples_dir
+samples = load_samples()          # gagal keras bila sha256 tidak cocok dengan katalog
+print("folder:", samples_dir())
+display(_df([{"id": s.id, "berkas": s.path.name, "sha256": s.sha256[:16] + "…", "lisensi": s.license_name,
+              "anotasi": s.annotation_labels} for s in samples]))
+print("Sumber:", samples[0].source_url)
+print("Atribusi:", samples[0].attribution)
+print("Citra:", samples[0].imagery)"""),
+        ("md", "## 2. Dimensi mentah vs terorientasi, EXIF, kecerahan & ketajaman relatif"),
         ("code", """\
 from wallacea_ml import backend
+from wallacea_ml.inspection import photo_folder_stats
+rows = []
+for s in samples:
+    img = backend.load_oriented(s.path)
+    raw = backend.raw_size(s.path)
+    rows.append({"id": s.id, "mentah": f"{raw[0]}×{raw[1]}", "terorientasi": f"{img.width}×{img.height}",
+                 "exif_orientation": backend.exif_orientation(s.path), "mode": img.mode, "byte": s.path.stat().st_size})
+display(_df(rows))
+display(_df([{k: r[k] for k in ("image", "brightness", "sharpness_lapvar_1024")}
+             for r in photo_folder_stats(samples[0].path.parent)]))"""),
+        ("md", "## 3. Foto + anotasi manusia (hijau). Label asli dipetakan eksplisit."),
+        ("code", """\
 from wallacea_ml.viz import draw_boxes
 from wallacea_ml.voc import load_voc
-SAMPLES = ML_ROOT.parent / "samples" / "deepforest-neon"
-# Label XML: "Tree" (OSBS, YELL) dan "Alive"/"Dead" (SOAP_061: 9 hidup, 28 mati). Semuanya tajuk pohon → plant (eksplisit).
+# OSBS & YELL memakai label "Tree"; SOAP_061 memakai "Alive"/"Dead". Semuanya tajuk pohon → plant (eksplisit).
 VOC_LABELS = {"Tree": "plant", "Alive": "plant", "Dead": "plant"}
-photos = sorted(SAMPLES.glob("*.png"))
-gts = {}
-for p in photos:
-    img = backend.load_oriented(p)
-    voc = load_voc(p.with_suffix(".xml"), VOC_LABELS)
-    assert (voc.width, voc.height) == img.size, "dimensi XML ≠ gambar terorientasi"
-    gts[p.name] = voc
-    print(f"{p.name}: {img.size[0]}×{img.size[1]} px, {len(voc.boxes)} kotak manusia {voc.raw_labels}")
-fig, axes = plt.subplots(1, len(photos), figsize=(6 * len(photos), 6))
-for ax, p in zip(axes, photos):
-    ax.imshow(draw_boxes(backend.load_oriented(p), gts[p.name].boxes)); ax.set_title(f"{p.name} — anotasi manusia"); ax.axis("off")
-plt.tight_layout(); plt.show()"""),
-        ("md", "## 2. Inferensi pretrained (adapter API, CPU) — waktu benar-benar diukur"),
-        ("code", """\
-import time
-PARAMS = dict(confidence=0.35, device="cpu", patch_size=400, patch_overlap=0.05)   # = default API
-det = backend.build_api_deepforest(backend.default_deepforest_dir(), **PARAMS)
-print("status:", det.info().state, "|", det.info().model_id, det.info().model_version)
-t0 = time.perf_counter(); det.preload(); load_s = time.perf_counter() - t0
-print(f"muat model: {load_s:.2f} s (sekali; tidak diulang per foto)")
-preds, timing = {}, []
-for p in photos:
-    img = backend.load_oriented(p)
-    t0 = time.perf_counter(); out = det.detect(img); dt_ = time.perf_counter() - t0
-    preds[p.name] = out
-    timing.append({"foto": p.name, "px": f"{img.size[0]}×{img.size[1]}", "mode": out.parameters["mode"],
-                   "detik": round(dt_, 2), "kandidat": len(out.detections)})
-display(_df(timing))
-print("parameter:", {k: v for k, v in out.parameters.items()})"""),
-        ("md", "## 3. Perbandingan terhadap anotasi manusia (IoU ≥ 0.5)"),
-        ("code", """\
-from wallacea_ml.evaluate import evaluate, match_details
-data = {"model_id": det.info().model_id, "model_version": det.info().model_version, "split": "sampel",
-        "domain": "public:neon-deepforest-samples", "iou_threshold": 0.5,
-        "images": [{"image": n, "gt": [{"label": l, "bbox": b} for l, b in gts[n].boxes],
-                    "pred": [{"label": d.label, "confidence": d.confidence, "bbox": d.bbox} for d in preds[n].detections]}
-                   for n in gts]}
-r = evaluate(data, leaks=[], conf_threshold=PARAMS["confidence"])
-display(_df([{k: row[k] for k in ("image", "gt", "pred", "tp", "fp", "fn", "count_error")} for row in r.per_image]))
-print({k: (round(getattr(r, k), 3) if isinstance(getattr(r, k), float) else getattr(r, k))
-       for k in ("tp", "fp", "fn", "precision", "recall", "f1", "ap", "count_mae_per_image")})
-for c in r.caveats: print("•", c)
-print("• Hanya 3 foto contoh NEON (hutan AS). Bukan validasi untuk lahan pertanian / K919.")"""),
-        ("md", "## 4. False positive (merah) & objek terlewat (kuning) — dicatat per foto"),
-        ("code", """\
-COLORS = {"tp": "plant", "fp": "gap", "fn": "check"}   # hijau = cocok, merah = FP, kuning = terlewat
-for img_ in data["images"]:
-    m = match_details(img_["gt"], [x for x in img_["pred"] if x["confidence"] >= PARAMS["confidence"]], 0.5, "plant")
-    boxes = [("plant", d["bbox"]) for d, _ in m["tp"]] + [("gap", d["bbox"]) for d in m["fp"]] + [("check", g["bbox"]) for g in m["fn"]]
-    print(f"{img_['image']}: {len(m['fp'])} false positive, {len(m['fn'])} terlewat; "
-          f"FP confidence: {sorted(round(d['confidence'], 2) for d in m['fp'])[:10]}")
-    plt.figure(figsize=(9, 9)); plt.imshow(draw_boxes(backend.load_oriented(SAMPLES / img_["image"]), boxes, max_side=1600))
-    plt.title(f"{img_['image']} — hijau=cocok, merah=FP, kuning=terlewat"); plt.axis("off"); plt.show()"""),
+fig, axes = plt.subplots(1, len(samples), figsize=(6 * len(samples), 6))
+size_rows = []
+for ax, s in zip(axes, samples):
+    img = backend.load_oriented(s.path)
+    voc = load_voc(s.annotations, VOC_LABELS)
+    assert (voc.width, voc.height) == img.size, "dimensi anotasi ≠ gambar terorientasi"
+    ax.imshow(draw_boxes(img, voc.boxes)); ax.set_title(f"{s.id}: {len(voc.boxes)} kotak manusia"); ax.axis("off")
+    w_px = sorted(b[2] * img.width for _, b in voc.boxes)
+    size_rows.append({"id": s.id, "kotak": len(voc.boxes), "label_asli": voc.raw_labels,
+                      "lebar_px_min": round(w_px[0], 1), "lebar_px_median": round(w_px[len(w_px) // 2], 1),
+                      "lebar_px_max": round(w_px[-1], 1), "dilewati_clip": voc.skipped})
+plt.tight_layout(); plt.show()
+display(_df(size_rows))"""),
         ("md", """\
-## 5. Foto K919
+## 4. Foto K919 (bila ada)
 
-Belum ada foto K919 MAX di `ml/data/k919/raw/`. Tanpa foto dan anotasi manusia, **tidak ada** klaim kinerja
-untuk K919. Bila ada foto, jalankan sel di bawah: hanya prediksi + waktu (tanpa metrik)."""),
+Salin foto ASLI K919 MAX ke `ml/data/k919/raw/` (tidak masuk Git). Sel ini hanya statistik — tanpa label,
+tanpa klaim akurasi."""),
         ("code", """\
 K919 = ML_ROOT / "data" / "k919" / "raw"
+k_rows = photo_folder_stats(K919) if K919.is_dir() else []
+if k_rows:
+    display(_df(k_rows))
+    print("orientasi EXIF:", Counter(r["exif_orientation"] for r in k_rows))
+else:
+    print("Belum ada foto K919 di", K919, "— inspeksi hanya pada foto contoh NEON.")"""),
+    ],
+    "02_pretrained_inference.ipynb": [
+        ("md", """\
+# 02 — Inferensi pretrained (DeepForest) lewat adapter API
+
+Model: `weecology/deepforest-tree` — **kandidat tajuk pohon**, dilatih pada citra pesawat NEON ±10 cm/px.
+Bukan model tanaman pertanian; belum diuji pada K919. Notebook memanggil `app.inference.DeepForestDetector`
+(adapter yang sama dengan `POST /photos/{id}/analyze`), memuat model SEKALI dari folder lokal tanpa unduhan,
+dan mengukur waktu sebenarnya di mesin ini.
+
+Prasyarat (sekali): `apps\\api\\scripts\\download_deepforest.py`. Lokasi bobot: env `WALLACEA_DEEPFOREST_DIR`
+atau default `apps/api/var/models/deepforest-tree`."""),
+        ("code", SETUP),
+        ("md", "## 1. Identitas model & bobot"),
+        ("code", """\
+from wallacea_ml import backend
+model_dir = backend.default_deepforest_dir()
+manifest = json.loads((model_dir / "wallacea_model.json").read_text(encoding="utf-8"))
+print(json.dumps({k: manifest[k] for k in ("repo_id", "revision", "license", "model_version", "source")}, indent=1))
+print({n: f["sha256"][:16] + "…" for n, f in {**manifest["files"], **manifest["aux_files"]}.items()})"""),
+        ("md", "## 2. Jalankan pada semua foto contoh (CPU). Waktu = median 3 pengulangan per foto."),
+        ("code", """\
+import platform, torch
+from wallacea_ml.samples import load_samples
+from wallacea_ml import pretrained
+PARAMS = dict(confidence=0.35, device="cpu", patch_size=400, patch_overlap=0.05)   # = default API
+det = backend.build_api_deepforest(model_dir, **PARAMS)
+samples = load_samples()
+result = pretrained.run_on_samples(det, samples, repeats=3)
+out_path = pretrained.save(result)
+print(f"mesin: {platform.processor() or platform.machine()} | torch {torch.__version__} | device: {PARAMS['device']}")
+print(f"muat model: {result['load_seconds']} s (sekali)  →  {out_path.relative_to(ML_ROOT)}")
+display(_df([{"foto": i["image"], "px": f"{i['width']}×{i['height']}", "mode": i["mode"],
+              "detik (median)": i["seconds_median"], "detik (semua)": i["seconds"], "kandidat": len(i["pred"])}
+             for i in result["images"]]))
+print("parameter adapter:", result["parameters"])"""),
+        ("md", "## 3. Kandidat model (biru) — belum dibandingkan dengan anotasi manusia"),
+        ("code", """\
+from wallacea_ml.viz import draw_boxes
+fig, axes = plt.subplots(1, len(samples), figsize=(6 * len(samples), 6))
+for ax, s, rec in zip(axes, samples, result["images"]):
+    ax.imshow(draw_boxes(backend.load_oriented(s.path), [("pred", p["bbox"]) for p in rec["pred"]]))
+    ax.set_title(f"{s.id}: {len(rec['pred'])} kandidat (pending)"); ax.axis("off")
+plt.tight_layout(); plt.show()
+conf = [p["confidence"] for r in result["images"] for p in r["pred"]]
+plt.figure(figsize=(6, 3)); plt.hist(conf, bins=20); plt.xlabel("confidence (skor model, BUKAN akurasi)"); plt.show()
+print("label asli model:", Counter(p["model_label"] for r in result["images"] for p in r["pred"]),
+      "→ kind", Counter(p["label"] for r in result["images"] for p in r["pred"]))"""),
+        ("md", """\
+## 4. Foto K919 — kualitatif saja
+
+Tanpa anotasi manusia, yang dilaporkan hanya kandidat + waktu. Tidak ada angka akurasi."""),
+        ("code", """\
+import time
+K919 = ML_ROOT / "data" / "k919" / "raw"
 ks = sorted(p for p in K919.rglob("*") if p.suffix.lower() in {".jpg", ".jpeg", ".png"}) if K919.is_dir() else []
-print(len(ks), "foto K919" if ks else "— belum ada foto K919 (hasil di atas hanya foto contoh NEON)")
+if not ks:
+    print("Belum ada foto K919 — hasil notebook ini hanya untuk foto contoh NEON.")
 for p in ks[:3]:
     img = backend.load_oriented(p)
-    t0 = time.perf_counter(); out = det.detect(img); dt_ = time.perf_counter() - t0
+    t = time.perf_counter(); out = det.detect(img); secs = time.perf_counter() - t
     plt.figure(figsize=(12, 8)); plt.imshow(draw_boxes(img, [("pred", d.bbox) for d in out.detections], max_side=2400))
-    plt.title(f"{p.name}: {len(out.detections)} kandidat tajuk pohon, {dt_:.1f} s — TANPA ground truth"); plt.axis("off"); plt.show()"""),
+    plt.title(f"{p.name} {img.size}: {len(out.detections)} kandidat tajuk pohon, {secs:.1f} s — TANPA ground truth")
+    plt.axis("off"); plt.show()"""),
+    ],
+    "03_evaluation.ipynb": [
+        ("md", """\
+# 03 — Evaluasi terhadap anotasi manusia
+
+Membandingkan kandidat DeepForest (hasil notebook 02, atau dijalankan ulang bila belum ada) dengan anotasi
+manusia pada foto contoh yang **punya ground truth**. Pencocokan greedy per confidence, IoU ≥ 0.5.
+
+Batas tafsir: hanya 3 foto hutan NEON yang berasal dari ekosistem/sensor yang sama dengan data pengembang
+model → **tidak independen**; bukan akurasi untuk lahan pertanian atau foto K919. Foto tanpa anotasi tidak
+dihitung metriknya."""),
+        ("code", SETUP),
+        ("md", "## 1. Prediksi + ground truth"),
+        ("code", """\
+from wallacea_ml import backend, pretrained
+from wallacea_ml.samples import load_samples
+from wallacea_ml.voc import load_voc
+samples = {s.id: s for s in load_samples()}
+if pretrained.DEFAULT_OUT.is_file():
+    result = pretrained.load()
+    print("memakai hasil notebook 02:", result["created_at"], result["model_version"])
+else:
+    det = backend.build_api_deepforest(backend.default_deepforest_dir(), confidence=0.35, device="cpu")
+    pretrained.save(pretrained.run_on_samples(det, list(samples.values())))
+    result = pretrained.load()
+    print("notebook 02 belum dijalankan — inferensi dijalankan di sini")
+VOC_LABELS = {"Tree": "plant", "Alive": "plant", "Dead": "plant"}   # eksplisit; lihat notebook 01
+CONF = result["parameters"]["conf"]
+data = {**{k: result[k] for k in ("model_id", "model_version", "split", "domain", "iou_threshold")}, "images": []}
+for rec in result["images"]:
+    s = samples[rec["image"]]
+    if s.annotations is None:
+        print("tanpa ground truth (dilewati dari metrik):", s.id)
+        continue
+    voc = load_voc(s.annotations, VOC_LABELS)
+    data["images"].append({"image": s.id, "gt": [{"label": l, "bbox": b} for l, b in voc.boxes], "pred": rec["pred"]})
+print(len(data["images"]), "foto dengan ground truth; threshold confidence =", CONF)"""),
+        ("md", "## 2. Metrik per foto & gabungan (IoU ≥ 0.5)"),
+        ("code", """\
+from wallacea_ml.evaluate import evaluate, sweep
+r = evaluate(data, leaks=[], conf_threshold=CONF)
+display(_df([{k: row[k] for k in ("image", "gt", "pred", "tp", "fp", "fn", "count_error")} for row in r.per_image]))
+print({k: (round(getattr(r, k), 3) if isinstance(getattr(r, k), float) else getattr(r, k))
+       for k in ("gt_total", "tp", "fp", "fn", "precision", "recall", "f1", "ap", "count_mae_per_image")})
+for c in r.caveats + ["Hanya 3 foto NEON, tidak independen dari data pengembang model. Bukan akurasi K919/pertanian."]:
+    print("•", c)"""),
+        ("md", "## 3. Pengaruh threshold confidence (ilustrasi pada 3 foto — jangan dipakai memilih threshold produk)"),
+        ("code", """\
+rows = sweep(data, [round(0.05 * i, 2) for i in range(7, 19)])
+c = [x["conf"] for x in rows]
+plt.figure(figsize=(7, 3.5))
+for k in ("precision", "recall", "f1"):
+    plt.plot(c, [x[k] for x in rows], label=k)
+plt.axvline(CONF, ls="--", c="k"); plt.xlabel("threshold confidence"); plt.legend(); plt.show()
+display(_df(rows))"""),
+        ("md", "## 4. False positive (merah) & objek terlewat (kuning); cocok = hijau"),
+        ("code", """\
+from wallacea_ml.evaluate import match_details
+from wallacea_ml.viz import draw_boxes
+for im in data["images"]:
+    m = match_details(im["gt"], [p for p in im["pred"] if p["confidence"] >= CONF], 0.5, "plant")
+    boxes = [("plant", d["bbox"]) for d, _ in m["tp"]] + [("gap", d["bbox"]) for d in m["fp"]] + [("check", g["bbox"]) for g in m["fn"]]
+    fp_conf = sorted(round(d["confidence"], 2) for d in m["fp"])
+    print(f"{im['image']}: {len(m['tp'])} cocok, {len(m['fp'])} false positive, {len(m['fn'])} terlewat; "
+          f"confidence FP median {fp_conf[len(fp_conf) // 2] if fp_conf else '-'}")
+    plt.figure(figsize=(9, 9))
+    plt.imshow(draw_boxes(backend.load_oriented(samples[im["image"]].path), boxes, max_side=1600))
+    plt.title(f"{im['image']} — hijau=cocok, merah=FP, kuning=terlewat"); plt.axis("off"); plt.show()"""),
     ],
 }
 
 
-def build() -> None:
+def build(only: list[str] | None = None) -> None:
+    """Tulis notebook dari NB. `only` = nama berkas; default semua. Pakai `--only` agar notebook yang sedang
+    diubah/dijalankan pengguna tidak tertimpa."""
     for name, cells in NB.items():
+        if only and name not in only and Path(name).name not in only:
+            continue
         nb = nbf.v4.new_notebook()
         nb.metadata["kernelspec"] = KERNEL
         nb.metadata["language_info"] = {"name": "python"}
         nb.cells = [nbf.v4.new_markdown_cell(src) if kind == "md" else nbf.v4.new_code_cell(src) for kind, src in cells]
+        (HERE / name).parent.mkdir(parents=True, exist_ok=True)
         nbf.write(nb, HERE / name)
         print("ditulis", name)
 
 
 if __name__ == "__main__":
-    build()
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--only", nargs="*", help="nama notebook, mis. 02_pretrained_inference.ipynb")
+    build(ap.parse_args().only)
