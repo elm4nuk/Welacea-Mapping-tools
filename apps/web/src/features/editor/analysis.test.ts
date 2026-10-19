@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { ApiError } from '../../api/client';
-import { analysisError, modelPresentation, modelStatus, runStatus } from './analysis';
+import { analysisError, modelPresentation, modelStatus, modelTargetPresentation, runStatus } from './analysis';
 import type { Schema } from '../../api/client';
 
 test('model status only exposes metadata supplied by the API', () => {
@@ -34,4 +34,12 @@ test('DeepForest wording is enabled only by model identity supplied by the API',
   expect(modelPresentation('detector-tanaman')).toMatchObject({ isDeepForest: false, candidate: 'kandidat tanaman' });
   expect(modelPresentation('notdeepforest')).toMatchObject({ isDeepForest: false });
   expect(modelPresentation(undefined).disclaimer).toBe('');
+});
+
+test('contract revision 2 target label and limitations take priority over model-id guessing', () => {
+  const model = { state: 'loaded', available: true, model_id: 'opaque-id', model_version: 'v1', message: 'Siap',
+    adapter: 'deepforest', target: 'tree_crown', target_label: 'Kandidat tajuk pohon (DeepForest pretrained)', device: 'cpu',
+    limitations: ['Belum diuji pada K919.'] } as Schema['ModelStatus'];
+  expect(modelTargetPresentation(model)).toMatchObject({ isDeepForest: true, candidate: 'Kandidat tajuk pohon (DeepForest pretrained)' });
+  expect(modelStatus(model)).toMatchObject({ label: 'Kandidat tajuk pohon (DeepForest pretrained)', device: 'cpu', limitations: ['Belum diuji pada K919.'] });
 });

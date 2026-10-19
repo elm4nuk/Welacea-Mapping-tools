@@ -15,15 +15,28 @@ export function modelPresentation(modelId: string | null | undefined) {
   };
 }
 
+export function modelTargetPresentation(model: Schema['ModelStatus']) {
+  const fallback = modelPresentation(model.model_id);
+  return {
+    ...fallback,
+    isDeepForest: model.target === 'tree_crown' || fallback.isDeepForest,
+    candidate: model.target_label?.trim() || (model.target === 'tree_crown' ? 'Kandidat tajuk pohon' : fallback.candidate),
+    disclaimer: model.limitations?.length ? model.limitations.join(' ') : fallback.disclaimer,
+  };
+}
+
 export function modelStatus(model: Schema['ModelStatus']) {
   const metadata = [model.model_id, model.model_version].filter((value): value is string => Boolean(value));
+  const target = modelTargetPresentation(model);
+  const common = { targetLabel: target.candidate, limitations: model.limitations ?? [],
+    device: model.device ?? '', adapter: model.adapter ?? '' };
   if (model.state === 'not_configured') {
-    return { label: 'Model belum dikonfigurasi', available: false, metadata: '', detail: model.message };
+    return { label: 'Model belum dikonfigurasi', available: false, metadata: '', detail: model.message, ...common };
   }
   if (model.state === 'error' || !model.available) {
-    return { label: 'Model tidak tersedia', available: false, metadata: '', detail: model.message };
+    return { label: 'Model tidak tersedia', available: false, metadata: '', detail: model.message, ...common };
   }
-  return { label: 'Model tersedia', available: true, metadata: metadata.join(' / '), detail: model.message };
+  return { label: model.target_label || 'Model tersedia', available: true, metadata: metadata.join(' / '), detail: model.message, ...common };
 }
 
 export function analysisError(error: unknown): {

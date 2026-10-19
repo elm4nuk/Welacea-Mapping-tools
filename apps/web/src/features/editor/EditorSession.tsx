@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Download, MoreHorizontal, RefreshCw, Save, ScanSearch } from 'lucide-react';
 import { api, apiUrl, ApiError } from '../../api/client';
 import type { Annotation, Photo, Schema, Survey } from '../../api/client';
 import { PhotoEditor } from './PhotoEditor';
@@ -7,11 +8,15 @@ import { annotationBody, createBody, toFinding } from './adapter';
 import { editorReducer } from './model';
 import type { EditorState, Finding } from './model';
 import { Button } from '../../components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogTitle } from '../../components/ui/alert-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import { exportAnnotatedPng } from './export';
-import { analysisError, modelPresentation, modelStatus, runStatus } from './analysis';
+import { analysisError, modelPresentation, modelStatus, modelTargetPresentation, runStatus } from './analysis';
 import type { AnalysisPhase } from './analysis';
-export function EditorSession({ photo, survey, model, inferenceTimeoutSeconds, onDirty }: {
+import { analysisDisabledReason } from '../workflow';
+export function EditorSession({ photo, survey, model, apiConnected, inferenceTimeoutSeconds, onDirty }: {
   photo: Photo; survey: Survey; model?: Schema['ModelStatus']; inferenceTimeoutSeconds?: number;
+  apiConnected: boolean;
   onDirty: (value: boolean) => void;
 }) {
   const client = useQueryClient();
@@ -31,6 +36,7 @@ export function EditorSession({ photo, survey, model, inferenceTimeoutSeconds, o
   const [canChooseRerun, setCanChooseRerun] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [generation, setGeneration] = useState(0);
+  const [reloadConfirmOpen, setReloadConfirmOpen] = useState(false);
   const server = useRef(new Map<string, Annotation>());
   const initialized = useRef(false);
   const alive = useRef(true);
@@ -114,8 +120,8 @@ export function EditorSession({ photo, survey, model, inferenceTimeoutSeconds, o
     setBlocked(false); setConflict(undefined); setDirty(false);
     initialized.current = true;
   }
-  async function reload() {
-    if (dirty && !window.confirm('Buang perubahan lokal dan ambil versi server? Ekspor CSV terlebih dahulu bila diperlukan.')) return;
+  async function reload(force = false) {
+    if (dirty && !force) { setReloadConfirmOpen(true); return; }
     setBusy(true); setError('');
     try {
       const data = await api.annotations(photo.id);
@@ -132,7 +138,7 @@ export function EditorSession({ photo, survey, model, inferenceTimeoutSeconds, o
       const result = await api.analyze(photo.id, onExisting);
       if (!alive.current) return;
       setAnalysisPhase('succeeded');
-      const presentation = modelPresentation(result.run.model_id);
+      const presentation = model ? modelTargetPresentation(model) : modelPresentation(result.run.model_id);
       setMessage(`Analisis selesai. ${result.candidates.length} ${presentation.candidate} menunggu review. ${result.notice}`);
       try {
         const data = await api.annotations(photo.id);
@@ -161,19 +167,22 @@ export function EditorSession({ photo, survey, model, inferenceTimeoutSeconds, o
   }]));
   const deepForest = [model?.model_id, ...(runs.data?.items ?? []).map(run => run.model_id)]
     .some(modelId => modelPresentation(modelId).isDeepForest);
+  const analyzeReason = analysisDisabledReason({ apiConnected, modelAvailable: Boolean(model?.available), dirty,
+    isDemo: survey.is_demo, busy });
   return <section aria-busy={busy}>
-    <div className="toolbar session-actions">
-      <Button disabled={busy || !dirty || blocked || survey.is_demo} onClick={() => void save()}>Simpan anotasi</Button>
-      <Button variant="outline" disabled={busy} onClick={() => void reload()}>Muat ulang versi server</Button>
-      <Button variant="outline" disabled={busy || dirty || survey.is_demo}
-        title={!model?.available ? 'Backend akan memeriksa ketersediaan model; editor manual tetap aktif.' : undefined}
-        onClick={() => void analyze()}>Analisis foto</Button>
-      <Button variant="outline" disabled={!image || busy} onClick={() => {
-        if (image) void exportAnnotatedPng(image, findings, survey, photo, dirty).catch(e => setError(String(e)));
-      }}>Ekspor gambar anotasi</Button>
-    </div>
-    <p role="status">{analyzing ? `Analisis sedang berjalan${inferenceTimeoutSeconds ? ` (batas server ${inferenceTimeoutSeconds} detik)` : ''}. Tidak ada persentase progres.`
+    <div className="session-header no-print"><div><span className="eyebrow">Tahap 2 · Analisis & review</span><h2>{photo.original_name}</h2>
+      <p role="status" className={dirty ? 'draft-status' : undefined}>{analyzing ? `Analisis sedang berjalan${inferenceTimeoutSeconds ? ` (batas server ${inferenceTimeoutSeconds} detik)` : ''}. Tidak ada persentase progres.`
       : busy ? 'Memproses...' : dirty ? 'Draf lokal belum disimpan.' : message || 'Data berasal dari server.'}</p>
+      </div><div className="session-actions">
+      {dirty ? <Button disabled={busy || blocked || survey.is_demo} onClick={() => void save()}><Save />Simpan perubahan</Button>
+        : <Button disabled={Boolean(analyzeReason)} title={analyzeReason || undefined} onClick={() => void analyze()}><ScanSearch />Analisis foto</Button>}
+      <Button variant="outline" disabled={busy} onClick={() => void reload()}><RefreshCw />Muat ulang</Button>
+      <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Opsi ekspor"><MoreHorizontal /></Button></DropdownMenuTrigger>
+        <DropdownMenuContent align="end"><DropdownMenuItem disabled={!image || busy} onSelect={() => {
+          if (image) void exportAnnotatedPng(image, findings, survey, photo, dirty).catch(reason => setError(String(reason)));
+        }}><Download />Ekspor PNG anotasi</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+      </div></div>
+    {analyzeReason && !dirty && <p className="action-reason no-print">{analyzeReason}</p>}
     {error && <p role="alert" className="error">{error}</p>}
     {canChooseRerun && <div className="notice analysis-rerun">
       <p>Analisis ulang tidak mengubah penanda manual atau kandidat yang sudah diterima/ditolak.</p>
@@ -196,9 +205,11 @@ export function EditorSession({ photo, survey, model, inferenceTimeoutSeconds, o
           integrated />
       </div>
     </fieldset>}
-    <details open={analysisPhase !== 'idle'}><summary>Status model dan riwayat analisis foto</summary>
+    <details className="model-details no-print" open={analysisPhase !== 'idle'}><summary>Status model dan riwayat analisis foto</summary>
       {modelDisplay && <p><b>{modelDisplay.label}</b>{modelDisplay.metadata ? ` / ${modelDisplay.metadata}` : ''}. {modelDisplay.detail}</p>}
-      {deepForest && <p className="notice">{modelPresentation('DeepForest').disclaimer}</p>}
+      {modelDisplay && (modelDisplay.adapter || modelDisplay.device) && <p>Adapter: {modelDisplay.adapter || 'tidak disebutkan'} · Perangkat: {modelDisplay.device || 'tidak disebutkan'}.</p>}
+      {modelDisplay?.limitations.map(limit => <p className="notice" key={limit}>{limit}</p>)}
+      {deepForest && !modelDisplay?.limitations.length && <p className="notice">{modelPresentation('DeepForest').disclaimer}</p>}
       {runs.isPending && <p>Memuat riwayat...</p>}
       {runs.isError && <p role="alert">{runs.error.message}</p>}
       {runs.data?.items.length === 0 && <p>Belum ada run analisis.</p>}
@@ -208,5 +219,9 @@ export function EditorSession({ photo, survey, model, inferenceTimeoutSeconds, o
         {run.error_code && <> / kode: {run.error_code}</>}
       </p>; })}
     </details>
+    <AlertDialog open={reloadConfirmOpen} onOpenChange={setReloadConfirmOpen}><AlertDialogContent>
+      <AlertDialogTitle>Buang draf lokal?</AlertDialogTitle><AlertDialogDescription>Perubahan lokal akan diganti dengan versi terbaru dari server. Ekspor CSV terlebih dahulu bila diperlukan.</AlertDialogDescription>
+      <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction destructive onClick={() => void reload(true)}>Buang draf & muat ulang</AlertDialogAction></AlertDialogFooter>
+    </AlertDialogContent></AlertDialog>
   </section>;
 }
