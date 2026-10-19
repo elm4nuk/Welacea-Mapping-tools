@@ -18,7 +18,7 @@ from .config import API_ROOT, Settings, load_settings
 from .db import make_engine, make_sessionmaker, utcnow
 from .errors import REQUEST_ID_HEADER, RequestIdMiddleware, install_error_handlers
 from .inference import Detector, build_detector
-from .routers import analysis, annotations, health, imports, photos, reports, surveys
+from .routers import analysis, annotations, health, imports, photos, reports, samples, surveys
 from .storage import Storage
 
 log = logging.getLogger("wallacea")
@@ -154,6 +154,6 @@ def create_app(settings: Settings | None = None, detector: Detector | None = Non
         allow_headers=["Content-Type", "If-Match", REQUEST_ID_HEADER],
         expose_headers=["ETag", REQUEST_ID_HEADER, "Content-Disposition"],
     )
-    for r in (health, surveys, photos, annotations, analysis, reports, imports):
+    for r in (health, surveys, photos, annotations, analysis, reports, imports, samples):
         app.include_router(r.router, prefix=PREFIX)
     return app

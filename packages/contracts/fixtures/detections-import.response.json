@@ -1,7 +1,7 @@
 {
   "run": {
-    "id": "1749c23c7a9e49ee9fd40bd5ffa8185d",
-    "photo_id": "e474b420c1b340b98d83188b7f162f96",
+    "id": "fcf293a0a3eb4e41b7cae4fcfcea9103",
+    "photo_id": "556d76877e8643a495163eecc5b9133e",
     "run_type": "import",
     "model_id": "tim-ml-jagung-v0",
     "model_version": "2026-10-01",
@@ -12,15 +12,16 @@
       "on_existing": "reject",
       "sha256_verified": true
     },
-    "started_at": "2026-10-18T17:12:52.431110Z",
-    "finished_at": "2026-10-18T17:12:52.432106Z",
-    "error_code": null
+    "started_at": "2026-10-19T16:27:07.668903Z",
+    "finished_at": "2026-10-19T16:27:07.669922Z",
+    "error_code": null,
+    "target": null
   },
   "candidates": [
     {
-      "id": "7705bebd60964e7ea90b6ae89db04b74",
-      "photo_id": "e474b420c1b340b98d83188b7f162f96",
-      "analysis_run_id": "1749c23c7a9e49ee9fd40bd5ffa8185d",
+      "id": "18e8e821b96745fdbe1529bd4cccbe0d",
+      "photo_id": "556d76877e8643a495163eecc5b9133e",
+      "analysis_run_id": "fcf293a0a3eb4e41b7cae4fcfcea9103",
       "kind": "plant",
       "geometry_type": "bbox",
       "x": 0.275,
@@ -37,13 +38,13 @@
       "model_label": null,
       "note": "",
       "revision": 1,
-      "created_at": "2026-10-18T17:12:52.432106Z",
-      "updated_at": "2026-10-18T17:12:52.432106Z"
+      "created_at": "2026-10-19T16:27:07.669922Z",
+      "updated_at": "2026-10-19T16:27:07.669922Z"
     },
     {
-      "id": "f431fb5134974225bd90ca9766e0aaa1",
-      "photo_id": "e474b420c1b340b98d83188b7f162f96",
-      "analysis_run_id": "1749c23c7a9e49ee9fd40bd5ffa8185d",
+      "id": "7d5b6ab09e5a43aaac16bc3970a34436",
+      "photo_id": "556d76877e8643a495163eecc5b9133e",
+      "analysis_run_id": "fcf293a0a3eb4e41b7cae4fcfcea9103",
       "kind": "plant",
       "geometry_type": "bbox",
       "x": 0.5700000000000001,
@@ -60,8 +61,8 @@
       "model_label": null,
       "note": "",
       "revision": 1,
-      "created_at": "2026-10-18T17:12:52.432106Z",
-      "updated_at": "2026-10-18T17:12:52.432106Z"
+      "created_at": "2026-10-19T16:27:07.669922Z",
+      "updated_at": "2026-10-19T16:27:07.669922Z"
     }
   ],
   "replaced_annotation_ids": [],

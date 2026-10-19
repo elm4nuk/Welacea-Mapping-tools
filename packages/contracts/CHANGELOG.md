@@ -5,6 +5,29 @@ Pemilik: Claude (backend). Setiap perubahan kontrak: naikkan `CONTRACT_REVISION`
 dengan kompatibilitas dan fixture yang berubah, commit, lalu sampaikan SHA ke frontend.
 Usulan perubahan dari frontend: `docs/requests/codex-*.md`.
 
+## Revisi 3 — 2026-10-19 (`info.version` 1.3.0) — jawaban CR-FE-001/002/003 Codex
+
+**Kompatibel mundur.** Endpoint baru + field response opsional; perilaku runtime request lama tidak berubah.
+
+- **CR-FE-003 — semantik kandidat**: `AnalysisRun.target` (`"plant" | "tree_crown" | null`). Nilainya sama
+  dengan `health.model.target` saat run dibuat, dicatat sejak run dimulai (run `failed` pun membawanya).
+  `null` = tidak diketahui (impor deteksi, run sebelum revisi 3) → pakai istilah generik. Nama field `target`
+  dipakai (bukan `candidate_semantics` yang diusulkan) agar sama dengan `ModelStatus.target` revisi 2.
+  **Jangan lagi menebak dari `model_id`** — `model_id` DeepForest adalah `"weecology/deepforest-tree"` (huruf
+  kecil), jadi pencocokan string `DeepForest` di frontend tidak akan pernah cocok.
+- **CR-FE-002 — katalog foto contoh berlisensi**: `GET /api/v1/samples` → `SamplePage {items: SamplePhoto[], total}`
+  dengan `id, title, file_url, filename, media_type, size_bytes, sha256, width, height, source_name, source_url,
+  license_name, license_url, attribution, imagery, has_human_annotations`. `GET /api/v1/samples/{id}/file` →
+  byte asli (sha256 = katalog). Alur: tampilkan sumber/lisensi → ambil berkas sebagai `File` → unggah lewat
+  `POST /surveys/{id}/photos` biasa → `/analyze`. Tidak ada anotasi yang ikut terunggah. Sumber katalog:
+  `samples/catalog.json` (env `WALLACEA_SAMPLES_DIR`); berkas dengan sha256 tidak cocok/path keluar folder dilewati.
+- **CR-FE-001 — `AnnotationUpdate`**: `kind, note, review_status, geometry_type, x, y` tidak lagi bertipe nullable
+  di OpenAPI (dulu diiklankan nullable tetapi runtime menolak `null` → 422; runtime tidak berubah). Kirim hanya
+  field yang berubah. `bbox: null` tetap sah (= ubah ke titik). Untuk bbox, jangan kirim `x`/`y`.
+
+Fixture: **baru** `sample-page.json`. `analyze.response.json`, `analysis-run-page.json`, `detections-import.response.json`
+mendapat `run.target` (`null` untuk test double/impor). Fixture lain hanya berubah ID/timestamp.
+
 ## Revisi 2 — 2026-10-19 (`info.version` 1.2.0) — detector DeepForest, status model lebih jujur
 
 **Kompatibel mundur (aditif).** Tidak ada field yang dihapus/diubah tipe; endpoint & kode error sama.

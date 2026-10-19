@@ -8,6 +8,7 @@ from pathlib import Path
 
 API_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_DIR = API_ROOT / "var"
+DEFAULT_SAMPLES_DIR = API_ROOT.parents[1] / "samples"   # <repo>/samples (catalog.json + foto contoh berlisensi)
 DEFAULT_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
 DEFAULT_LABEL_MAP = {"plant": "plant", "check": "check", "gap": "gap"}
 DETECTORS = ("", "none", "ultralytics", "deepforest")
@@ -53,6 +54,7 @@ class Settings:
     patch_size: int = 400               # deepforest predict_tile
     patch_overlap: float = 0.05
     model_preload: bool = False         # muat model saat startup (thread latar), bukan saat request pertama
+    samples_dir: Path = DEFAULT_SAMPLES_DIR  # foto contoh berlisensi (GET /samples); tidak ada → katalog kosong
 
     label_map: dict[str, str] = field(default_factory=dict)
     label_map_error: str | None = None
@@ -103,6 +105,7 @@ def load_settings(**overrides) -> Settings:
         patch_size=_int("WALLACEA_PATCH_SIZE", 400),
         patch_overlap=_float("WALLACEA_PATCH_OVERLAP", 0.05),
         model_preload=_env("WALLACEA_MODEL_PRELOAD", "false").lower() in ("1", "true", "yes"),
+        samples_dir=Path(_env("WALLACEA_SAMPLES_DIR") or DEFAULT_SAMPLES_DIR).expanduser().resolve(),
         label_map=label_map,
         label_map_error=label_error,
         config_error=config_error,

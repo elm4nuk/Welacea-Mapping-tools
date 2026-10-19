@@ -117,7 +117,10 @@ async def analyze_photo(photo_id: str, request: Request, body: s.AnalyzeRequest 
             _check_existing(db, photo, info.model_id, info.model_version, on_existing)
             run = m.AnalysisRun(photo_id=photo.id, run_type="inference", model_id=info.model_id,
                                 model_version=info.model_version, input_sha256=photo.sha256, status="running",
-                                started_at=utcnow(), parameters_json=json.dumps({"on_existing": on_existing}))
+                                started_at=utcnow(),
+                                # adapter/target dicatat sejak awal agar run gagal pun membawa semantiknya
+                                parameters_json=json.dumps({"on_existing": on_existing, "adapter": info.adapter,
+                                                            "target": info.target}))
             db.add(run)
             try:
                 db.commit()
@@ -166,7 +169,9 @@ async def analyze_photo(photo_id: str, request: Request, body: s.AnalyzeRequest 
             photo = svc.get_photo(db, photo_id)
             run.model_id = output.model_id or run.model_id
             run.model_version = output.model_version or run.model_version
-            run.parameters_json = json.dumps({**output.parameters, "on_existing": on_existing})
+            # gabung (bukan timpa): adapter/target dari info tetap ada bila adapter tidak mengirimnya
+            initial = {k: v for k, v in json.loads(run.parameters_json or "{}").items() if v is not None}
+            run.parameters_json = json.dumps({**initial, **output.parameters, "on_existing": on_existing})
             try:
                 created, replaced = _apply_candidates(db, photo, run, output.detections, on_existing,
                                                       settings.max_annotations_per_photo)

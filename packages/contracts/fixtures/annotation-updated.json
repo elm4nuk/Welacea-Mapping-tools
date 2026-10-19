@@ -1,6 +1,6 @@
 {
-  "id": "d5927837e6f2430d9118940915f0290d",
-  "photo_id": "e474b420c1b340b98d83188b7f162f96",
+  "id": "03342f2f0ee74aafb726d6cedc3a6d1a",
+  "photo_id": "556d76877e8643a495163eecc5b9133e",
   "analysis_run_id": null,
   "kind": "gap",
   "geometry_type": "point",
@@ -13,6 +13,6 @@
   "model_label": null,
   "note": "Ternyata titik kosong.",
   "revision": 2,
-  "created_at": "2026-10-18T17:12:52.360456Z",
-  "updated_at": "2026-10-18T17:12:52.370156Z"
+  "created_at": "2026-10-19T16:27:07.584683Z",
+  "updated_at": "2026-10-19T16:27:07.595447Z"
 }

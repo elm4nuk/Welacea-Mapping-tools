@@ -1,7 +1,7 @@
 {
   "run": {
-    "id": "3b19f991ba534bb1bff0cf18f0a6d4e2",
-    "photo_id": "e876d3dca95042968edbc50d0d8aba29",
+    "id": "8bf65ff1536c43b4a0bb7a2c01953147",
+    "photo_id": "9d63755ec2d448acb8a8f098a0405257",
     "run_type": "inference",
     "model_id": "contract-test-double",
     "model_version": "sha256:0000000000000000",
@@ -9,18 +9,19 @@
     "status": "succeeded",
     "candidate_count": 2,
     "parameters": {
-      "adapter": "test-double",
-      "on_existing": "reject"
+      "on_existing": "reject",
+      "adapter": "test-double"
     },
-    "started_at": "2026-10-18T17:12:52.597725Z",
-    "finished_at": "2026-10-18T17:12:52.602242Z",
-    "error_code": null
+    "started_at": "2026-10-19T16:27:07.868829Z",
+    "finished_at": "2026-10-19T16:27:07.873843Z",
+    "error_code": null,
+    "target": null
   },
   "candidates": [
     {
-      "id": "7eba59362aa4460da020dcc6e37a3987",
-      "photo_id": "e876d3dca95042968edbc50d0d8aba29",
-      "analysis_run_id": "3b19f991ba534bb1bff0cf18f0a6d4e2",
+      "id": "30c825dfda0b46b887749e9ed402e863",
+      "photo_id": "9d63755ec2d448acb8a8f098a0405257",
+      "analysis_run_id": "8bf65ff1536c43b4a0bb7a2c01953147",
       "kind": "plant",
       "geometry_type": "bbox",
       "x": 0.2,
@@ -37,13 +38,13 @@
       "model_label": "tanaman",
       "note": "",
       "revision": 1,
-      "created_at": "2026-10-18T17:12:52.602242Z",
-      "updated_at": "2026-10-18T17:12:52.602242Z"
+      "created_at": "2026-10-19T16:27:07.873843Z",
+      "updated_at": "2026-10-19T16:27:07.873843Z"
     },
     {
-      "id": "fe83c528aee646d3ab918cc8b07135ca",
-      "photo_id": "e876d3dca95042968edbc50d0d8aba29",
-      "analysis_run_id": "3b19f991ba534bb1bff0cf18f0a6d4e2",
+      "id": "b0dfa551c66d494d95b1e1b01b66cdb7",
+      "photo_id": "9d63755ec2d448acb8a8f098a0405257",
+      "analysis_run_id": "8bf65ff1536c43b4a0bb7a2c01953147",
       "kind": "gap",
       "geometry_type": "bbox",
       "x": 0.6749999999999999,
@@ -60,8 +61,8 @@
       "model_label": "titik_kosong",
       "note": "",
       "revision": 1,
-      "created_at": "2026-10-18T17:12:52.602242Z",
-      "updated_at": "2026-10-18T17:12:52.602242Z"
+      "created_at": "2026-10-19T16:27:07.873843Z",
+      "updated_at": "2026-10-19T16:27:07.873843Z"
     }
   ],
   "replaced_annotation_ids": [],

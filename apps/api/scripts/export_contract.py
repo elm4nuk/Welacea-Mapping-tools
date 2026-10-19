@@ -83,6 +83,7 @@ def build_fixtures() -> dict[str, tuple[str, object]]:
 
         with TestClient(create_app(load_settings(data_dir=base / "a"))) as c:
             put("health.not-configured.json", "Health", c.get(f"{V1}/health"))
+            put("sample-page.json", "SamplePage", c.get(f"{V1}/samples"))   # katalog nyata <repo>/samples
             survey_req = {"name": "Kebun Jagung Blok A", "crop_type": "Jagung", "location_label": "Desa Contoh, petak 2",
                           "survey_date": "2026-10-18", "notes": "Penerbangan pagi, langit cerah."}
             put("survey-create.request.json", "SurveyCreate", survey_req)

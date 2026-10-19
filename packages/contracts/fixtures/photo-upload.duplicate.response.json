@@ -1,7 +1,7 @@
 {
   "photo": {
-    "id": "5a5a8530b78b4f74b5c3358793e7ec58",
-    "survey_id": "ca1e876ca027471296890fb07a690f4f",
+    "id": "9f3168cedd7a4a9fb3e28c5ae724f40e",
+    "survey_id": "966550fad75e4479900af5ba4a657e58",
     "original_name": "DJI_0001 (1).JPG",
     "width": 90,
     "height": 160,
@@ -13,12 +13,12 @@
     "captured_at": "2026-10-18T07:45:10",
     "georef_status": "none",
     "revision": 1,
-    "created_at": "2026-10-18T17:12:52.347401Z",
-    "content_url": "/api/v1/photos/5a5a8530b78b4f74b5c3358793e7ec58/content",
-    "display_url": "/api/v1/photos/5a5a8530b78b4f74b5c3358793e7ec58/display",
-    "thumbnail_url": "/api/v1/photos/5a5a8530b78b4f74b5c3358793e7ec58/thumbnail",
+    "created_at": "2026-10-19T16:27:07.577120Z",
+    "content_url": "/api/v1/photos/9f3168cedd7a4a9fb3e28c5ae724f40e/content",
+    "display_url": "/api/v1/photos/9f3168cedd7a4a9fb3e28c5ae724f40e/display",
+    "thumbnail_url": "/api/v1/photos/9f3168cedd7a4a9fb3e28c5ae724f40e/thumbnail",
     "duplicate_photo_ids": [
-      "e474b420c1b340b98d83188b7f162f96"
+      "556d76877e8643a495163eecc5b9133e"
     ],
     "counts": {
       "plant_accepted": 0,
@@ -36,7 +36,7 @@
       "message": "Foto identik (sha256 sama) sudah ada di survei ini. Tetap disimpan; hapus bila tidak diperlukan agar tidak terhitung ganda.",
       "details": {
         "photo_ids": [
-          "e474b420c1b340b98d83188b7f162f96"
+          "556d76877e8643a495163eecc5b9133e"
         ]
       }
     }
