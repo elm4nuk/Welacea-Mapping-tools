@@ -17,7 +17,8 @@ test.afterEach(async ({ request }) => {
 });
 async function create(page: Page, request: APIRequestContext, name: string) {
   await page.goto('/');
-  await page.getByRole('button', { name: '+ Survei baru', exact: true }).click();
+  await openNavigation(page);
+  await page.getByRole('button', { name: 'Survei baru', exact: true }).click();
   await page.getByLabel('Nama lahan', { exact: true }).fill(name);
   await page.getByLabel('Jenis tanaman', { exact: true }).fill('Jagung');
   await page.getByLabel('Tanggal survei', { exact: true }).fill('2026-10-18');
@@ -27,31 +28,55 @@ async function create(page: Page, request: APIRequestContext, name: string) {
   const body = await (await request.get(base + '/api/v1/surveys?limit=200')).json();
   const s: Survey = body.items.find((item: Survey) => item.name === name);
   expect(s).toBeTruthy(); created.push(s.id);
-  await page.locator('.survey-item').filter({ hasText: name }).click();
+  await openNavigation(page);
+  await page.locator('.survey-item:visible').filter({ hasText: name }).click();
   return s;
 }
+async function openNavigation(page: Page) {
+  const trigger = page.getByRole('button', { name: 'Buka navigasi', exact: true });
+  if (await trigger.isVisible()) await trigger.click();
+}
 async function selectPhoto(page: Page, filename: string) {
-  await page.locator('.photo-card').filter({ hasText: filename }).locator('button').first().click();
+  const trigger = page.getByRole('button', { name: 'Pilih foto', exact: true });
+  if (await trigger.isVisible()) await trigger.click();
+  await page.locator('.filmstrip-card:visible').filter({ hasText: filename }).locator('.filmstrip-card__select').click();
   await expect(page.locator('.canvas-host canvas')).toBeVisible();
 }
+async function openReview(page: Page) {
+  const trigger = page.getByRole('button', { name: /^Review \(/ });
+  if (await trigger.isVisible()) await trigger.click();
+}
+async function closeReview(page: Page) {
+  const sheet = page.locator('.review-sheet');
+  if (await sheet.isVisible()) await sheet.getByRole('button', { name: 'Tutup panel' }).click();
+}
+async function openSurveyMenu(page: Page) {
+  await page.getByRole('button', { name: 'Buka menu survei', exact: true }).click();
+}
+async function openCoordinateEntry(page: Page) {
+  const details = page.locator('.coordinate-entry');
+  if (!await details.getAttribute('open')) await details.locator('summary').click();
+}
 async function addPoint(page: Page, x: string, y: string) {
+  await openCoordinateEntry(page);
   await page.getByLabel('X normalized', { exact: true }).fill(x);
   await page.getByLabel('Y normalized', { exact: true }).fill(y);
-  await page.getByRole('button', { name: 'Tambah titik dari koordinat', exact: true }).click();
+  await page.getByRole('button', { name: 'Tambah dari koordinat', exact: true }).click();
 }
 
 test('real API: built-in example stays labelled as a read-only illustration', async ({ page, request }) => {
   await page.goto('/');
-  const openExample = page.getByRole('button', { name: 'Buka contoh ilustrasi', exact: true });
+  await openNavigation(page);
+  const openExample = page.getByRole('button', { name: 'Contoh ilustrasi', exact: true });
   await expect(openExample).toBeEnabled();
   await openExample.click();
   await expect(page.getByRole('status').filter({ hasText: 'bukan foto drone dan bukan hasil analisis AI' })).toBeVisible();
   const body = await (await request.get(base + '/api/v1/surveys?limit=200')).json();
   const demo: Survey = body.items.find((item: Survey) => item.is_demo && item.name === 'Parsel demonstrasi');
   expect(demo).toBeTruthy(); created.push(demo.id);
-  await expect(page.getByText('CONTOH / ILUSTRASI - terpisah dari survei nyata', { exact: false })).toBeVisible();
-  await expect(page.getByLabel('+ Pilih foto untuk diunggah')).toBeDisabled();
-  await page.locator('.photo-card').first().locator('button').first().click();
+  await expect(page.getByText('Contoh / ilustrasi · terpisah dari survei nyata', { exact: false })).toBeVisible();
+  await expect(page.getByLabel('Pilih foto untuk diunggah')).toBeDisabled();
+  await selectPhoto(page, 'parsel-contoh-ilustrasi.png');
   await expect(page.getByText('Contoh / ilustrasi — bukan foto drone nyata', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Analisis foto', exact: true })).toBeDisabled();
 });
@@ -60,30 +85,37 @@ test('real API: survey, multi upload, EXIF, edit, undo/redo, save, reload, PNG/C
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   const s = await create(page, request, 'QA manual ' + info.project.name + ' ' + Date.now());
-  await page.getByLabel('+ Pilih foto untuk diunggah').setInputFiles([
+  await page.getByLabel('Pilih foto untuk diunggah').setInputFiles([
     path.join(fixtureDir, 'orientation6.jpg'), path.join(fixtureDir, 'landscape.webp'),
   ]);
-  await expect(page.locator('.photo-card')).toHaveCount(2);
-  await expect(page.locator('.upload-row').filter({ hasText: 'Tersimpan.' })).toHaveCount(2);
+  await expect(page.locator('.filmstrip-card')).toHaveCount(2);
+  await expect(page.locator('.upload-queue > div').filter({ hasText: 'Tersimpan.' })).toHaveCount(2);
   const photos: Photo[] = (await (await request.get(base + '/api/v1/surveys/' + s.id + '/photos')).json()).items;
   const oriented = photos.find(p => p.original_name === 'orientation6.jpg')!;
   expect([oriented.width, oriented.height, oriented.exif_orientation]).toEqual([500, 800, 6]);
   await selectPhoto(page, 'orientation6.jpg');
   await addPoint(page, '0.4', '0.3');
+  await openReview(page);
   await page.getByRole('button', { name: '1. Tanaman', exact: false }).click();
-  await page.getByLabel('Catatan', { exact: true }).fill('Periksa di lapangan');
-  await page.getByRole('button', { name: 'Terapkan koreksi lokal', exact: true }).click();
+  await page.locator('.finding-form:visible textarea').fill('Periksa di lapangan');
+  await page.getByRole('button', { name: 'Terapkan catatan', exact: true }).click();
+  await closeReview(page);
   await page.getByRole('button', { name: 'Urungkan', exact: true }).click();
-  await expect(page.getByLabel('Catatan', { exact: true })).toHaveValue('');
+  await openReview(page);
+  await expect(page.locator('.finding-form:visible textarea')).toHaveValue('');
+  await closeReview(page);
   await page.getByRole('button', { name: 'Ulangi', exact: true }).click();
-  await expect(page.getByLabel('Catatan', { exact: true })).toHaveValue('Periksa di lapangan');
-  await page.getByRole('button', { name: 'Simpan anotasi', exact: true }).click();
+  await openReview(page);
+  await expect(page.locator('.finding-form:visible textarea')).toHaveValue('Periksa di lapangan');
+  await closeReview(page);
+  await page.getByRole('button', { name: 'Simpan perubahan', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Tersimpan di server.' })).toBeVisible();
   expect((await (await request.get(base + '/api/v1/photos/' + oriented.id + '/annotations')).json()).items).toHaveLength(1);
-  await page.getByRole('button', { name: 'Analisis foto', exact: true }).click();
-  await expect(page.getByRole('alert').filter({ hasText: 'Model tanaman belum dikonfigurasi.' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Analisis foto', exact: true })).toBeDisabled();
+  await expect(page.getByText('Model belum tersedia. Penandaan manual tetap dapat digunakan.', { exact: true })).toBeVisible();
   const pngPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Ekspor gambar anotasi', exact: true }).click();
+  await page.getByRole('button', { name: 'Opsi ekspor', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Ekspor PNG anotasi', exact: true }).click();
   const png = await pngPromise;
   const pngPath = info.outputPath('annotated.png'); await png.saveAs(pngPath);
   expect(readFileSync(pngPath).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
@@ -91,18 +123,18 @@ test('real API: survey, multi upload, EXIF, edit, undo/redo, save, reload, PNG/C
   await expect(page.locator('.finding-list li')).toHaveCount(0);
   await selectPhoto(page, 'orientation6.jpg');
   await expect(page.locator('.finding-list li')).toHaveCount(1);
-  await page.reload();
-  await page.locator('.survey-item').filter({ hasText: s.name }).click();
+  await page.reload(); await openNavigation(page);
+  await page.locator('.survey-item:visible').filter({ hasText: s.name }).click();
   await selectPhoto(page, 'orientation6.jpg');
   await expect(page.locator('.finding-list li')).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Urungkan', exact: true })).toBeDisabled();
   await page.screenshot({ path: info.outputPath('editor.png'), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByRole('button', { name: 'Laporan', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Laporan survei WALLACEA' })).toBeVisible();
+  await page.getByRole('button', { name: /Laporan/ }).click();
+  await expect(page.getByText('Tahap 3 · Laporan survei', { exact: true })).toBeVisible();
   await expect(page.locator('.report')).toContainText('1 tanaman terkonfirmasi');
   const csvPromise = page.waitForEvent('download');
-  await page.getByRole('link', { name: 'Unduh CSV laporan' }).click();
+  await page.getByRole('link', { name: 'Unduh CSV' }).click();
   const csv = await csvPromise; const csvPath = info.outputPath('report.csv'); await csv.saveAs(csvPath);
   expect(readFileSync(csvPath, 'utf8')).toContain('Periksa di lapangan');
   await page.emulateMedia({ media: 'print' });
@@ -125,71 +157,77 @@ test('real API: pending review and revision conflict preserve local draft', asyn
       ] },
   });
   expect(candidates.status()).toBe(201);
-  await page.reload(); await page.locator('.survey-item').filter({ hasText: s.name }).click();
+  await page.reload(); await openNavigation(page); await page.locator('.survey-item:visible').filter({ hasText: s.name }).click();
   await selectPhoto(page, 'landscape.png');
-  await expect(page.locator('.metrics').getByText('Tanaman terkonfirmasi')).toContainText('0');
-  await page.locator('.finding-list button').first().click();
+  await expect(page.locator('.editor-summary')).toContainText('0Tanaman terkonfirmasi');
+  await openReview(page);
+  await page.locator('.finding-list:visible button').first().click();
   await page.getByRole('button', { name: 'Terima', exact: true }).click();
-  await page.locator('.finding-list button').nth(1).click();
+  await page.locator('.finding-list:visible button').nth(1).click();
   await page.getByRole('button', { name: 'Tolak', exact: true }).click();
-  await page.getByRole('button', { name: 'Simpan anotasi', exact: true }).click();
+  await closeReview(page);
+  await page.getByRole('button', { name: 'Simpan perubahan', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Tersimpan di server.' })).toBeVisible();
-  await expect(page.locator('.metrics').getByText('Tanaman terkonfirmasi')).toContainText('1');
-  await page.locator('.finding-list button').first().click();
+  await expect(page.locator('.editor-summary')).toContainText('1Tanaman terkonfirmasi');
+  await openReview(page); await page.locator('.finding-list:visible button').first().click();
   const annotations = (await (await request.get(base + '/api/v1/photos/' + p.id + '/annotations')).json()).items;
   const accepted = annotations.find((a: { review_status: string }) => a.review_status === 'accepted');
   const updated = await request.patch(base + '/api/v1/annotations/' + accepted.id, {
     headers: { 'If-Match': '"' + accepted.revision + '"' }, data: { note: 'Versi pengguna lain' },
   });
   expect(updated.status()).toBe(200);
-  await page.getByLabel('Catatan', { exact: true }).fill('Draf saya');
-  await page.getByRole('button', { name: 'Terapkan koreksi lokal', exact: true }).click();
-  await page.getByRole('button', { name: 'Simpan anotasi', exact: true }).click();
+  await page.locator('.finding-form:visible textarea').fill('Draf saya');
+  await page.getByRole('button', { name: 'Terapkan catatan', exact: true }).click();
+  await closeReview(page);
+  await page.getByRole('button', { name: 'Simpan perubahan', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Sebagian operasi mungkin sudah tersimpan');
-  await expect(page.getByLabel('Catatan', { exact: true })).toHaveValue('Draf saya');
-  await expect(page.getByRole('button', { name: 'Simpan anotasi', exact: true })).toBeDisabled();
+  await expect(page.locator('.finding-form textarea').first()).toHaveValue('Draf saya');
+  await expect(page.getByRole('button', { name: 'Simpan perubahan', exact: true })).toBeDisabled();
   await expect(page.getByText('Versi pengguna lain', { exact: false })).toBeVisible();
-  page.once('dialog', d => d.accept());
-  await page.getByRole('button', { name: 'Muat ulang versi server', exact: true }).click();
-  await expect(page.getByLabel('Catatan', { exact: true })).toHaveValue('Versi pengguna lain');
+  await page.getByRole('button', { name: 'Muat ulang', exact: true }).click();
+  await page.getByRole('button', { name: 'Buang draf & muat ulang', exact: true }).click();
+  await expect(page.locator('.finding-form textarea').first()).toHaveValue('Versi pengguna lain');
   await expect(page.getByRole('button', { name: 'Urungkan', exact: true })).toBeDisabled();
 });
 
 test('invalid upload and backup show real validation errors; API offline can retry', async ({ page, request }, info) => {
   await create(page, request, 'QA errors ' + info.project.name + ' ' + Date.now());
-  await page.getByLabel('+ Pilih foto untuk diunggah').setInputFiles({ name: 'broken.png', mimeType: 'image/png', buffer: Buffer.from('not an image') });
-  await expect(page.locator('.upload-row .error')).toBeVisible();
-  await expect(page.locator('.photo-card')).toHaveCount(0);
-  await page.getByLabel('+ Pilih foto untuk diunggah').setInputFiles({
+  await page.getByLabel('Pilih foto untuk diunggah').setInputFiles({ name: 'broken.png', mimeType: 'image/png', buffer: Buffer.from('not an image') });
+  await expect(page.locator('.upload-queue .text-danger')).toBeVisible();
+  await expect(page.locator('.filmstrip-card')).toHaveCount(0);
+  await page.getByLabel('Pilih foto untuk diunggah').setInputFiles({
     name: 'too-large.png', mimeType: 'image/png', buffer: Buffer.alloc(21 * 1024 * 1024),
   });
-  await expect(page.locator('.upload-row')).toContainText('ukuran melebihi batas API');
-  await expect(page.locator('.photo-card')).toHaveCount(0);
-  await page.getByLabel('+ Pilih foto untuk diunggah').setInputFiles(path.join(fixtureDir, 'landscape.png'));
-  await expect(page.locator('.photo-card')).toHaveCount(1);
-  await page.getByLabel('+ Pilih foto untuk diunggah').setInputFiles(path.join(fixtureDir, 'landscape.png'));
-  await expect(page.locator('.photo-card')).toHaveCount(2);
-  await expect(page.locator('.upload-row')).toContainText('Foto identik');
-  page.once('dialog', d => d.dismiss());
-  await page.getByRole('button', { name: 'Hapus foto', exact: true }).first().click();
-  await expect(page.locator('.photo-card')).toHaveCount(2);
-  page.once('dialog', d => d.accept());
-  await page.getByRole('button', { name: 'Hapus foto', exact: true }).first().click();
-  await expect(page.locator('.photo-card')).toHaveCount(1);
+  await expect(page.locator('.upload-queue')).toContainText('ukuran melebihi batas API');
+  await expect(page.locator('.filmstrip-card')).toHaveCount(0);
+  await page.getByLabel('Pilih foto untuk diunggah').setInputFiles(path.join(fixtureDir, 'landscape.png'));
+  await expect(page.locator('.filmstrip-card')).toHaveCount(1);
+  await page.getByLabel('Pilih foto untuk diunggah').setInputFiles(path.join(fixtureDir, 'landscape.png'));
+  await expect(page.locator('.filmstrip-card')).toHaveCount(2);
+  await expect(page.locator('.upload-queue')).toContainText('Foto identik');
+  const picker = page.getByRole('button', { name: 'Pilih foto', exact: true }); if (await picker.isVisible()) await picker.click();
+  await page.getByRole('button', { name: 'Hapus foto landscape.png', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Batal', exact: true }).click();
+  await expect(page.locator('.filmstrip-card:visible')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Hapus foto landscape.png', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Hapus foto', exact: true }).click();
+  await expect(page.locator('.filmstrip-card:visible')).toHaveCount(1);
+  const photoSheet = page.locator('.photo-sheet'); if (await photoSheet.isVisible()) await photoSheet.getByRole('button', { name: 'Tutup panel' }).click();
+  await openSurveyMenu(page); await page.getByRole('menuitem', { name: 'Impor backup starter', exact: true }).click();
   await page.getByLabel('Impor backup starter').setInputFiles({ name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{"schemaVersion":1,"surveys":"invalid"}') });
   await expect(page.getByRole('alert')).toBeVisible();
   await page.route('**/api/v1/**', route => route.abort('connectionrefused'));
   await page.reload();
-  await expect(page.getByText('API tidak terjangkau', { exact: true })).toBeVisible();
+  await expect(page.getByText('API tidak dapat dijangkau', { exact: true })).toBeVisible();
   await page.unroute('**/api/v1/**');
-  await page.getByRole('button', { name: 'Coba koneksi lagi', exact: true }).click();
-  await expect(page.getByText('API tersedia', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Coba lagi', exact: true }).click();
+  await expect(page.getByText('API terhubung', { exact: true })).toBeVisible();
 });
 
 test('canvas pointer mapping after zoom/pan, bbox correction, delete/save/undo and photo isolation', async ({ page, request }, info) => {
   const s = await create(page, request, 'QA geometry ' + info.project.name + ' ' + Date.now());
-  await page.getByLabel('+ Pilih foto untuk diunggah').setInputFiles(path.join(fixtureDir, 'landscape.png'));
-  await expect(page.locator('.photo-card')).toHaveCount(1);
+  await page.getByLabel('Pilih foto untuk diunggah').setInputFiles(path.join(fixtureDir, 'landscape.png'));
+  await expect(page.locator('.filmstrip-card')).toHaveCount(1);
   await selectPhoto(page, 'landscape.png');
   const canvas = page.locator('.canvas-host canvas');
   await canvas.scrollIntoViewIfNeeded();
@@ -207,30 +245,35 @@ test('canvas pointer mapping after zoom/pan, bbox correction, delete/save/undo a
     y: rect.height / 2 - (rect.height / 2 - fit.y) * 1.25 + 20, scale: scale * 1.25 };
   await page.getByRole('button', { name: 'Tambah titik', exact: true }).click();
   await canvas.click({ position: { x: view.x + 0.6 * 800 * view.scale, y: view.y + 0.4 * 500 * view.scale } });
-  await page.locator('.finding-list button').first().click();
-  expect(Number(await page.getByLabel('X titik', { exact: true }).inputValue())).toBeCloseTo(0.6, 2);
-  expect(Number(await page.getByLabel('Y titik', { exact: true }).inputValue())).toBeCloseTo(0.4, 2);
+  await openReview(page); await page.locator('.finding-list:visible button').first().click();
+  let selectedAdvanced = page.locator('.finding-form:visible .advanced-settings'); await selectedAdvanced.locator('summary').click();
+  expect(Number(await selectedAdvanced.getByLabel('X').inputValue())).toBeCloseTo(0.6, 2);
+  expect(Number(await selectedAdvanced.getByLabel('Y').inputValue())).toBeCloseTo(0.4, 2);
+  await closeReview(page);
   // Keyboard-accessible alternative creates a box without canvas precision.
+  await openCoordinateEntry(page);
   await page.getByLabel('Bentuk dari koordinat', { exact: true }).selectOption('box');
   await page.getByLabel('X normalized', { exact: true }).fill('0.2');
   await page.getByLabel('Y normalized', { exact: true }).fill('0.25');
   await page.getByLabel('Lebar normalized', { exact: true }).fill('0.15');
   await page.getByLabel('Tinggi normalized', { exact: true }).fill('0.2');
-  await page.getByRole('button', { name: 'Tambah box dari koordinat', exact: true }).click();
-  await page.locator('.finding-list button').nth(1).click();
-  await page.getByLabel('Lebar box', { exact: true }).fill('0.2');
-  await page.getByRole('button', { name: 'Terapkan koreksi lokal', exact: true }).click();
-  await page.getByRole('button', { name: 'Simpan anotasi', exact: true }).click();
+  await page.getByRole('button', { name: 'Tambah dari koordinat', exact: true }).click();
+  await openReview(page); await page.locator('.finding-list:visible button').nth(1).click();
+  const boxAdvanced = page.locator('.finding-form:visible .advanced-settings'); await boxAdvanced.locator('summary').click();
+  await boxAdvanced.getByLabel('Lebar').fill('0.2');
+  await page.getByRole('button', { name: 'Terapkan koordinat', exact: true }).click();
+  await closeReview(page); await page.getByRole('button', { name: 'Simpan perubahan', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Tersimpan di server.' })).toBeVisible();
   const p: Photo = (await (await request.get(base + '/api/v1/surveys/' + s.id + '/photos')).json()).items[0];
   let annotations = (await (await request.get(base + '/api/v1/photos/' + p.id + '/annotations')).json()).items;
   expect(annotations).toHaveLength(2);
   expect(annotations.find((a: { geometry_type: string }) => a.geometry_type === 'bbox').bbox).toEqual([0.2, 0.25, 0.2, 0.2]);
+  await openReview(page);
   await page.getByRole('button', { name: 'Hapus anotasi', exact: true }).click();
-  await page.getByRole('button', { name: 'Simpan anotasi', exact: true }).click();
+  await closeReview(page); await page.getByRole('button', { name: 'Simpan perubahan', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Tersimpan di server.' })).toBeVisible();
   await page.getByRole('button', { name: 'Urungkan', exact: true }).click();
-  await page.getByRole('button', { name: 'Simpan anotasi', exact: true }).click();
+  await page.getByRole('button', { name: 'Simpan perubahan', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Tersimpan di server.' })).toBeVisible();
   annotations = (await (await request.get(base + '/api/v1/photos/' + p.id + '/annotations')).json()).items;
   expect(annotations).toHaveLength(2);
@@ -239,11 +282,13 @@ test('canvas pointer mapping after zoom/pan, bbox correction, delete/save/undo a
   await page.getByRole('button', { name: 'Pas gambar', exact: true }).click();
   await page.getByRole('button', { name: 'Tambah titik', exact: true }).click();
   await canvas.click();
-  await page.locator('.finding-list button').nth(2).click();
-  expect(Number(await page.getByLabel('X titik', { exact: true }).inputValue())).toBeCloseTo(0.5, 2);
-  expect(Number(await page.getByLabel('Y titik', { exact: true }).inputValue())).toBeCloseTo(0.5, 2);
+  await openReview(page); await page.locator('.finding-list:visible button').nth(2).click();
+  selectedAdvanced = page.locator('.finding-form:visible .advanced-settings'); await selectedAdvanced.locator('summary').click();
+  expect(Number(await selectedAdvanced.getByLabel('X').inputValue())).toBeCloseTo(0.5, 2);
+  expect(Number(await selectedAdvanced.getByLabel('Y').inputValue())).toBeCloseTo(0.5, 2);
+  await closeReview(page);
   // Draw a real box by pointer too; pan and draw are separate modes.
-  await page.getByRole('button', { name: 'Bounding box', exact: true }).click();
+  await page.getByRole('button', { name: 'Kotak penanda', exact: true }).click();
   await canvas.scrollIntoViewIfNeeded();
   const fitted = (await canvas.boundingBox())!;
   const fs = Math.min(fitted.width / 800, fitted.height / 500);
@@ -258,7 +303,7 @@ test('canvas pointer mapping after zoom/pan, bbox correction, delete/save/undo a
 
 test('valid backup imports as a labelled copy; survey edit and deletion require real API success', async ({ page, request }, info) => {
   const s = await create(page, request, 'QA CRUD ' + info.project.name + ' ' + Date.now());
-  await page.getByRole('button', { name: 'Edit survei', exact: true }).click();
+  await openSurveyMenu(page); await page.getByRole('menuitem', { name: 'Edit survei', exact: true }).click();
   await page.getByLabel('Nama lahan', { exact: true }).fill(s.name + ' edited');
   await page.getByRole('button', { name: 'Simpan survei', exact: true }).click();
   await expect(page.getByRole('heading', { name: s.name + ' edited', exact: true })).toBeVisible();
@@ -266,18 +311,19 @@ test('valid backup imports as a labelled copy; survey edit and deletion require 
   const name = 'QA demo copy ' + info.project.name + ' ' + Date.now();
   backup.surveys[0].name = name; backup.surveys[0].isDemo = true;
   const response = page.waitForResponse(r => r.url().endsWith('/imports/starter-backup') && r.request().method() === 'POST');
+  await openSurveyMenu(page); await page.getByRole('menuitem', { name: 'Impor backup starter', exact: true }).click();
   await page.getByLabel('Impor backup starter').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) });
   const result = await response;
   expect(result.status()).toBe(201);
   const imported = (await result.json()).surveys[0]; created.push(imported.id);
-  await page.locator('.survey-item').filter({ hasText: name }).click();
-  await expect(page.getByText('CONTOH / ILUSTRASI - terpisah', { exact: false })).toBeVisible();
-  await expect(page.getByLabel('+ Pilih foto untuk diunggah')).toBeDisabled();
+  await expect(page.getByRole('heading', { name, exact: false })).toBeVisible();
+  await expect(page.getByText('Contoh / ilustrasi · terpisah', { exact: false })).toBeVisible();
+  await expect(page.getByLabel('Pilih foto untuk diunggah')).toBeDisabled();
   // Cancel first, then explicitly accept survey deletion.
-  page.once('dialog', d => d.dismiss());
-  await page.getByRole('button', { name: 'Hapus survei', exact: true }).click();
+  await openSurveyMenu(page); await page.getByRole('menuitem', { name: 'Hapus survei', exact: true }).click();
+  await page.getByRole('button', { name: 'Batal', exact: true }).click();
   expect((await request.get(base + '/api/v1/surveys/' + imported.id)).status()).toBe(200);
-  page.once('dialog', d => d.accept());
+  await openSurveyMenu(page); await page.getByRole('menuitem', { name: 'Hapus survei', exact: true }).click();
   await page.getByRole('button', { name: 'Hapus survei', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Survei dihapus.' })).toBeVisible();
   expect((await request.get(base + '/api/v1/surveys/' + imported.id)).status()).toBe(404);

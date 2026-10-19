@@ -10,11 +10,16 @@ Versions are pinned in package.json and the single root pnpm-lock.yaml.
 - TanStack React Query: MIT. Query keys and AbortSignal follow
   https://tanstack.com/query/latest/docs/framework/react/overview.
 - React Hook Form, @hookform/resolvers, Zod: MIT. Survey form uses a Zod resolver.
-- Radix Slot, clsx, tailwind-merge: MIT; class-variance-authority: Apache-2.0.
+- Radix Slot, Alert Dialog, Dialog, Dropdown Menu, and Tooltip: MIT. These
+  primitives provide keyboard/focus behavior for WALLACEA's shadcn-style UI.
+  clsx and tailwind-merge: MIT; class-variance-authority: Apache-2.0.
+- Lucide React 1.59.0: ISC. Icons are imported individually and decorative
+  icons remain hidden from assistive technology by the library default.
 - Vite and TypeScript: MIT / Apache-2.0 respectively. Baseline versions retained.
 - Vitest: MIT; Playwright: Apache-2.0; openapi-typescript: MIT.
-- apps/web/src/components/ui/button.tsx adapts the shadcn/ui Button structure
-  (Slot, cva, class merging). Source: https://github.com/shadcn-ui/ui.
+- apps/web/src/components/ui adapts the shadcn/ui Button, Sheet, Alert Dialog,
+  Dropdown Menu, Badge, and Tooltip composition patterns. Source:
+  https://github.com/shadcn-ui/ui.
   License: https://github.com/shadcn-ui/ui/blob/main/LICENSE.md (included below).
 - shadcn-admin is a layout reference only: https://github.com/satnaing/shadcn-admin.
   No template source, authentication screens, or assets were copied.
