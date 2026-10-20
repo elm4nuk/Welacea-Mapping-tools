@@ -191,6 +191,7 @@ p { color: var(--muted); line-height: 1.55; }
 .report-photo h3 { margin-bottom: 5px; }.report-photo__count { font-size: 17px; color: var(--primary); }.report-photo p:last-child { margin-bottom: 0; }
 .report-findings { width: 100%; border-collapse: collapse; font-size: 13px; }.report-findings th, .report-findings td { padding: 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
 .report-disclaimer { margin-top: 20px; padding: 14px; border-left: 3px solid var(--warning); background: var(--warning-soft); }
+.report-mapping { margin: 20px 0; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }.report-mapping > h2 { margin-top: 0; }.report-mapping .report-disclaimer { margin-bottom: 0; }
 
 @keyframes fade-in { from { opacity: 0; } }
 @media (max-width: 1080px) { .workspace-header__status .ui-badge { max-width: 190px; overflow: hidden; text-overflow: ellipsis; } }
@@ -215,6 +216,6 @@ p { color: var(--muted); line-height: 1.55; }
 @media print {
   :root { --foreground: #000; --muted: #333; }.no-print, .app-sidebar, .workspace-header, .workflow-steps, .survey-form { display: none !important; }
   .app-shell, .app-main { display: block; padding: 0; background: white; }.report { border: 0; padding: 0; }.report h1 { font-size: 24pt; }
-  .report-grid { grid-template-columns: repeat(2,1fr); }.report-photo, .report-findings tr, .report-disclaimer { break-inside: avoid; }
+  .report-grid { grid-template-columns: repeat(2,1fr); }.report-photo, .report-findings tr, .report-disclaimer, .report-mapping { break-inside: avoid; }
   @page { size: A4; margin: 16mm; }
 }

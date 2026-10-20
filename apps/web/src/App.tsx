@@ -179,8 +179,8 @@ function Workspace() {
         }} />}
         {survey.is_demo && <p className="banner banner--warning">Contoh / ilustrasi · terpisah dari survei nyata dan hanya dapat dibaca.</p>}
         <Suspense fallback={<p role="status">Memuat ruang kerja...</p>}>
-          {page === 'map' ? <LandMapWorkspace surveyName={survey.name} apiConnected={Boolean(health.data)}
-            georeferencingCapability={Boolean(health.data?.capabilities.georeferencing)} onDirty={onDirty} /> : page === 'report' ? <Report surveyId={survey.id} /> : <section className="survey-workspace">
+          {page === 'map' ? <LandMapWorkspace survey={survey} health={health.data} apiConnected={Boolean(health.data)}
+            onDirty={onDirty} /> : page === 'report' ? <Report surveyId={survey.id} /> : <section className="survey-workspace">
             <div className="upload-panel no-print"><div><span className="eyebrow">Tahap 1</span><h2>Foto survei</h2>
               <p>Unggah foto asli setelah drone mendarat. Foto tidak dianggap sebagai peta atau posisi GPS tanaman.</p></div>
               <UploadControl disabled={busy || survey.is_demo || !health.data} maxMb={health.data ? Math.round(health.data.limits.max_upload_bytes / 1024 / 1024) : undefined}

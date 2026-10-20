@@ -215,7 +215,7 @@ export interface paths {
         put?: never;
         /**
          * Jalankan detector pada SATU foto (sinkron). Tanpa model → 503 MODEL_NOT_CONFIGURED.
-         * @description Sinkron: request menunggu sampai inferensi selesai atau melewati `limits.inference_timeout_s` (default 120 s) → 504 INFERENCE_TIMEOUT. Latensi bergantung CPU/GPU dan resolusi; tidak ada progres persentase. Tidak ada run yang dibuat bila model belum dikonfigurasi. Run yang terputus karena server restart ditandai failed (error_code=INTERRUPTED) saat startup. Revisi 4: 503 MODEL_NOT_CONFIGURED/MODEL_UNAVAILABLE membawa `details.diagnostic_code` (= health.model.diagnostic_code, mis. MODEL_FILE_NOT_FOUND, DEPENDENCY_MISSING, LABEL_MAP_MISMATCH). Dengan WALLACEA_DETECTOR=simulation, run.target=simulation, model_id=simulation-not-ai dan `notice` menyatakan SIMULASI — BUKAN AI.
+         * @description Sinkron: request menunggu sampai inferensi selesai atau melewati `limits.inference_timeout_s` (default 120 s) → 504 INFERENCE_TIMEOUT. Latensi bergantung CPU/GPU dan resolusi; tidak ada progres persentase. Tidak ada run yang dibuat bila model belum dikonfigurasi. Run yang terputus karena server restart ditandai failed (error_code=INTERRUPTED) saat startup.
          */
         post: operations["analyze_photo"];
         delete?: never;
@@ -312,43 +312,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/samples": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Katalog foto contoh berlisensi (sumber & lisensi) untuk demo unggah
-         * @description Read-only. Berkas diambil lewat `file_url` lalu diunggah dengan endpoint upload biasa. Bukan foto K919 dan bukan hasil inferensi. Katalog kosong bila folder samples tidak ada.
-         */
-        get: operations["list_samples"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/samples/{sample_id}/file": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Unduh berkas foto contoh (byte asli, sha256 = katalog) */
-        get: operations["sample_file"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -403,11 +366,6 @@ export interface components {
             finished_at: string | null;
             /** Error Code */
             error_code: string | null;
-            /**
-             * Target
-             * @description Arti bbox kandidat run ini: plant = tanaman (model tim), tree_crown = tajuk pohon (DeepForest pretrained), simulation = SIMULASI BUKAN AI (revisi 4). null = tidak diketahui (mis. impor, run lama) → pakai istilah generik.
-             */
-            target?: ("plant" | "tree_crown" | "simulation") | null;
         };
         /** AnalysisRunPage */
         AnalysisRunPage: {
@@ -563,43 +521,21 @@ export interface components {
             /** Photo Revision */
             photo_revision: number;
         };
-        /**
-         * AnnotationUpdate
-         * @description Kirim HANYA field yang berubah. Field yang dikirim tidak boleh null, kecuali `bbox: null` saat berubah ke
-         *     titik. `x`/`y` dikirim bersama dan hanya untuk titik (untuk bbox, pusat dihitung server — jangan kirim x/y).
-         */
+        /** AnnotationUpdate */
         AnnotationUpdate: {
-            /**
-             * Kind
-             * @enum {string}
-             */
-            kind?: "plant" | "check" | "gap";
+            /** Kind */
+            kind?: ("plant" | "check" | "gap") | null;
             /** Note */
-            note?: string;
-            /**
-             * Review Status
-             * @enum {string}
-             */
-            review_status?: "pending" | "accepted" | "rejected";
-            /**
-             * Geometry Type
-             * @enum {string}
-             */
-            geometry_type?: "point" | "bbox";
-            /**
-             * X
-             * @description Hanya untuk titik; wajib bersama y.
-             */
-            x?: number;
-            /**
-             * Y
-             * @description Hanya untuk titik; wajib bersama x.
-             */
-            y?: number;
-            /**
-             * Bbox
-             * @description [left, top, width, height] 0–1; null = ubah ke titik.
-             */
+            note?: string | null;
+            /** Review Status */
+            review_status?: ("pending" | "accepted" | "rejected") | null;
+            /** Geometry Type */
+            geometry_type?: ("point" | "bbox") | null;
+            /** X */
+            x?: number | null;
+            /** Y */
+            y?: number | null;
+            /** Bbox */
             bbox?: number[] | null;
         };
         /** Body_import_starter_backup */
@@ -801,43 +737,6 @@ export interface components {
             model_version?: string | null;
             /** Message */
             message: string;
-            /**
-             * Adapter
-             * @description Jenis detector aktif. null bila mode manual / konfigurasi salah. Revisi 4: `simulation`.
-             */
-            adapter?: ("ultralytics" | "deepforest" | "simulation") | null;
-            /**
-             * Target
-             * @description Objek yang dideteksi model. tree_crown = tajuk pohon (DeepForest pretrained), BUKAN semua tanaman. simulation (revisi 4) = kotak buatan, BUKAN AI. Kandidat tetap disimpan sebagai kind=plant (lihat Annotation.model_label).
-             */
-            target?: ("plant" | "tree_crown" | "simulation") | null;
-            /**
-             * Target Label
-             * @description Teks siap tampil, mis. 'Kandidat tajuk pohon (DeepForest pretrained)'.
-             */
-            target_label?: string | null;
-            /**
-             * Device
-             * @description cpu | cuda | auto. Inferensi CPU dapat memakan puluhan detik per foto besar.
-             */
-            device?: string | null;
-            /**
-             * Limitations
-             * @description Keterbatasan model yang perlu ditampilkan ke pengguna.
-             */
-            limitations?: string[];
-            /**
-             * Mode
-             * @description manual: tanpa model (penandaan manual saja); model: detector model sungguhan (state menjelaskan siap/tidak); simulation: WALLACEA_DETECTOR=simulation — kandidat SIMULASI, BUKAN AI. UI wajib menampilkan target_label/message bila mode=simulation.
-             * @default model
-             * @enum {string}
-             */
-            mode: "manual" | "model" | "simulation";
-            /**
-             * Diagnostic Code
-             * @description Alasan status yang bisa dibaca mesin (mis. MODEL_FILE_NOT_FOUND, DEPENDENCY_MISSING, LABEL_MAP_MISMATCH, SIMULATION_ACTIVE). null = model siap tanpa catatan. Teks untuk pengguna tetap di `message`.
-             */
-            diagnostic_code?: ("MODEL_PATH_NOT_SET" | "DETECTOR_CONFIG_INVALID" | "MODEL_FILE_NOT_FOUND" | "MODEL_FILE_NOT_PT" | "MODEL_FILES_INCOMPLETE" | "DEPENDENCY_MISSING" | "LABEL_MAP_INVALID" | "LABEL_MAP_MISMATCH" | "NOT_DETECTION_MODEL" | "MODEL_LOAD_FAILED" | "GENERIC_COCO_MODEL" | "SIMULATION_ACTIVE") | null;
         };
         /** Photo */
         Photo: {
@@ -975,58 +874,6 @@ export interface components {
              * @constant
              */
             counts_are_unique_plants: false;
-        };
-        /** SamplePage */
-        SamplePage: {
-            /** Items */
-            items: components["schemas"]["SamplePhoto"][];
-            /** Total */
-            total: number;
-        };
-        /**
-         * SamplePhoto
-         * @description Foto contoh berlisensi untuk demo. Diunduh lewat `file_url`, lalu diunggah lewat endpoint upload BIASA.
-         *     Bukan hasil inferensi; anotasi manusia (bila ada) hanya untuk evaluasi di notebook.
-         */
-        SamplePhoto: {
-            /** Id */
-            id: string;
-            /** Title */
-            title: string;
-            /**
-             * File Url
-             * @description Relatif terhadap base API, mis. /api/v1/samples/neon-osbs-029/file
-             */
-            file_url: string;
-            /** Filename */
-            filename: string;
-            /** Media Type */
-            media_type: string;
-            /** Size Bytes */
-            size_bytes: number;
-            /** Sha256 */
-            sha256: string;
-            /** Width */
-            width: number;
-            /** Height */
-            height: number;
-            /** Source Name */
-            source_name: string;
-            /** Source Url */
-            source_url: string;
-            /** License Name */
-            license_name: string;
-            /** License Url */
-            license_url: string;
-            /** Attribution */
-            attribution: string;
-            /**
-             * Imagery
-             * @description Jenis citra & keterbatasan (mis. pesawat ±10 cm/px, bukan K919).
-             */
-            imagery: string;
-            /** Has Human Annotations */
-            has_human_annotations: boolean;
         };
         /** StarterBackupImportResult */
         StarterBackupImportResult: {
@@ -2311,68 +2158,6 @@ export interface operations {
             };
             /** @description Format tidak didukung (UNSUPPORTED_MEDIA_TYPE) */
             415: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_samples: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SamplePage"];
-                };
-            };
-        };
-    };
-    sample_file: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                sample_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Byte foto contoh */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "image/png": unknown;
-                    "image/jpeg": unknown;
-                    "image/webp": unknown;
-                };
-            };
-            /** @description Tidak ditemukan (NOT_FOUND) */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };

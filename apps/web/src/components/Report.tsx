@@ -20,6 +20,16 @@ export function Report({ surveyId }: { surveyId: string }) {
       <div className="button-row"><Badge tone={report.survey.is_demo ? 'warning' : 'success'}>{report.survey.is_demo ? 'Contoh / ilustrasi' : 'Survei nyata'}</Badge>
         <Badge>{report.photos.length} foto</Badge><Badge>Dibuat {new Date(report.generated_at).toLocaleString('id-ID')}</Badge></div>
       {report.survey.notes && <p>{report.survey.notes}</p>}</header>
+    {report.mapping && <section className="report-mapping"><h2>Ringkasan pemetaan lahan</h2>
+      {report.mapping.field ? <article className="report-photo"><span className="eyebrow">Batas lahan tersimpan</span><h3>{report.mapping.field.name}</h3>
+        <p><b>{report.mapping.field.measures.area_ha.toLocaleString('id-ID', { maximumFractionDigits: 2 })} ha</b> · keliling {report.mapping.field.measures.perimeter_m.toLocaleString('id-ID', { maximumFractionDigits: 0 })} m</p>
+        <p>Perhitungan geodesik backend · sumber {report.mapping.field.boundary_source.replaceAll('_', ' ')}</p></article> : <p>Survei belum ditautkan ke batas lahan.</p>}
+      {report.mapping.rasters.length > 0 && <div className="report-grid">{report.mapping.rasters.map(raster => <article className="report-photo" key={raster.raster_id}>
+        <span className="eyebrow">GeoTIFF impor</span><h3>{raster.name}</h3><p>Footprint {raster.footprint_area_m2.toLocaleString('id-ID', { maximumFractionDigits: 0 })} m² · GSD ≈ {raster.approx_gsd_m.toLocaleString('id-ID', { maximumFractionDigits: 3 })} m</p>
+        <p><b>{raster.counts.plant_accepted}</b> kandidat tanaman dikonfirmasi · {raster.counts.pending_review} belum ditinjau · {raster.counts.rejected} ditolak</p>
+      </article>)}</div>}
+      <p className="report-disclaimer">Hitungan kandidat bersifat per raster. Observasi dari raster atau penerbangan berbeda tidak dijumlahkan sebagai tanaman unik.</p>
+    </section>}
     <h2>Ringkasan per foto</h2><div className="report-grid">{report.photos.map(photo => <article className="report-photo" key={photo.photo_id}>
       <span className="eyebrow">Foto</span><h3>{photo.original_name}</h3><p>{photo.width} × {photo.height} piksel</p>
       <p className="report-photo__count"><b>{photo.counts.plant_accepted}</b> tanaman terkonfirmasi</p>

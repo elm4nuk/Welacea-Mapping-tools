@@ -3,6 +3,9 @@ export type Schema = components['schemas'];
 export type Survey = Schema['Survey'];
 export type Photo = Schema['Photo'];
 export type Annotation = Schema['Annotation'];
+export type FarmField = Schema['FarmField'];
+export type RasterAsset = Schema['RasterAsset'];
+export type MapDetection = Schema['MapDetection'];
 const base = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
 export function apiUrl(path: string) { return base + path; }
 export class ApiError extends Error {
@@ -53,6 +56,23 @@ export const api = {
   report: (id: string, signal?: AbortSignal) => request<Schema['SurveyReport']>(root + `/surveys/${id}/report`, { signal }),
   importBackup: (file: File) => { const body = new FormData(); body.append('file', file);
     return request<Schema['StarterBackupImportResult']>(root + '/imports/starter-backup', { method: 'POST', body }); },
+  field: (id: string, signal?: AbortSignal) => request<FarmField>(root + '/fields/' + id, { signal }),
+  fields: (offset = 0, signal?: AbortSignal) => request<Schema['FieldPage']>(root + `/fields?limit=200&offset=${offset}`, { signal }),
+  createField: (body: Schema['FieldCreate']) => request<FarmField>(root + '/fields', json('POST', body)),
+  updateField: (field: FarmField, body: Schema['FieldUpdate']) => request<FarmField>(root + '/fields/' + field.id, json('PATCH', body, field.revision)),
+  deleteField: (field: FarmField) => request<void>(root + '/fields/' + field.id, json('DELETE', undefined, field.revision)),
+  importFields: (file: File, namePrefix: string) => { const body = new FormData(); body.append('file', file);
+    body.append('name_prefix', namePrefix); body.append('boundary_source', 'geojson_import');
+    return request<Schema['FieldImportResult']>(root + '/fields/import', { method: 'POST', body }); },
+  rasters: (surveyId: string, signal?: AbortSignal) => request<Schema['RasterPage']>(root + `/surveys/${surveyId}/rasters?limit=200&offset=0`, { signal }),
+  updateRaster: (raster: RasterAsset, body: Schema['RasterUpdate']) => request<RasterAsset>(root + '/rasters/' + raster.id, json('PATCH', body, raster.revision)),
+  deleteRaster: (raster: RasterAsset) => request<void>(root + '/rasters/' + raster.id, json('DELETE', undefined, raster.revision)),
+  analyzeRaster: (id: string, onExisting: 'reject' | 'replace_pending' | 'append' = 'reject') =>
+    request<Schema['RasterAnalysisResult']>(root + `/rasters/${id}/analyze`, json('POST', { on_existing: onExisting })),
+  rasterRuns: (id: string, signal?: AbortSignal) => request<Schema['RasterAnalysisRunPage']>(root + `/rasters/${id}/analysis-runs?limit=200&offset=0`, { signal }),
+  mapDetections: (id: string, signal?: AbortSignal) => request<Schema['MapDetectionPage']>(root + `/rasters/${id}/detections?limit=5000&offset=0`, { signal }),
+  updateMapDetection: (detection: MapDetection, body: Schema['MapDetectionUpdate']) =>
+    request<MapDetection>(root + '/map-detections/' + detection.id, json('PATCH', body, detection.revision)),
 };
 /** XHR exposes measured transfer progress; completion is only shown after API success. */
 export function uploadPhoto(survey: string, file: File, progress: (percent: number) => void, signal?: AbortSignal) {
@@ -74,5 +94,28 @@ export function uploadPhoto(survey: string, file: File, progress: (percent: numb
     signal?.addEventListener('abort', abort, { once: true });
     if (signal?.aborted) { cleanup(); reject(new DOMException('Dibatalkan', 'AbortError')); return; }
     const data = new FormData(); data.append('file', file); xhr.send(data);
+  });
+}
+
+export function uploadRaster(survey: string, file: File, name: string, sourceDescription: string,
+  progress: (percent: number) => void, signal?: AbortSignal) {
+  return new Promise<Schema['RasterUploadResult']>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', apiUrl(root + `/surveys/${survey}/rasters`));
+    const abort = () => xhr.abort();
+    const cleanup = () => signal?.removeEventListener('abort', abort);
+    xhr.upload.onprogress = event => { if (event.lengthComputable) progress(Math.round(event.loaded / event.total * 100)); };
+    xhr.onerror = () => { cleanup(); reject(new ApiError('NETWORK_ERROR', 'Unggah GeoTIFF gagal. Periksa API lalu coba lagi.', 0)); };
+    xhr.onabort = () => { cleanup(); reject(new DOMException('Dibatalkan', 'AbortError')); };
+    xhr.onload = () => {
+      cleanup(); let data;
+      try { data = JSON.parse(xhr.responseText); } catch { reject(new Error('Respons unggah GeoTIFF tidak valid.')); return; }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+      else reject(new ApiError(data.error?.code ?? 'UPLOAD_ERROR', data.error?.message ?? 'Unggah GeoTIFF gagal.', xhr.status, data.error?.details));
+    };
+    signal?.addEventListener('abort', abort, { once: true });
+    if (signal?.aborted) { cleanup(); reject(new DOMException('Dibatalkan', 'AbortError')); return; }
+    const body = new FormData(); body.append('file', file); body.append('name', name); body.append('source_description', sourceDescription);
+    xhr.send(body);
   });
 }
