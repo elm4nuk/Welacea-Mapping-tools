@@ -65,6 +65,18 @@ export function LandMapWorkspace({ surveyName, apiConnected, georeferencingCapab
     loadIntoDraw(draft);
     mapRef.current?.fitBounds(boundaryBounds(draft), { padding: 72, duration: 0, maxZoom: 18 });
   }, [draft, mapLoaded, source]);
+  useEffect(() => {
+    if (!mapLoaded) return;
+    const map = mapRef.current?.getMap();
+    for (const layerId of ['td-polygon', 'td-polygon-outline', 'td-point', 'td-point-marker']) {
+      if (map?.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', boundaryVisible ? 'visible' : 'none');
+    }
+  }, [boundaryVisible, mapLoaded]);
+  useEffect(() => {
+    if (!mapLoaded) return;
+    const map = mapRef.current?.getMap();
+    if (map?.getLayer('osm-basemap')) map.setLayoutProperty('osm-basemap', 'visibility', basemapVisible ? 'visible' : 'none');
+  }, [basemapVisible, mapLoaded]);
 
   function boundaryFromDraw() {
     if (syncingDrawRef.current) return;
