@@ -195,7 +195,54 @@ def build_fixtures() -> dict[str, tuple[str, object]]:
             put("annotation-accept.request.json", "AnnotationUpdate", {"review_status": "accepted"})
             put("annotation-accepted-candidate.json", "Annotation",
                 c.patch(f"{V1}/annotations/{acc['id']}", json={"review_status": "accepted"}, headers={"If-Match": '"1"'}))
+
+        build_mapping_fixtures(base / "f", put)
     return out
+
+
+def build_mapping_fixtures(data_dir: Path, put) -> None:
+    """Revisi 5. Raster = GeoTIFF NEON ASLI (samples/georeferenced/OSBS_029.tif, CC BY 4.0; bukan K919). Deteksi peta
+    memakai detector TEST DOUBLE `contract-test-double` (kotak tetap per jendela) — bukan hasil model."""
+    sample = API_ROOT.parents[1] / "samples" / "georeferenced" / "OSBS_029.tif"
+    with TestClient(create_app(load_settings(data_dir=data_dir), detector=ContractTestDouble())) as c:
+        ring = [[-81.99006, 29.69236], [-81.98972, 29.69236], [-81.98972, 29.69264], [-81.99006, 29.69264],
+                [-81.99006, 29.69236]]
+        field_req = {"name": "Petak contoh OSBS", "boundary_source": "digitized_from_raster",
+                     "source_note": "Digambar di atas raster NEON OSBS_029 (contoh, bukan lahan WALLACEA)",
+                     "notes": "", "geometry": {"type": "Polygon", "coordinates": [ring]}}
+        put("field-create.request.json", "FieldCreate", field_req)
+        field = put("field.json", "FarmField", c.post(f"{V1}/fields", json=field_req))
+        put("field-page.json", "FieldPage", c.get(f"{V1}/fields"))
+        put("field.geojson", "raw", c.get(f"{V1}/fields/{field['id']}/geojson"))
+        bow = {"type": "Polygon", "coordinates": [[[106.8, -6.6], [106.81, -6.59], [106.81, -6.6], [106.8, -6.59],
+                                                    [106.8, -6.6]]]}
+        put("error.invalid-geometry.json", "ErrorEnvelope", c.post(f"{V1}/fields", json={**field_req, "geometry": bow}))
+        survey = c.post(f"{V1}/surveys", json={"name": "Survei peta contoh", "crop_type": "Pohon (contoh NEON)",
+                                               "survey_date": "2026-10-20", "field_id": field["id"]}).json()
+        put("survey-with-field.json", "Survey", c.get(f"{V1}/surveys/{survey['id']}"))
+        with open(sample, "rb") as fh:
+            up = put("raster-upload.response.json", "RasterUploadResult",
+                     c.post(f"{V1}/surveys/{survey['id']}/rasters",
+                            files={"file": ("OSBS_029.tif", fh, "image/tiff")},
+                            data={"source_description": "NEON AOP RGB mosaic via DeepForest 2.1.0 sample (CC BY 4.0)"}))
+        raster = up["raster"]
+        put("raster-page.json", "RasterPage", c.get(f"{V1}/surveys/{survey['id']}/rasters"))
+        put("raster-tilejson.json", "TileJson", c.get(raster["tilejson_url"]))
+        put("raster-analyze.request.json", "RasterAnalyzeRequest", {"tile_size": 1024, "overlap_px": 128})
+        put("raster-analyze.response.json", "RasterAnalysisResult",
+            c.post(f"{V1}/rasters/{raster['id']}/analyze", json={"tile_size": 1024, "overlap_px": 128}))
+        page = put("map-detection-page.json", "MapDetectionPage", c.get(f"{V1}/rasters/{raster['id']}/detections"))
+        put("map-detection-update.request.json", "MapDetectionUpdate", {"review_status": "accepted"})
+        put("map-detection-accepted.json", "MapDetection",
+            c.patch(f"{V1}/map-detections/{page['items'][0]['id']}", json={"review_status": "accepted"},
+                    headers={"If-Match": '"1"'}))
+        put("map-detections.geojson", "raw", c.get(f"{V1}/rasters/{raster['id']}/detections.geojson"))
+        put("report-with-mapping.json", "SurveyReport", c.get(f"{V1}/surveys/{survey['id']}/report"))
+        img = io.BytesIO()
+        Image.new("RGB", (32, 32), (90, 140, 70)).save(img, format="TIFF")     # TIFF tanpa georeferensi
+        put("error.raster-not-georeferenced.json", "ErrorEnvelope",
+            c.post(f"{V1}/surveys/{survey['id']}/rasters", files={"file": ("tanpa-crs.tif", img.getvalue(), "image/tiff")}))
+        put("health.mapping.json", "Health", c.get(f"{V1}/health"))
 
 
 def write_all() -> None:

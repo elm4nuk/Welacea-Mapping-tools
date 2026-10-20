@@ -10,6 +10,7 @@ from .. import services as svc
 from ..db import utcnow
 from ..deps import PageParams, get_db, get_settings, get_storage
 from ..errors import ApiError
+from ..mapping_services import check_field_ref
 from ..photo_store import create_demo
 from ..storage import Storage
 from . import errors
@@ -31,6 +32,7 @@ def list_surveys(page: PageParams = Depends(), db: Session = Depends(get_db)):
              summary="Buat survei nyata (is_demo selalu false)")
 def create_survey(body: s.SurveyCreate, response: Response, db: Session = Depends(get_db)):
     now = utcnow()
+    check_field_ref(db, body.field_id)
     obj = m.Survey(**body.model_dump(), is_demo=False, created_at=now, updated_at=now)
     db.add(obj)
     db.commit()
@@ -54,7 +56,10 @@ def update_survey(survey_id: str, body: s.SurveyUpdate, request: Request, respon
     if expected is not None and expected != obj.revision:
         raise ApiError(409, "REVISION_CONFLICT", "Survei sudah diubah di tempat lain. Muat ulang lalu ulangi.",
                        {"current": svc.survey_out_single(db, obj).model_dump(mode="json")})
-    for k, v in body.model_dump(exclude_unset=True).items():
+    changes = body.model_dump(exclude_unset=True)
+    if changes.get("field_id") is not None:
+        check_field_ref(db, changes["field_id"])
+    for k, v in changes.items():
         setattr(obj, k, v)
     obj.revision += 1
     obj.updated_at = utcnow()
@@ -72,6 +77,8 @@ def delete_survey(survey_id: str, request: Request, db: Session = Depends(get_db
     if expected is not None and expected != obj.revision:
         raise ApiError(409, "REVISION_CONFLICT", "Survei sudah diubah di tempat lain.", {"current_revision": obj.revision})
     keys = [k for p in obj.photos for k in (p.storage_key, p.display_key, p.thumbnail_key)]
+    keys += [k for r in db.scalars(select(m.RasterAsset).where(m.RasterAsset.survey_id == obj.id))
+             for k in (r.storage_key, r.display_key)]
     db.delete(obj)
     db.commit()
     storage.delete(*keys)

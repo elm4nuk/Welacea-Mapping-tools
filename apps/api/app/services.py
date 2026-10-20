@@ -116,7 +116,7 @@ def survey_out(obj: m.Survey, photo_count: int) -> s.Survey:
     return s.Survey(
         id=obj.id, name=obj.name, crop_type=obj.crop_type, location_label=obj.location_label,
         survey_date=obj.survey_date, notes=obj.notes, is_demo=obj.is_demo, revision=obj.revision,
-        photo_count=photo_count, created_at=obj.created_at, updated_at=obj.updated_at,
+        photo_count=photo_count, field_id=obj.field_id, created_at=obj.created_at, updated_at=obj.updated_at,
     )
 
 

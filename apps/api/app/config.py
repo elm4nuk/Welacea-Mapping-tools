@@ -88,6 +88,15 @@ class Settings:
     max_backup_bytes: int = 100 * 1024 * 1024
     thumbnail_max_side: int = 512
 
+    # Mapping (revisi 5). Batas raster GeoTIFF impor & batas lahan; semua dapat diatur lewat env.
+    max_raster_bytes: int = 1024 * 1024 * 1024        # 1 GiB berkas asli
+    max_raster_pixels: int = 400_000_000              # mis. 20000 × 20000
+    max_raster_footprint_km2: float = 2500.0           # cakupan > ini hampir pasti georeferensi salah untuk drone
+    max_field_vertices: int = 20_000
+    max_field_import_bytes: int = 5 * 1024 * 1024
+    max_map_detections: int = 50_000                  # per raster
+    raster_analysis_timeout_s: float = 1800.0
+
     # Detector: "" (otomatis: ultralytics bila MODEL_PATH ada, selain itu manual) | ultralytics | deepforest | none
     #           | simulation (KHUSUS development: kotak buatan deterministik, BUKAN AI; tidak pernah otomatis)
     detector: str = ""
@@ -145,6 +154,9 @@ def load_settings(**overrides) -> Settings:
         patch_overlap=_float("WALLACEA_PATCH_OVERLAP", 0.05),
         model_preload=_env("WALLACEA_MODEL_PRELOAD", "false").lower() in ("1", "true", "yes"),
         samples_dir=Path(_env("WALLACEA_SAMPLES_DIR") or DEFAULT_SAMPLES_DIR).expanduser().resolve(),
+        max_raster_bytes=_int("WALLACEA_MAX_RASTER_BYTES", 1024 * 1024 * 1024),
+        max_raster_pixels=_int("WALLACEA_MAX_RASTER_PIXELS", 400_000_000),
+        raster_analysis_timeout_s=_float("WALLACEA_RASTER_ANALYSIS_TIMEOUT_S", 1800.0),
         label_map=label_map,
         label_map_error=label_error,
         config_error=config_error,

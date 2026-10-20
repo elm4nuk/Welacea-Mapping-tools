@@ -7,8 +7,12 @@ def test_health_is_honest_without_model(client):
     body = r.json()
     assert body["model"]["state"] == "not_configured"
     assert body["model"]["available"] is False
+    # Revisi 5: mapping tersedia (paket geospasial terpasang); foto biasa tetap tidak digeoreferensi, orthomosaic
+    # belum dibuat aplikasi. Tidak semua capability menjadi true.
     assert body["capabilities"] == {"flight_control": False, "live_video": False, "georeferencing": False,
-                                    "orthomosaic": False}
+                                    "orthomosaic": False, "field_boundaries": True,
+                                    "georeferenced_raster_import": True, "map_ai_detections": True,
+                                    "orthomosaic_generation": False}
     assert body["limits"]["max_upload_bytes"] == 20 * 1024 * 1024
     assert r.headers["X-Request-ID"]
 
