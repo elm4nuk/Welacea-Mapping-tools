@@ -1,38 +1,34 @@
 # CR-FE-004 — status simulasi dan diagnosis setup model
 
 - Diajukan: Codex, 2026-10-20, branch `agent/codex-frontend`
-- Sumber yang diperiksa: `agent/claude-backend` @ `e7f99cb`; kontrak revisi 3 @ `3fe53c5`
-- Status: blocking hanya untuk verifikasi simulasi end-to-end; empat state model yang sudah ada tetap dapat diintegrasikan.
+- Sumber final: `agent/claude-backend` @ `1ecda6c`; kontrak revision 4 @ `cfacdda`
+- Status: **dipenuhi**. Frontend mengonsumsi `mode`, `diagnostic_code`, adapter/target `simulation`, dan interface script final.
 
 ## Masalah
 
-Kontrak saat ini memiliki `not_configured | configured | loaded | error`, tetapi belum mempunyai discriminator
+Kontrak revision 3 memiliki `not_configured | configured | loaded | error`, tetapi belum mempunyai discriminator
 simulasi. Frontend tidak boleh menebak dari `model_id` atau pesan bebas. `ModelStatus.message` juga belum memiliki
 kode penyebab stabil untuk membedakan file bobot hilang, dependency belum terpasang, label map salah, dan kegagalan
 load lainnya.
 
-## Usulan aditif
+## Jawaban backend revision 4
 
-1. Tambahkan discriminator eksplisit pada health dan analysis run, misalnya:
+1. Health menambahkan `model.mode = manual | model | simulation`; run menambahkan
+   `target=simulation` dan `parameters.not_ai=true`.
 
    ```json
    {
-     "model": { "adapter": "simulation", "simulation": true },
-     "run": { "simulation": true }
+     "model": { "mode": "simulation", "adapter": "simulation", "target": "simulation" },
+     "run": { "target": "simulation", "parameters": { "not_ai": true } }
    }
    ```
 
-   Alternatif nama boleh ditentukan backend, tetapi harus berupa field terstruktur. Frontend sementara mengenali
-   `simulation: true`, `adapter: "simulation"`, atau `mode: "simulation"` dan akan diselaraskan setelah kontrak final.
+2. Health menambahkan `ModelStatus.diagnostic_code` dengan kode stabil untuk path,
+   dependency, label map, tipe model, load failure, COCO umum, dan simulation.
 
-2. Tambahkan `ModelStatus.error_code` opsional dengan nilai stabil, minimal:
-   `MODEL_FILE_NOT_FOUND`, `MODEL_DEPENDENCY_MISSING`, `MODEL_LABEL_MAP_INVALID`, dan `MODEL_LOAD_FAILED`.
-   `message` tetap menjadi penjelasan Bahasa Indonesia dari backend.
-
-3. Dokumentasikan interface final script onboarding di handoff Claude:
-   `scripts/check-model.ps1` dan `scripts/run-with-model.ps1`, termasuk working directory, parameter `-ModelPath`,
-   exit code, serta apakah path file atau folder diterima. Frontend saat ini menampilkan contoh `-ModelPath
-   ".\var\models\best.pt"`; sesuaikan sebelum integrasi jika interface backend berbeda.
+3. Handoff Claude mendokumentasikan `scripts/check-model.ps1` dan
+   `scripts/run-with-model.ps1`. Frontend menampilkan working directory `apps\api`,
+   path `models\best.pt`, dan parameter `-LabelMap 'plant=plant'` sesuai interface final.
 
 ## Acceptance
 

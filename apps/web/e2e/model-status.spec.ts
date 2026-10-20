@@ -2,8 +2,9 @@ import { expect, test } from '@playwright/test';
 
 type RuntimeModel = {
   state: 'not_configured' | 'configured' | 'loaded' | 'error'; available: boolean; message: string;
-  model_id?: string | null; model_version?: string | null; adapter?: string | null; mode?: string;
-  target?: 'plant' | 'tree_crown' | null; target_label?: string | null; device?: string | null; limitations?: string[];
+  model_id?: string | null; model_version?: string | null; adapter?: string | null;
+  mode: 'manual' | 'model' | 'simulation'; diagnostic_code?: string | null;
+  target?: 'plant' | 'tree_crown' | 'simulation' | null; target_label?: string | null; device?: string | null; limitations?: string[];
 };
 
 const baseHealth = {
@@ -15,7 +16,7 @@ const baseHealth = {
 };
 
 test('model onboarding presents manual, configured, loaded, error and simulation honestly', async ({ page }) => {
-  let model: RuntimeModel = { state: 'not_configured', available: false, message: 'Belum ada model.' };
+  let model: RuntimeModel = { state: 'not_configured', available: false, message: 'Belum ada model.', mode: 'manual', diagnostic_code: 'MODEL_PATH_NOT_SET' };
   await page.route('**/api/v1/health', route => route.fulfill({ json: { ...baseHealth, model } }));
   await page.route('**/api/v1/surveys?**', route => route.fulfill({ json: { items: [], total: 0, limit: 200, offset: 0 } }));
 
@@ -24,27 +25,30 @@ test('model onboarding presents manual, configured, loaded, error and simulation
   await page.getByRole('button', { name: 'Cara mengaktifkan AI', exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'Cara mengaktifkan AI', exact: true })).toBeVisible();
   await expect(page.getByText('best.pt adalah file bobot, bukan command.', { exact: false })).toBeVisible();
+  await expect(page.getByText('apps\\api\\models\\best.pt', { exact: true })).toBeVisible();
+  await expect(page.getByText('torch==2.11.0', { exact: false })).toBeVisible();
   await expect(page.getByText('requirements-ai.txt', { exact: false })).toBeVisible();
   await expect(page.getByText('check-model.ps1', { exact: false })).toBeVisible();
   await expect(page.getByText('run-with-model.ps1', { exact: false })).toBeVisible();
+  await expect(page.getByText("-LabelMap 'plant=plant'", { exact: false }).first()).toBeVisible();
   await expect(page.getByText('Model COCO umum bukan model tanaman drone.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Tutup panel', exact: true }).click();
 
-  model = { state: 'configured', available: true, message: 'Bobot ditemukan; dimuat saat analisis pertama.', model_id: 'best' };
+  model = { state: 'configured', available: true, message: 'Bobot ditemukan; dimuat saat analisis pertama.', model_id: 'best', mode: 'model' };
   await page.reload();
   await expect(page.getByText('Model ditemukan — siap dimuat', { exact: true }).last()).toBeVisible();
 
-  model = { state: 'loaded', available: true, message: 'Model termuat.', model_id: 'best', model_version: 'sha256:1234', target: 'plant', target_label: 'Kandidat tanaman' };
+  model = { state: 'loaded', available: true, message: 'Model termuat.', model_id: 'best', model_version: 'sha256:1234', target: 'plant', target_label: 'Kandidat tanaman', mode: 'model' };
   await page.reload();
   await expect(page.getByText('Model aktif', { exact: true }).last()).toBeVisible();
 
-  model = { state: 'error', available: false, message: 'Ultralytics package is not installed.' };
+  model = { state: 'error', available: false, message: 'Ultralytics package is not installed.', mode: 'model', diagnostic_code: 'DEPENDENCY_MISSING' };
   await page.reload();
   await expect(page.getByText('Konfigurasi model bermasalah', { exact: true }).last()).toBeVisible();
   await expect(page.getByText('Dependency AI Ultralytics belum terpasang', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Periksa lagi', exact: true })).toBeVisible();
 
-  model = { state: 'loaded', available: true, message: 'Grid fixture.', adapter: 'simulation', mode: 'simulation', target: 'plant' };
+  model = { state: 'loaded', available: true, message: 'Grid fixture.', adapter: 'simulation', mode: 'simulation', target: 'simulation', diagnostic_code: 'SIMULATION_ACTIVE' };
   await page.reload();
   const simulation = page.getByRole('alert', { name: 'Status model AI' });
   await expect(simulation).toContainText('SIMULASI — BUKAN AI');

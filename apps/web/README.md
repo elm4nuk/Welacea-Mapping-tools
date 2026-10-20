@@ -1,8 +1,8 @@
 # WALLACEA web
 
 React frontend for API v1. Generated types consume the additive contract revision
-3 from Claude's latest backend handoff while remaining compatible with revisions
-1–2. No
+4 from Claude's latest backend handoff while remaining compatible with revisions
+1–3. No
 mock service is enabled by default. The application needs the real FastAPI service.
 
 ## Run
@@ -84,9 +84,8 @@ Vite preview does not provide the development API proxy.
   and `limitations` directly. Revision-1 responses retain conservative generic
   wording.
 - Simulation candidates use the same pending-first review flow but retain a
-  visible simulation source. Contract revision 3 does not yet expose the
-  simulation discriminator; `docs/requests/codex-model-onboarding.md` records
-  the additive field required before simulation can be verified end to end.
+  visible simulation source. Contract revision 4 exposes this through model
+  `mode`, adapter/target `simulation`, and analysis-run target `simulation`.
 - Reports state counts per photo. Image coordinates are not GPS, and sums across
   overlapping photos are not claimed as unique plants for the whole field.
 

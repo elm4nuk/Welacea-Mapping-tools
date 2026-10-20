@@ -48,6 +48,9 @@ function PhotoEditorCanvas(props: Props) {
   const [draft, setDraft] = useState<ReturnType<typeof boxBetween>>(null);
   const size = { width: photo.image.naturalWidth, height: photo.image.naturalHeight };
   const summary = counts(findings);
+  const acceptedSimulation = findings.filter(finding => finding.kind === 'plant' && finding.review === 'accepted'
+    && finding.source === 'model' && Boolean(finding.analysisRunId && props.modelByRunId?.[finding.analysisRunId]?.simulation)).length;
+  const confirmedPlants = summary.plants - acceptedSimulation;
   const active = findings.find(finding => finding.id === selected);
   const visibleFindings = findings.filter(finding => reviewFilter === 'all' || finding.review === reviewFilter);
 
@@ -137,9 +140,9 @@ function PhotoEditorCanvas(props: Props) {
   }
 
   return <section className="wallacea-editor" aria-label="Editor anotasi foto">
-    <div className="editor-summary" aria-live="polite"><div><b>{summary.plants}</b><span>Tanaman terkonfirmasi</span></div>
+    <div className="editor-summary" aria-live="polite"><div><b>{confirmedPlants}</b><span>Tanaman terkonfirmasi</span></div>
       <div data-priority={summary.pending > 0}><b>{summary.pending}</b><span>Belum ditinjau</span></div>
-      <p>{summary.inspections} pemeriksaan · {summary.gaps} dugaan kosong</p>
+      <p>{acceptedSimulation > 0 ? `${acceptedSimulation} simulasi diterima · ` : ''}{summary.inspections} pemeriksaan · {summary.gaps} dugaan kosong</p>
       <Button variant="ghost" size="sm" onClick={downloadCsv}><Download />CSV foto</Button></div>
     {photo.isIllustration && <strong className="editor-notice">Contoh / ilustrasi — bukan foto drone nyata</strong>}
     <div className="editor-layout" data-review-open={reviewOpen}><main className="canvas-column">

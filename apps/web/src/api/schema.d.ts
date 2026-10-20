@@ -215,7 +215,7 @@ export interface paths {
         put?: never;
         /**
          * Jalankan detector pada SATU foto (sinkron). Tanpa model → 503 MODEL_NOT_CONFIGURED.
-         * @description Sinkron: request menunggu sampai inferensi selesai atau melewati `limits.inference_timeout_s` (default 120 s) → 504 INFERENCE_TIMEOUT. Latensi bergantung CPU/GPU dan resolusi; tidak ada progres persentase. Tidak ada run yang dibuat bila model belum dikonfigurasi. Run yang terputus karena server restart ditandai failed (error_code=INTERRUPTED) saat startup.
+         * @description Sinkron: request menunggu sampai inferensi selesai atau melewati `limits.inference_timeout_s` (default 120 s) → 504 INFERENCE_TIMEOUT. Latensi bergantung CPU/GPU dan resolusi; tidak ada progres persentase. Tidak ada run yang dibuat bila model belum dikonfigurasi. Run yang terputus karena server restart ditandai failed (error_code=INTERRUPTED) saat startup. Revisi 4: 503 MODEL_NOT_CONFIGURED/MODEL_UNAVAILABLE membawa `details.diagnostic_code` (= health.model.diagnostic_code, mis. MODEL_FILE_NOT_FOUND, DEPENDENCY_MISSING, LABEL_MAP_MISMATCH). Dengan WALLACEA_DETECTOR=simulation, run.target=simulation, model_id=simulation-not-ai dan `notice` menyatakan SIMULASI — BUKAN AI.
          */
         post: operations["analyze_photo"];
         delete?: never;
@@ -405,9 +405,9 @@ export interface components {
             error_code: string | null;
             /**
              * Target
-             * @description Arti bbox kandidat run ini: plant = tanaman (model tim), tree_crown = tajuk pohon (DeepForest pretrained). null = tidak diketahui (mis. impor, run lama) → pakai istilah generik.
+             * @description Arti bbox kandidat run ini: plant = tanaman (model tim), tree_crown = tajuk pohon (DeepForest pretrained), simulation = SIMULASI BUKAN AI (revisi 4). null = tidak diketahui (mis. impor, run lama) → pakai istilah generik.
              */
-            target?: ("plant" | "tree_crown") | null;
+            target?: ("plant" | "tree_crown" | "simulation") | null;
         };
         /** AnalysisRunPage */
         AnalysisRunPage: {
@@ -803,14 +803,14 @@ export interface components {
             message: string;
             /**
              * Adapter
-             * @description Jenis detector aktif. null bila mode manual / konfigurasi salah.
+             * @description Jenis detector aktif. null bila mode manual / konfigurasi salah. Revisi 4: `simulation`.
              */
-            adapter?: ("ultralytics" | "deepforest") | null;
+            adapter?: ("ultralytics" | "deepforest" | "simulation") | null;
             /**
              * Target
-             * @description Objek yang dideteksi model. tree_crown = tajuk pohon (DeepForest pretrained), BUKAN semua tanaman. Kandidat tetap disimpan sebagai kind=plant (lihat Annotation.model_label).
+             * @description Objek yang dideteksi model. tree_crown = tajuk pohon (DeepForest pretrained), BUKAN semua tanaman. simulation (revisi 4) = kotak buatan, BUKAN AI. Kandidat tetap disimpan sebagai kind=plant (lihat Annotation.model_label).
              */
-            target?: ("plant" | "tree_crown") | null;
+            target?: ("plant" | "tree_crown" | "simulation") | null;
             /**
              * Target Label
              * @description Teks siap tampil, mis. 'Kandidat tajuk pohon (DeepForest pretrained)'.
@@ -826,6 +826,18 @@ export interface components {
              * @description Keterbatasan model yang perlu ditampilkan ke pengguna.
              */
             limitations?: string[];
+            /**
+             * Mode
+             * @description manual: tanpa model (penandaan manual saja); model: detector model sungguhan (state menjelaskan siap/tidak); simulation: WALLACEA_DETECTOR=simulation — kandidat SIMULASI, BUKAN AI. UI wajib menampilkan target_label/message bila mode=simulation.
+             * @default model
+             * @enum {string}
+             */
+            mode: "manual" | "model" | "simulation";
+            /**
+             * Diagnostic Code
+             * @description Alasan status yang bisa dibaca mesin (mis. MODEL_FILE_NOT_FOUND, DEPENDENCY_MISSING, LABEL_MAP_MISMATCH, SIMULATION_ACTIVE). null = model siap tanpa catatan. Teks untuk pengguna tetap di `message`.
+             */
+            diagnostic_code?: ("MODEL_PATH_NOT_SET" | "DETECTOR_CONFIG_INVALID" | "MODEL_FILE_NOT_FOUND" | "MODEL_FILE_NOT_PT" | "MODEL_FILES_INCOMPLETE" | "DEPENDENCY_MISSING" | "LABEL_MAP_INVALID" | "LABEL_MAP_MISMATCH" | "NOT_DETECTION_MODEL" | "MODEL_LOAD_FAILED" | "GENERIC_COCO_MODEL" | "SIMULATION_ACTIVE") | null;
         };
         /** Photo */
         Photo: {

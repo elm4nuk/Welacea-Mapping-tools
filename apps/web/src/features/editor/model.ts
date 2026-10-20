@@ -117,7 +117,7 @@ export function findingStatus(finding: Finding, treeCrown = false, simulation = 
   const review = finding.review === 'pending' ? 'Menunggu review'
     : finding.review === 'accepted' ? 'Diterima' : 'Ditolak';
   const confirmed = finding.kind === 'plant' && finding.review === 'accepted'
-    ? treeCrown ? 'Tajuk pohon terkonfirmasi' : 'Tanaman terkonfirmasi' : '';
+    ? simulation ? 'Simulasi dikonfirmasi — bukan tanaman' : treeCrown ? 'Tajuk pohon terkonfirmasi' : 'Tanaman terkonfirmasi' : '';
   return { source, review, confirmed };
 }
 

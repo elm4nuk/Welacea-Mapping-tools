@@ -5,9 +5,10 @@ import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from './ui/sheet';
 
 const commands = {
+  torch: '.venv\\Scripts\\python -m pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu',
   dependency: '.venv\\Scripts\\python -m pip install -r requirements-ai.txt',
-  check: '.\\scripts\\check-model.ps1 -ModelPath ".\\var\\models\\best.pt"',
-  run: '.\\scripts\\run-with-model.ps1 -ModelPath ".\\var\\models\\best.pt"',
+  check: "powershell -ExecutionPolicy Bypass -File .\\scripts\\check-model.ps1 -ModelPath .\\models\\best.pt -LabelMap 'plant=plant'",
+  run: "powershell -ExecutionPolicy Bypass -File .\\scripts\\run-with-model.ps1 -ModelPath .\\models\\best.pt -LabelMap 'plant=plant'",
 };
 
 function CopyCommand({ label, command }: { label: string; command: string }) {
@@ -45,9 +46,10 @@ export function ModelSetupSheet({ open, onOpenChange }: { open: boolean; onOpenC
     <div className="model-setup-content">
       <div className="model-setup-callout"><AlertTriangle aria-hidden="true" /><p><b><code>best.pt</code> adalah file bobot, bukan command.</b><br />Jangan menjalankan path file tersebut sendirian di PowerShell.</p></div>
       <ol>
-        <li><b>Letakkan bobot model</b><p>Lokasi yang disarankan: <code>apps\api\var\models\best.pt</code>. Folder runtime ini tidak masuk Git.</p></li>
-        <li><b>Pasang dependency AI</b><p>Jalankan dari folder <code>apps\api</code>. PyTorch dan Ultralytics berukuran besar.</p>
-          <CopyCommand label="Pasang dependency" command={commands.dependency} /></li>
+        <li><b>Letakkan bobot model</b><p>Lokasi yang disarankan: <code>apps\api\models\best.pt</code>. Bobot lokal tidak masuk Git.</p></li>
+        <li><b>Pasang dependency AI sekali saja</b><p>Jalankan dari folder <code>apps\api</code>. Paket CPU PyTorch dan dependency AI membutuhkan unduhan sekitar 1 GB.</p>
+          <CopyCommand label="Pasang PyTorch CPU" command={commands.torch} />
+          <CopyCommand label="Pasang dependency AI" command={commands.dependency} /></li>
         <li><b>Periksa konfigurasi</b><p>Script pemeriksaan harus memastikan file, dependency, label map, dan adapter dapat dibaca sebelum server dijalankan.</p>
           <CopyCommand label="Periksa model" command={commands.check} /></li>
         <li><b>Jalankan API dengan model</b><p>Setelah pemeriksaan berhasil, gunakan script launcher agar environment model diterapkan konsisten.</p>
