@@ -5,7 +5,7 @@ from sqlalchemy import engine_from_config, pool
 
 from app import models  # noqa: F401  (registrasi tabel)
 from app.config import load_settings
-from app.db import Base
+from app.db import Base, include_object
 
 config = context.config
 target_metadata = Base.metadata
@@ -20,7 +20,8 @@ if connection is None:
 
 def run_with(conn) -> None:
     context.configure(connection=conn, target_metadata=target_metadata,
-                      render_as_batch=conn.dialect.name == "sqlite", compare_type=True)
+                      render_as_batch=conn.dialect.name == "sqlite", compare_type=True,
+                      include_object=include_object)
     with context.begin_transaction():
         context.run_migrations()
 

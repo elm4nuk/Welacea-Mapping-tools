@@ -58,3 +58,10 @@ ml/artifacts/*
 !ml/artifacts/README.md
 ml/notebooks/.ipynb_checkpoints/
 .ipynb_checkpoints/
+
+# --- API: bobot lokal & hasil training scaffold apps/api/ml — tidak masuk Git ---
+apps/api/models/*
+!apps/api/models/README.md
+apps/api/ml/runs/
+apps/api/ml/data/
+apps/api/.env

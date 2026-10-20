@@ -1,0 +1,43 @@
+{
+  "type": "Feature",
+  "id": "5c281d1813f942fba4c07bacde2a3d9e",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          -81.99006,
+          29.69236
+        ],
+        [
+          -81.98972,
+          29.69236
+        ],
+        [
+          -81.98972,
+          29.69264
+        ],
+        [
+          -81.99006,
+          29.69264
+        ],
+        [
+          -81.99006,
+          29.69236
+        ]
+      ]
+    ]
+  },
+  "properties": {
+    "name": "Petak contoh OSBS",
+    "notes": "",
+    "boundary_source": "digitized_from_raster",
+    "source_note": "Digambar di atas raster NEON OSBS_029 (contoh, bukan lahan WALLACEA)",
+    "area_m2": 1021.3113629817963,
+    "area_ha": 0.10213113629817963,
+    "perimeter_m": 127.88647667172295,
+    "measure_method": "geodesic_wgs84",
+    "revision": 1,
+    "updated_at": "2026-10-20T14:26:57.301103+00:00"
+  }
+}

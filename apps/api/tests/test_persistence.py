@@ -24,9 +24,9 @@ def test_migrations_match_models(make_client):
     from alembic.autogenerate import compare_metadata
     from alembic.migration import MigrationContext
 
-    from app.db import Base
+    from app.db import Base, include_object
 
     c = make_client()
     with c.app.state.engine.connect() as conn:
-        diff = compare_metadata(MigrationContext.configure(conn, opts={"compare_type": True}), Base.metadata)
+        diff = compare_metadata(MigrationContext.configure(conn, opts={"compare_type": True, "include_object": include_object}), Base.metadata)
     assert diff == [], diff

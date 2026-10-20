@@ -1,13 +1,14 @@
 {
-  "id": "f21cdf39436546bba1493226f769d921",
+  "id": "0b72f242487745d4a38455d4f7d8b301",
   "name": "Parsel demonstrasi",
   "crop_type": "Tanaman perkebunan",
   "location_label": "Lokasi ilustrasi",
-  "survey_date": "2026-10-19",
+  "survey_date": "2026-10-20",
   "notes": "Data contoh untuk mencoba penandaan. Tidak mewakili hasil penerbangan atau analisis AI.",
   "is_demo": true,
   "revision": 1,
   "photo_count": 1,
-  "created_at": "2026-10-19T16:27:07.733750Z",
-  "updated_at": "2026-10-19T16:27:07.733750Z"
+  "field_id": null,
+  "created_at": "2026-10-20T14:26:56.799582Z",
+  "updated_at": "2026-10-20T14:26:56.799582Z"
 }

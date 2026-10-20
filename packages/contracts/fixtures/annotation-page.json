@@ -1,8 +1,8 @@
 {
   "items": [
     {
-      "id": "03342f2f0ee74aafb726d6cedc3a6d1a",
-      "photo_id": "556d76877e8643a495163eecc5b9133e",
+      "id": "ac5e598feeba40dc85beb117190ec2c2",
+      "photo_id": "71e1981cd19f4a398adcc7aabb535319",
       "analysis_run_id": null,
       "kind": "gap",
       "geometry_type": "point",
@@ -15,12 +15,12 @@
       "model_label": null,
       "note": "Ternyata titik kosong.",
       "revision": 2,
-      "created_at": "2026-10-19T16:27:07.584683Z",
-      "updated_at": "2026-10-19T16:27:07.595447Z"
+      "created_at": "2026-10-20T14:26:56.664491Z",
+      "updated_at": "2026-10-20T14:26:56.676185Z"
     },
     {
-      "id": "1ea0c4eda1e246b9b47dcedf1d95396a",
-      "photo_id": "556d76877e8643a495163eecc5b9133e",
+      "id": "296641ae0ba24108a6ff0770366d6397",
+      "photo_id": "71e1981cd19f4a398adcc7aabb535319",
       "analysis_run_id": null,
       "kind": "check",
       "geometry_type": "bbox",
@@ -38,36 +38,13 @@
       "model_label": null,
       "note": "Daun menguning? Periksa di lapangan.",
       "revision": 1,
-      "created_at": "2026-10-19T16:27:07.590792Z",
-      "updated_at": "2026-10-19T16:27:07.590792Z"
+      "created_at": "2026-10-20T14:26:56.669638Z",
+      "updated_at": "2026-10-20T14:26:56.669638Z"
     },
     {
-      "id": "18e8e821b96745fdbe1529bd4cccbe0d",
-      "photo_id": "556d76877e8643a495163eecc5b9133e",
-      "analysis_run_id": "fcf293a0a3eb4e41b7cae4fcfcea9103",
-      "kind": "plant",
-      "geometry_type": "bbox",
-      "x": 0.275,
-      "y": 0.16,
-      "bbox": [
-        0.2,
-        0.1,
-        0.15,
-        0.12
-      ],
-      "source": "model",
-      "review_status": "pending",
-      "confidence": 0.83,
-      "model_label": null,
-      "note": "",
-      "revision": 1,
-      "created_at": "2026-10-19T16:27:07.669922Z",
-      "updated_at": "2026-10-19T16:27:07.669922Z"
-    },
-    {
-      "id": "7d5b6ab09e5a43aaac16bc3970a34436",
-      "photo_id": "556d76877e8643a495163eecc5b9133e",
-      "analysis_run_id": "fcf293a0a3eb4e41b7cae4fcfcea9103",
+      "id": "586bd9239b45443e8941b91a152d14c4",
+      "photo_id": "71e1981cd19f4a398adcc7aabb535319",
+      "analysis_run_id": "66034b5c532745bd8727a28383014c11",
       "kind": "plant",
       "geometry_type": "bbox",
       "x": 0.5700000000000001,
@@ -84,8 +61,31 @@
       "model_label": null,
       "note": "",
       "revision": 1,
-      "created_at": "2026-10-19T16:27:07.669922Z",
-      "updated_at": "2026-10-19T16:27:07.669922Z"
+      "created_at": "2026-10-20T14:26:56.742143Z",
+      "updated_at": "2026-10-20T14:26:56.742143Z"
+    },
+    {
+      "id": "9ffa311fc6264b5b9f9135283694b972",
+      "photo_id": "71e1981cd19f4a398adcc7aabb535319",
+      "analysis_run_id": "66034b5c532745bd8727a28383014c11",
+      "kind": "plant",
+      "geometry_type": "bbox",
+      "x": 0.275,
+      "y": 0.16,
+      "bbox": [
+        0.2,
+        0.1,
+        0.15,
+        0.12
+      ],
+      "source": "model",
+      "review_status": "pending",
+      "confidence": 0.83,
+      "model_label": null,
+      "note": "",
+      "revision": 1,
+      "created_at": "2026-10-20T14:26:56.742143Z",
+      "updated_at": "2026-10-20T14:26:56.742143Z"
     }
   ],
   "total": 4,

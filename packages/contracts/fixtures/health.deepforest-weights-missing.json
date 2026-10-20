@@ -1,7 +1,7 @@
 {
   "status": "ok",
   "api_version": "1",
-  "contract_revision": 3,
+  "contract_revision": 5,
   "database": "ok",
   "model": {
     "state": "error",
@@ -17,13 +17,19 @@
       "Model pretrained tajuk pohon dari citra pesawat NEON ±10 cm/px (hutan AS), bukan model tanaman pertanian.",
       "Belum dievaluasi pada foto K919 MAX; ukuran objek bergantung ketinggian terbang dan resolusi.",
       "Tanaman semusim kecil (jagung muda, padi, sayuran) umumnya tidak cocok untuk model ini."
-    ]
+    ],
+    "mode": "model",
+    "diagnostic_code": "MODEL_FILE_NOT_FOUND"
   },
   "capabilities": {
     "flight_control": false,
     "live_video": false,
     "georeferencing": false,
-    "orthomosaic": false
+    "orthomosaic": false,
+    "field_boundaries": true,
+    "georeferenced_raster_import": true,
+    "map_ai_detections": true,
+    "orthomosaic_generation": false
   },
   "limits": {
     "max_upload_bytes": 20971520,
@@ -36,6 +42,12 @@
     "max_annotations_per_photo": 3000,
     "max_detection_payload_bytes": 5242880,
     "max_backup_bytes": 104857600,
-    "inference_timeout_s": 120.0
+    "inference_timeout_s": 120.0,
+    "max_raster_bytes": 1073741824,
+    "max_raster_pixels": 400000000,
+    "max_raster_footprint_km2": 2500.0,
+    "max_field_vertices": 20000,
+    "max_field_import_bytes": 5242880,
+    "raster_analysis_timeout_s": 1800.0
   }
 }

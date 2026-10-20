@@ -1,0 +1,19 @@
+# Salin menjadi dataset.yaml DI FOLDER DATASET ANDA (bukan di repo), lalu sesuaikan.
+# Format: Ultralytics YOLO detection. Dataset & bobot TIDAK boleh di-commit ke Git.
+#
+# path  : folder akar dataset (absolut, atau relatif terhadap berkas yaml ini). Spasi boleh.
+# train : foto untuk belajar        (mis. 70% foto)
+# val   : foto untuk memilih epoch  (mis. 15%)
+# test  : foto yang TIDAK pernah dilihat saat training (mis. 15%) — untuk angka evaluasi akhir.
+#         Pisahkan per lahan/penerbangan, bukan acak per foto: foto bertumpang tindih dari penerbangan yang sama
+#         di train dan test membuat angka evaluasi terlalu optimis.
+
+path: D:/dataset-jagung
+train: images/train
+val: images/val
+test: images/test
+
+# Nama kelas = nama yang akan muncul di model.names dan menjadi KUNCI label map WALLACEA.
+# Contoh label map untuk dataset ini: jagung=plant  (atau JSON {"jagung":"plant"})
+names:
+  0: jagung

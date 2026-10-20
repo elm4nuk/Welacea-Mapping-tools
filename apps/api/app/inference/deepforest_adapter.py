@@ -79,25 +79,26 @@ class DeepForestDetector(Detector):
         except (OSError, ValueError):
             return {}
 
-    def _config_problem(self) -> str | None:
+    def _config_problem(self) -> tuple[str, str] | None:
+        """(diagnostic_code, pesan) bila model pasti tidak bisa dipakai."""
         if self.config_error:
-            return self.config_error
+            return "LABEL_MAP_INVALID", self.config_error
         if not 0 <= self.confidence <= 1:
-            return "WALLACEA_CONFIDENCE harus 0–1."
+            return "DETECTOR_CONFIG_INVALID", "WALLACEA_CONFIDENCE harus 0–1."
         if self.device not in ("cpu", "cuda", "auto"):
-            return "WALLACEA_DEVICE harus cpu, cuda, atau auto."
+            return "DETECTOR_CONFIG_INVALID", "WALLACEA_DEVICE harus cpu, cuda, atau auto."
         if not 0 <= self.patch_overlap < 1 or self.patch_size < 64:
-            return "Patch DeepForest tidak valid (patch_size ≥ 64, 0 ≤ overlap < 1)."
+            return "DETECTOR_CONFIG_INVALID", "Patch DeepForest tidak valid (patch_size ≥ 64, 0 ≤ overlap < 1)."
         if not self.model_dir.is_dir():
-            return f"Folder model DeepForest tidak ditemukan: {self.model_dir.name}. Jalankan scripts/download_deepforest.py."
+            return "MODEL_FILE_NOT_FOUND", f"Folder model DeepForest tidak ditemukan: {self.model_dir.name}. Jalankan scripts/download_deepforest.py."
         if not (self.model_dir / WEIGHTS).is_file() or not (self.model_dir / "config.json").is_file():
-            return "Folder model DeepForest tidak lengkap (config.json/model.safetensors). Unduh ulang."
+            return "MODEL_FILES_INCOMPLETE", "Folder model DeepForest tidak lengkap (config.json/model.safetensors). Unduh ulang."
         missing = [n for n in self._manifest.get("aux_files", {}) if not (self.model_dir / n).is_file()]
         if not self._manifest.get("aux_files") or missing:
-            return ("Berkas pendukung (backbone torchvision) belum ada di folder model; jalankan ulang "
+            return "MODEL_FILES_INCOMPLETE", ("Berkas pendukung (backbone torchvision) belum ada di folder model; jalankan ulang "
                     "scripts/download_deepforest.py. API tidak mengunduh saat analisis.")
         if importlib.util.find_spec("deepforest") is None:
-            return "Dependensi DeepForest belum terpasang (pip install -r requirements-deepforest.txt)."
+            return "DEPENDENCY_MISSING", "Dependensi DeepForest belum terpasang (pip install -r requirements-deepforest.txt)."
         return None
 
     def _version(self) -> str | None:
@@ -116,7 +117,8 @@ class DeepForestDetector(Detector):
                     limitations=LIMITATIONS)
         problem = self._config_problem()
         if problem:
-            return DetectorInfo(state="error", message=problem, model_id=self.model_id, **meta)
+            return DetectorInfo(state="error", message=problem[1], model_id=self.model_id,
+                                diagnostic_code=problem[0], **meta)
         version = self._version()
         if self._model is not None:
             return DetectorInfo(state="loaded", message="Model DeepForest termuat di memori.", model_id=self.model_id,
@@ -136,7 +138,7 @@ class DeepForestDetector(Detector):
             return self._model
         problem = self._config_problem()
         if problem:
-            raise ModelUnavailable(problem)
+            raise ModelUnavailable(problem[1], problem[0])
         prev = {k: os.environ.get(k) for k in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "TORCH_HOME")}
         os.environ["HF_HUB_OFFLINE"] = "1"          # jaminan: tidak mengunduh dari Hub saat memuat
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
@@ -158,7 +160,8 @@ class DeepForestDetector(Detector):
             model.model.eval()
         except Exception as exc:  # noqa: BLE001
             log.exception("DeepForest model could not be loaded")
-            raise ModelUnavailable("Model DeepForest tidak dapat dimuat. Periksa folder bobot dan versi dependensi.") from exc
+            raise ModelUnavailable("Model DeepForest tidak dapat dimuat. Periksa folder bobot dan versi dependensi.",
+                                   "MODEL_LOAD_FAILED") from exc
         finally:
             for k, v in prev.items():
                 if v is None:
@@ -167,7 +170,8 @@ class DeepForestDetector(Detector):
                     os.environ[k] = v
         labels = set(model.label_dict)
         if not labels & set(self.label_map):
-            raise ModelUnavailable(f"Label model {sorted(labels)} tidak ada di WALLACEA_LABEL_MAP_JSON.")
+            raise ModelUnavailable(f"Label model {sorted(labels)} tidak ada di WALLACEA_LABEL_MAP_JSON.",
+                                   "LABEL_MAP_MISMATCH")
         self._model = model
         return model
 

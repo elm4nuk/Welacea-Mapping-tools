@@ -116,7 +116,7 @@ def survey_out(obj: m.Survey, photo_count: int) -> s.Survey:
     return s.Survey(
         id=obj.id, name=obj.name, crop_type=obj.crop_type, location_label=obj.location_label,
         survey_date=obj.survey_date, notes=obj.notes, is_demo=obj.is_demo, revision=obj.revision,
-        photo_count=photo_count, created_at=obj.created_at, updated_at=obj.updated_at,
+        photo_count=photo_count, field_id=obj.field_id, created_at=obj.created_at, updated_at=obj.updated_at,
     )
 
 
@@ -159,7 +159,7 @@ def run_out(obj: m.AnalysisRun) -> s.AnalysisRun:
         model_version=obj.model_version, input_sha256=obj.input_sha256, status=obj.status,
         candidate_count=obj.candidate_count, parameters=params, started_at=obj.started_at,
         finished_at=obj.finished_at, error_code=obj.error_code,
-        target=params.get("target") if params.get("target") in ("plant", "tree_crown") else None,
+        target=params.get("target") if params.get("target") in ("plant", "tree_crown", "simulation") else None,
     )
 
 

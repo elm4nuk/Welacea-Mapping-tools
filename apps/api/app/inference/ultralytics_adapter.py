@@ -18,8 +18,23 @@ from .base import (DetectionOutput, Detector, DetectorInfo, InferenceFailed, Mod
 
 TARGET_LABEL = "Kandidat tanaman (model deteksi tim)"
 LIMITATIONS = ("Hanya akurat untuk tanaman, kamera, dan ketinggian yang sama dengan data latihnya — lihat model card.",)
+COCO_TARGET_LABEL = "Kandidat dari model COCO umum (BUKAN model tanaman)"
+COCO_LIMITATION = ("Bobot ini model COCO umum (80 kelas benda sehari-hari: person, car, potted plant, …), bukan model "
+                   "tanaman hasil pelatihan foto drone. Hanya untuk uji integrasi; jangan dipakai untuk hitungan lapangan.")
+# Sebagian nama kelas COCO-80; bila semuanya ada di model.names, bobot hampir pasti yolo*n.pt umum.
+COCO_MARKERS = {"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "potted plant",
+                "toothbrush"}
 
 log = logging.getLogger("wallacea.inference")
+
+
+def class_names(names) -> list[str]:
+    return [str(n) for n in (names.values() if isinstance(names, dict) else names)]
+
+
+def is_generic_coco(names) -> bool:
+    values = set(class_names(names))
+    return len(values) >= 80 and COCO_MARKERS <= values
 
 
 def weights_fingerprint(path: Path) -> str:
@@ -42,28 +57,48 @@ class UltralyticsDetector(Detector):
         self.config_error = config_error
         self._lock = threading.Lock()
         self._model = None
+        self._generic_coco = False
+        # (kode, pesan, sig berkas) dari percobaan muat terakhir yang gagal; berkas yang diganti dicoba lagi
+        self._load_problem: tuple[str, str, tuple[int, int] | None] | None = None
         self._fp_cache: tuple[tuple[int, int], str] | None = None
 
     # ------------------------------------------------------------ status
-    def _config_problem(self) -> str | None:
+    def _config_problem(self) -> tuple[str, str] | None:
+        """(diagnostic_code, pesan) bila model pasti tidak bisa dipakai; dicek tanpa memuat bobot."""
         if self.config_error:
-            return self.config_error
+            return "LABEL_MAP_INVALID", self.config_error
         if not 0 <= self.confidence <= 1:
-            return "WALLACEA_CONFIDENCE harus 0–1."
+            return "DETECTOR_CONFIG_INVALID", "WALLACEA_CONFIDENCE harus 0–1."
+        if self.model_path.is_dir():
+            return "MODEL_FILE_NOT_PT", (f"WALLACEA_MODEL_PATH menunjuk folder ({self.model_path}), bukan berkas .pt. "
+                                         "Hasil training Ultralytics biasanya ada di <folder run>\\weights\\best.pt.")
         if not self.model_path.is_file():
-            return f"Berkas bobot tidak ditemukan: {self.model_path.name}"
+            return "MODEL_FILE_NOT_FOUND", (f"Berkas bobot tidak ditemukan: {self.model_path}. Periksa path (pakai path "
+                                            "lengkap; bungkus dengan tanda kutip bila ada spasi).")
         if self.model_path.suffix.lower() != ".pt":
-            return "Adapter ini menerima bobot deteksi Ultralytics .pt lokal."
+            return "MODEL_FILE_NOT_PT", ("Adapter Ultralytics menerima bobot deteksi .pt lokal, bukan "
+                                         f"'{self.model_path.suffix or '(tanpa ekstensi)'}'.")
         if importlib.util.find_spec("ultralytics") is None:
-            return "Dependensi Ultralytics belum terpasang (pip install -r requirements-ai.txt)."
+            return "DEPENDENCY_MISSING", ("Paket ultralytics belum terpasang di venv API. Pasang sekali: "
+                                          ".venv\\Scripts\\python -m pip install -r requirements-ai.txt")
         return None
 
-    def _version(self) -> str | None:
+    def _sig(self) -> tuple[int, int] | None:
         try:
             st = self.model_path.stat()
         except OSError:
             return None
-        sig = (st.st_size, st.st_mtime_ns)
+        return st.st_size, st.st_mtime_ns
+
+    def _remembered_load_problem(self) -> tuple[str, str] | None:
+        if self._model is None and self._load_problem and self._load_problem[2] == self._sig():
+            return self._load_problem[0], self._load_problem[1]
+        return None
+
+    def _version(self) -> str | None:
+        sig = self._sig()
+        if sig is None:
+            return None
         if not self._fp_cache or self._fp_cache[0] != sig:
             self._fp_cache = (sig, weights_fingerprint(self.model_path))
         return self._fp_cache[1]
@@ -71,11 +106,18 @@ class UltralyticsDetector(Detector):
     def info(self) -> DetectorInfo:
         meta = dict(adapter="ultralytics", target="plant", target_label=TARGET_LABEL, device="auto",
                     limitations=LIMITATIONS)
-        problem = self._config_problem()
+        if self._generic_coco:
+            meta.update(target_label=COCO_TARGET_LABEL, limitations=(COCO_LIMITATION,) + LIMITATIONS)
+        problem = self._config_problem() or self._remembered_load_problem()
         if problem:
-            return DetectorInfo(state="error", message=problem, model_id=self.model_id, **meta)
+            return DetectorInfo(state="error", message=problem[1], model_id=self.model_id, diagnostic_code=problem[0],
+                                **meta)
         version = self._version()
         if self._model is not None:
+            if self._generic_coco:
+                return DetectorInfo(state="loaded", message="Model COCO umum termuat — BUKAN model tanaman.",
+                                    model_id=self.model_id, model_version=version,
+                                    diagnostic_code="GENERIC_COCO_MODEL", **meta)
             return DetectorInfo(state="loaded", message="Model termuat di memori.", model_id=self.model_id,
                                 model_version=version, **meta)
         return DetectorInfo(state="configured", message="Bobot ditemukan; dimuat saat analisis pertama.",
@@ -86,23 +128,38 @@ class UltralyticsDetector(Detector):
             self._load()
 
     # ------------------------------------------------------------ inference
+    def _fail_load(self, code: str, message: str, exc: Exception | None = None):
+        # Diingat agar /health menunjukkan state=error + kode yang sama, bukan "configured" yang menyesatkan.
+        self._load_problem = (code, message, self._sig())
+        raise ModelUnavailable(message, code) from exc
+
     def _load(self):
         if self._model is not None:
             return self._model
-        problem = self._config_problem()
+        problem = self._config_problem() or self._remembered_load_problem()
         if problem:
-            raise ModelUnavailable(problem)
+            raise ModelUnavailable(problem[1], problem[0])
         try:
             from ultralytics import YOLO
             model = YOLO(str(self.model_path), task="detect")
         except Exception as exc:  # noqa: BLE001
             log.exception("Model could not be loaded")
-            raise ModelUnavailable("Model tidak dapat dimuat. Periksa bobot dan versi dependensi.") from exc
-        if getattr(model, "task", "detect") != "detect":
-            raise ModelUnavailable("Bobot bukan model deteksi (task=detect).")
-        names = model.names.values() if isinstance(model.names, dict) else model.names
-        if not any(str(n) in self.label_map for n in names):
-            raise ModelUnavailable("Tidak ada kelas model yang cocok dengan WALLACEA_LABEL_MAP_JSON.")
+            self._fail_load("MODEL_LOAD_FAILED", "Berkas .pt tidak dapat dibuka oleh Ultralytics (rusak, bukan bobot "
+                            "Ultralytics, atau versi paket tidak cocok). Jalankan scripts\\check-model.ps1 untuk detail.",
+                            exc)
+        task = getattr(model, "task", "detect")
+        if task != "detect":
+            self._fail_load("NOT_DETECTION_MODEL", f"Bobot ini model task={task!r}, bukan deteksi (task='detect'). "
+                            "Latih ulang dengan model deteksi YOLO (mis. yolo11n.pt, bukan -seg/-cls/-pose).")
+        names = class_names(model.names)
+        if not any(n in self.label_map for n in names):
+            shown = ", ".join(names[:12]) + (" …" if len(names) > 12 else "")
+            self._fail_load("LABEL_MAP_MISMATCH", "Tidak ada kelas model yang ada di WALLACEA_LABEL_MAP_JSON "
+                            f"(kunci: {sorted(self.label_map)}). Kelas model: {shown}.")
+        self._generic_coco = is_generic_coco(model.names)
+        if self._generic_coco:
+            log.warning("Bobot %s adalah model COCO umum, BUKAN model tanaman.", self.model_path.name)
+        self._load_problem = None
         self._model = model
         return model
 
@@ -113,7 +170,8 @@ class UltralyticsDetector(Detector):
                 result = model.predict(image, conf=self.confidence, imgsz=self.imgsz, max_det=self.max_det, verbose=False)[0]
             except Exception as exc:  # noqa: BLE001
                 log.exception("Inference failed")
-                raise InferenceFailed("Inferensi gagal. Periksa log server dan kapasitas perangkat.") from exc
+                raise InferenceFailed("Inferensi gagal di dalam Ultralytics. Periksa log server (memori, ukuran foto) "
+                                      "dan versi paket.") from exc
         width, height = image.size
         out: list[RawDetection] = []
         boxes = getattr(result, "boxes", None)
@@ -131,5 +189,5 @@ class UltralyticsDetector(Detector):
         return DetectionOutput(
             model_id=self.model_id, model_version=self._version(), detections=out,
             parameters={"adapter": "ultralytics", "target": "plant", "conf": self.confidence, "imgsz": self.imgsz,
-                        "max_det": self.max_det},
+                        "max_det": self.max_det, "generic_coco": self._generic_coco},
         )
