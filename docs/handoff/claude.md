@@ -1,4 +1,4 @@
-# Handoff Claude (backend, ML, kontrak) — 2026-10-20
+# Handoff Claude (backend, ML, geospasial, kontrak) — 2026-10-20
 
 ## Commit
 
@@ -10,13 +10,138 @@
 | Detector DeepForest + kontrak revisi 2 | `733f5d2`, `51ff249` | `agent/claude-backend` |
 | **CONTRACT_READY revisi 3** (jawaban CR-FE-001/002/003) | **`3fe53c5`** (+ koreksi CHANGELOG `b35102f`) | `agent/claude-backend` |
 | Notebook 01–03 + venv bersih | `b7fc097` | `agent/claude-backend` |
-| **Integrasi** backend + frontend Codex (`codex-inference-integration`, lalu `codex-uiux-v2` @ `67aac04`) | `git rev-parse integration/wallacea-mvp` | `integration/wallacea-mvp` (worktree `D:\coding\wallacea-worktrees\integration`) |
+| **Integrasi** backend + frontend Codex (`codex-inference-integration`, lalu `codex-uiux-v2` @ `67aac04`) | `f15175b` | `integration/wallacea-mvp` (worktree `D:\coding\wallacea-worktrees\integration`) |
+| **CONTRACT_READY revisi 4**: onboarding model Windows, mode simulasi, diagnostik | **`cfacdda`** (+ handoff `1ecda6c`) | `agent/claude-backend` |
+| Mapping backend (A batas lahan, B raster GeoTIFF + tile, C AI → peta), migrasi `0002` | **`40ba487`** | `agent/claude-backend` |
+| **CONTRACT_READY revisi 5** (snapshot OpenAPI 1.5.0, fixtures, CHANGELOG) — commit terpisah | **`f2e770f`** | `agent/claude-backend` |
+| Dokumen scope mapping, panduan PowerShell, arsitektur | `1d1d36c` | `agent/claude-backend` |
+| **Integrasi mapping**: `integration/wallacea-mvp` + `agent/codex-frontend` @ `1cb6d51` + backend revisi 5 | `ca67ffe` (+ merge handoff ini) | `integration/wallacea-mapping` (worktree `D:\coding\wallacea-worktrees\integration-mapping`) |
 
-| **CONTRACT_READY revisi 4**: onboarding model Windows, mode simulasi, diagnostik | **`cfacdda`** (+ handoff ini) | `agent/claude-backend` |
+Tidak ada push, merge ke `main`, atau deploy.
 
-Tidak ada push, merge ke `main`, atau deploy. Integrasi dibuat dari BASE `15a7408`: merge
-`agent/codex-inference-integration` (`2e8a2d7`) lalu `agent/claude-backend`. Revisi 4 **belum** di-merge ke
-`integration/wallacea-mvp`.
+## CONTRACT_READY — revisi 5 (`info.version` 1.5.0) @ `f2e770f` — mapping, 2026-10-20
+
+Scope diperluas atas instruksi pengguna (lihat `docs/architecture/PROJECT_BRIEF.md` § Perubahan scope): **A** batas
+lahan berkoordinat nyata, **B** impor raster GeoTIFF bergeoreferensi + tile, **C** hasil AI di peta. Pembuatan
+orthomosaic dari foto K919 (ODM/NodeODM) **belum** — impor GeoTIFF tidak disebut fotogrametri. Detail kontrak:
+`packages/contracts/CHANGELOG.md` § Revisi 5. Semua kompatibel mundur (aditif); endpoint lama tidak berubah makna.
+
+### Migrasi
+
+`apps/api/alembic/versions/0002_mapping.py` (head `0002`, otomatis saat start): tabel `fields`, `raster_assets`,
+`raster_analysis_runs` (indeks unik parsial 1 run running/raster), `map_detections`; kolom `surveys.field_id`
+(`REFERENCES fields ON DELETE SET NULL`) lewat `ALTER TABLE ADD COLUMN` **tanpa** batch-recreate — batch SQLite
+melakukan `DROP TABLE surveys` yang, dengan `foreign_keys=ON`, memicu `ON DELETE CASCADE` ke photos/annotations.
+Diverifikasi: test migrasi dengan data lama + **salinan DB nyata** `apps/api/var/wallacea.db` (3 survei, 4 foto, 773
+penanda, 4 run → identik setelah upgrade); `alembic check` bersih; downgrade→upgrade aman. Backup `apps\api\var\`
+tetap disarankan sebelum upgrade data penting.
+
+### Contoh respons (fixture asli dari API)
+
+`POST /api/v1/fields` → `FarmField` (`field.json`):
+```json
+{"name": "Petak contoh OSBS", "boundary_source": "digitized_from_raster",
+ "measures": {"area_m2": 1021.31, "area_ha": 0.10213, "perimeter_m": 127.886, "exterior_perimeter_m": 127.886,
+              "method": "geodesic_wgs84"},
+ "bbox": [-81.99006, 29.69236, -81.98972, 29.69264], "label_point": [-81.98989, 29.6925], "revision": 1}
+```
+`POST /api/v1/surveys/{id}/rasters` → `RasterUploadResult.raster` (`raster-upload.response.json`, GeoTIFF NEON asli):
+```json
+{"product_type": "imported_georeferenced_raster", "is_verified_orthomosaic": false, "width": 400, "height": 400,
+ "crs": {"epsg": 32617, "name": "WGS 84 / UTM zone 17N", "is_geographic": false},
+ "bounds_wgs84": [-81.990099, 29.692322, -81.989683, 29.692686], "approx_gsd_m": 0.10003, "nodata": 255.0,
+ "tilejson_url": "/api/v1/rasters/<id>/tilejson.json", "tile_url_template": "/api/v1/rasters/<id>/tiles/{z}/{x}/{y}.png",
+ "minzoom": 18, "maxzoom": 21,
+ "detection_counts": {"plant_accepted": 0, "plant_accepted_inside_field": 0, "pending_review": 0, "rejected": 0, "total": 0}}
+```
+`GET /api/v1/rasters/{id}/detections` → `MapDetectionPage.items[]` (`map-detection-page.json`, detector test double):
+```json
+{"kind": "gap", "source": "model", "review_status": "pending", "confidence": 0.42,
+ "pixel_bbox": [240.0, 200.0, 60.0, 60.0], "center": [-81.989818, 29.692477], "center_native": [404238.9, 3285119.9],
+ "geometry": {"type": "Polygon", "coordinates": [[[lon, lat], …5 titik]]}, "inside_field": true, "revision": 1}
+```
+`POST /api/v1/rasters/{id}/analyze` → `run.parameters`: `tile_size, overlap_px, scale, window_count, raw_detections,
+dropped_edge, dropped_masked, after_dedup, dedup{method: greedy_nms_per_kind, iou_threshold, ios_threshold, edge_rule}`.
+
+Error baru: `error.invalid-geometry.json` (`Self-intersection[106.805 -6.595]`, `details.reason`),
+`error.raster-not-georeferenced.json` (`details.reason = no_crs`).
+
+### Untuk Codex (frontend) — revisi 5
+
+1. Regenerasi tipe dari `packages/contracts/openapi.yaml`. Sudah diuji: web `1cb6d51` lolos `tsc` dengan tipe
+   revisi 5 (tidak ada perubahan yang memecah).
+2. **Batas lahan**: daftar/CRUD `/fields`, impor berkas `/fields/import` (multipart), ekspor `/fields/{id}/geojson`,
+   `/fields-export.geojson`. Menggambar poligon di peta boleh memberi *preview* luas, tetapi tampilkan nilai tersimpan
+   dari `measures` (backend). Tampilkan `boundary_source` + `source_note`. Tangani 422 `INVALID_GEOMETRY`
+   (`message` menyebut alasan & lokasi; jangan "memperbaiki" geometri di klien). Koordinat **[lon, lat]**.
+3. **Survei ↔ lahan**: `Survey.field_id`; `PATCH /surveys/{id}` `{"field_id": … | null}`.
+4. **Peta udara**: unggah GeoTIFF per berkas (`/surveys/{id}/rasters`, field `file`, opsional `name`,
+   `source_description`); progres upload seperti foto. Tampilkan dengan Leaflet/MapLibre dari `tilejson_url`/
+   `tile_url_template` (relatif terhadap origin API; Vite proxy `/api`), `minzoom`/`maxzoom`, `bounds_wgs84`,
+   `footprint`. Label wajib: "GeoTIFF impor — georeferensi dari berkas, bukan orthomosaic terverifikasi"
+   (`is_verified_orthomosaic=false`). Tangani 415/422/413 (`UNSUPPORTED_RASTER`, `RASTER_NOT_GEOREFERENCED` +
+   `details.reason`, `RASTER_TOO_LARGE`) dengan pesan dari API; raster ditolak tidak boleh muncul di peta.
+   `preview_url` = gambar ruang piksel (bukan overlay peta).
+5. **AI di peta**: `POST /rasters/{id}/analyze` (sinkron; bisa menit untuk raster besar; batas
+   `limits.raster_analysis_timeout_s`). Error & `on_existing` sama dengan analisis foto. Gambar `MapDetection.geometry`
+   sebagai poligon; status pending/accepted/rejected dibedakan seperti kandidat foto; `run.target`
+   (`tree_crown`/`plant`/`simulation`) menentukan istilah; simulasi tetap "SIMULASI — BUKAN AI".
+   Review `PATCH /map-detections/{id}` dengan **If-Match wajib**; 409 → `details.current`.
+6. **Hitungan**: `RasterAsset.detection_counts` / `MapDetectionPage.counts` per raster; `plant_accepted_inside_field`
+   bila survei punya lahan. **Jangan** menjumlahkan antar raster; `SurveyReport.mapping.counts_are_unique_plants =
+   false`. Hitungan foto (`totals.plant_accepted_sum_across_photos`) tidak memuat deteksi peta.
+7. **Capability**: tampilkan fitur mapping hanya bila `capabilities.field_boundaries` /
+   `georeferenced_raster_import` / `map_ai_detections` true; `orthomosaic_generation` false → jangan tawarkan
+   "buat orthomosaic". `georeferencing` (foto) tetap false: jangan menaruh penanda foto di peta, jangan memakai EXIF GPS
+   foto sebagai lokasi tanaman.
+8. **Laporan**: tampilkan `SurveyReport.mapping` dan `disclaimers` apa adanya (butir mapping kondisional).
+9. Contoh raster nyata untuk demo/E2E: `samples/georeferenced/OSBS_029.tif` (NEON CC BY 4.0, atribusi di
+   `ATTRIBUTION.md`; bukan K919). Untuk E2E multi-tile tanpa model gunakan API `WALLACEA_DETECTOR=simulation`.
+
+### Tes yang benar-benar dijalankan (2026-10-20, Windows 11, Python 3.12.10)
+
+| Tes | Hasil |
+|---|---|
+| `apps/api` pytest, venv backend (DeepForest + bobot) | **246 lulus**, 0 skip (57 test mapping baru + 18 validasi fixture kontrak baru) |
+| `apps/api` pytest, **venv bersih** dari `requirements.lock.txt` (rasterio 1.5.2/GDAL 3.12.2, pyproj 3.8.0, shapely 2.2.0; tanpa DeepForest) | 244 lulus, 2 skip (DeepForest tidak terpasang); `pip check` bersih |
+| `export_contract.py --check` · `alembic check` | cocok · tanpa operasi baru |
+| `ml` pytest | 36 lulus |
+| Luas referensi | sel 1°×1° ekuator = 12 308 778 361,469 m² (nilai GeographicLib); 1 ha UTM vs proyeksi equal-area EPSG:6933 rel < 1e-5; lubang, MultiPolygon, orientasi ring |
+| Invalid | bowtie (lokasi self-intersection), ring terbuka, < 4 posisi, titik kembar, kosong, lon > 180, lat/lon tertukar, 3D, NaN, Point, antimeridian, lubang di luar, batas titik & payload 413, impor semua-atau-tidak, CRS GeoJSON non-WGS84 |
+| Raster | UTM & EPSG:4326, piksel→dunia diketahui + urutan sumbu (dibanding pyproj tanpa `always_xy`), transform berotasi, tanpa CRS / identitas / hanya-GCP / 1 band / uint16 / PNG / TIFF rusak / band-4 non-alpha / footprint > 2500 km² / batas piksel & byte, alpha & nodata transparan, tile (zoom min/max, di luar = transparan, x di luar rentang 422), preview, PATCH revisi, hapus berkas, restart |
+| AI → peta | GreenBoxDetector (melihat piksel) pada raster sintetis 3000×2000, 12 jendela 1024/128: **7/7 objek tepat sekali**, posisi piksel tepat, pusat & sudut = transform manual → pyproj; `scale 0.5` (model menerima 50%) posisi ±2 px; overlap 0 memecah objek di sambungan (didokumentasikan); dedup IoU/IoS; mask; review If-Match/409; replace_pending; inside_field; laporan; simulasi; persist restart |
+| **DeepForest nyata pada GeoTIFF NEON** `OSBS_029.tif` | tile_size 400: **49 kandidat tajuk pohon** (= analisis PNG yang sama lewat alur foto), lokasi Florida benar; vs 61 anotasi manusia IoU 0,5: TP 38 FP 11 FN 23 (P 0,78 R 0,62). tile_size 256/overlap 64: P 0,33 R 0,33 → jendela harus ≥ patch latih model |
+| Server uvicorn sungguhan (18095, DeepForest, data dir terpisah) | contoh PowerShell README (lahan 0,99 ha), impor NEON, analisis 49 kandidat 1,6 s, review, tile, laporan; **restart** → survei/lahan/raster/49 deteksi/ekspor GeoJSON utuh, sha256 asli cocok, tanpa model → 503 jujur |
+| Performa (raster sintetis 12000×12000 = 144 MP JPEG) | impor 51 s, RSS proses +74 MB; tile z14–z22 38–126 ms; preview 218 ms |
+| **Integrasi** `integration/wallacea-mapping` @ `ca67ffe` | API pytest lulus (2 skip: bobot DeepForest tidak ada di worktree integrasi); web install frozen, `tsc`, build, **vitest 23/23**; `tsc` dengan tipe revisi 5; **Playwright `workspace` + `model-status` 21/21** (API tanpa model, 18095/5185); **`simulation-smoke` 3/3** (API simulasi); endpoint mapping lewat proxy Vite 5185 (impor, TileJSON, tile ber-isi, analisis simulasi, GeoJSON) |
+
+### Keterbatasan (jujur)
+
+- **Belum ada UI peta** (bagian Codex); integrasi web baru dibuktikan lewat proxy Vite, bukan klik di browser.
+- Tidak ada foto/peta K919. Satu-satunya raster nyata = NEON 40 m × 40 m (pesawat, hutan). Belum ada uji pada
+  orthomosaic drone pertanian sungguhan, raster besar nyata, atau CRS kustom selain UTM/WGS84.
+- Georeferensi raster dipercaya apa adanya; akurasi posisional tidak diverifikasi (tidak ada GCP/checkpoint).
+- Validitas topologi batas = Shapely planar pada lon/lat (memadai untuk lahan, bukan untuk poligon benua/kutub);
+  antimeridian ditolak. `inside_field` juga planar.
+- Analisis raster sinkron dan memblokir satu worker; raster ratusan MP bisa mendekati batas waktu. Tidak ada antrean.
+- Impor raster sinkron (144 MP ±51 s) dan menyimpan dua salinan (asli + turunan tampilan).
+- Hanya RGB/RGBA 8-bit; multispektral/NIR, 16-bit, COG remote, GCP-only belum didukung.
+- Dedup tidak menyatukan potongan berdampingan bila overlap lebih kecil dari objek; parameter dicatat per run.
+- Tile dirender per request tanpa cache server (cukup untuk 1 pengguna lokal).
+- Downgrade migrasi di SQLite tidak menghapus kolom `surveys.field_id` (dikosongkan; aman untuk upgrade ulang).
+
+### Menjalankan (Windows PowerShell)
+
+```powershell
+cd D:\coding\wallacea-worktrees\claude-backend\apps\api
+.venv\Scripts\python -m pip install -r requirements.lock.txt     # sekali: rasterio/pyproj/shapely/numpy
+# (opsional) AI DeepForest — lihat README: $env:WALLACEA_DETECTOR="deepforest"; $env:WALLACEA_MODEL_PATH=...
+.venv\Scripts\python -m app                                      # migrasi 0002 otomatis
+# terminal 2, root repo: pnpm dev:web → http://127.0.0.1:5173
+curl.exe -F "file=@..\..\samples\georeferenced\OSBS_029.tif" http://127.0.0.1:8000/api/v1/surveys/<id>/rasters
+```
+
+Panduan lengkap: `apps/api/README.md` § Mapping.
 
 ## CONTRACT_READY — revisi 4 (`info.version` 1.4.0) @ `cfacdda` — 2026-10-20
 
@@ -187,7 +312,7 @@ nbformat valid. Output tidak di-commit (gambar berat).
 - Model jagung tim (YOLO11n fine-tune pada dataset publik UAVmulticrop) juga berjalan lewat adapter
   Ultralytics; dievaluasi pada situs yang tidak terlihat (lihat `ml/README.md` § Status).
 - **Belum ada foto K919 MAX.** Semua hasil hanya pada foto contoh/dataset publik.
-- Kontrak **revisi 4** (`info.version` 1.4.0, aditif): revisi 2 `health.model.{adapter,target,target_label,device,limitations}`, revisi 3 (`/samples`, `run.target`), revisi 4 `health.model.{mode,diagnostic_code}` + target `simulation`.
+- Kontrak **revisi 5** (`info.version` 1.5.0, aditif): revisi 2 `health.model.{adapter,target,target_label,device,limitations}`, revisi 3 (`/samples`, `run.target`), revisi 4 `health.model.{mode,diagnostic_code}` + target `simulation`, revisi 5 mapping (`/fields`, `/rasters`, `/map-detections`, `Survey.field_id`, `SurveyReport.mapping`, capability mapping).
 - Onboarding Windows: `apps/api/scripts/check-model.ps1`, `run-with-model.ps1`, `run-simulation.ps1`; training minimal `apps/api/ml/`. Model tanaman terlatih tetap belum ada.
 
 ## Untuk Codex (frontend)
