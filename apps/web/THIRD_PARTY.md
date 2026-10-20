@@ -17,6 +17,16 @@ Versions are pinned in package.json and the single root pnpm-lock.yaml.
   icons remain hidden from assistive technology by the library default.
 - Vite and TypeScript: MIT / Apache-2.0 respectively. Baseline versions retained.
 - Vitest: MIT; Playwright: Apache-2.0; openapi-typescript: MIT.
+- MapLibre GL JS 5.24.0 and react-map-gl 8.1.3: BSD-3-Clause / MIT.
+  WALLACEA imports the dedicated `react-map-gl/maplibre` entry point. MapLibre 5
+  is retained because the selected Terra Draw adapter documents MapLibre 4/5.
+- Terra Draw 1.38.0 and its MapLibre GL adapter 1.5.0: MIT. Only Polygon draw,
+  select, vertex edit, and delete behavior is used; no geometry is invented.
+- Turf area, bbox, length, and polygon-to-line 7.4.0: MIT. Browser calculations
+  are labelled as previews; persisted backend metrics remain authoritative.
+- The optional online basemap uses OpenStreetMap standard raster tiles and visible
+  OpenStreetMap attribution. Tiles are neither bundled nor prefetched for offline
+  use. See https://operations.osmfoundation.org/policies/tiles/.
 - apps/web/src/components/ui adapts the shadcn/ui Button, Sheet, Alert Dialog,
   Dropdown Menu, Badge, and Tooltip composition patterns. Source:
   https://github.com/shadcn-ui/ui.
@@ -24,7 +34,7 @@ Versions are pinned in package.json and the single root pnpm-lock.yaml.
 - shadcn-admin is a layout reference only: https://github.com/satnaing/shadcn-admin.
   No template source, authentication screens, or assets were copied.
 - All other frontend layout/editor/export code is written for WALLACEA.
-  No external photos, icons, fonts, model weights, GIS packages, or datasets are bundled.
+  No external photos, fonts, model weights, map tiles, or datasets are bundled.
 
 The OpenAPI generator declares a TypeScript 5 peer dependency. It lives in its
 own workspace at apps/web/tools/api-types with TypeScript 5.9.3. The web build

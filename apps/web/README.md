@@ -25,6 +25,18 @@ Vite preview does not provide the development API proxy.
 
 ## Editing and storage
 
+- Each survey now has explicit **Peta lahan**, **Foto & AI**, and **Laporan**
+  workspaces. The map workspace uses MapLibre and Terra Draw for an honest local
+  boundary draft, and accepts exactly one valid WGS84 Polygon/MultiPolygon GeoJSON.
+- Boundary area/perimeter shown before save are clearly labelled **Preview Turf**.
+  They are not backend measurements. The committed revision-4 API has no boundary,
+  raster, or geographic-finding endpoint, so save and GeoTIFF upload remain disabled
+  with an explanation. See `docs/requests/codex-mapping-contract.md`.
+- The default basemap is the online OpenStreetMap standard raster service with
+  visible attribution. It is not satellite imagery and is not available offline.
+  If tiles fail, local boundary geometry remains usable over a neutral background.
+- GeoTIFF is intentionally separate from ordinary JPG/PNG photo upload. The browser
+  does not pretend an ungeoreferenced image belongs at a map location.
 - The primary flow is **Buat survei → Unggah foto → Analisis & review → Laporan**.
   Desktop uses a collapsible survey sidebar and persistent review panel. Tablet
   and mobile use Sheets for navigation, photo selection, and candidate review.
