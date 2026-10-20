@@ -110,9 +110,10 @@ export function counts(findings: Finding[]) {
   };
 }
 
-export function findingStatus(finding: Finding, treeCrown = false) {
+export function findingStatus(finding: Finding, treeCrown = false, simulation = false) {
   const source = finding.source === 'manual' ? 'Penanda manual'
-    : finding.kind === 'plant' ? treeCrown ? 'Kandidat tajuk pohon' : 'Kandidat tanaman' : 'Kandidat model';
+    : simulation ? 'Kandidat simulasi — bukan AI'
+      : finding.kind === 'plant' ? treeCrown ? 'Kandidat tajuk pohon' : 'Kandidat tanaman' : 'Kandidat model asli';
   const review = finding.review === 'pending' ? 'Menunggu review'
     : finding.review === 'accepted' ? 'Diterima' : 'Ditolak';
   const confirmed = finding.kind === 'plant' && finding.review === 'accepted'

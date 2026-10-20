@@ -59,9 +59,13 @@ Vite preview does not provide the development API proxy.
 
 - API connectivity and model readiness are separate statuses. Connectivity is
   based on the real health query; model availability is read from its response.
-  The UI distinguishes a
-  model that is not configured, available, or unavailable, and only shows the
-  model ID/version when those values are supplied by the API.
+  The UI distinguishes **Mode manual**, **Model ditemukan**, **Model aktif**,
+  **Konfigurasi model bermasalah**, and the permanent **SIMULASI — BUKAN AI**
+  warning. It only shows model ID/version when supplied by the API.
+- **Cara mengaktifkan AI** explains that `best.pt` is a file, gives the expected
+  server-side location and PowerShell setup/check/run commands, and warns that a
+  generic COCO model is not a trained drone-crop detector. The browser does not
+  accept model-weight uploads.
 - Analysis is synchronous. While the request is open the UI says that analysis
   is running and does not invent a progress percentage. The button is guarded
   against duplicate submission.
@@ -79,6 +83,10 @@ Vite preview does not provide the development API proxy.
   Contract-revision-2 responses use `target_label`, `target`, `adapter`, `device`,
   and `limitations` directly. Revision-1 responses retain conservative generic
   wording.
+- Simulation candidates use the same pending-first review flow but retain a
+  visible simulation source. Contract revision 3 does not yet expose the
+  simulation discriminator; `docs/requests/codex-model-onboarding.md` records
+  the additive field required before simulation can be verified end to end.
 - Reports state counts per photo. Image coordinates are not GPS, and sums across
   overlapping photos are not claimed as unique plants for the whole field.
 

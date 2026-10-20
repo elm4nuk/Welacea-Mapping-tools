@@ -112,7 +112,7 @@ test('real API: survey, multi upload, EXIF, edit, undo/redo, save, reload, PNG/C
   await expect(page.getByRole('status').filter({ hasText: 'Tersimpan di server.' })).toBeVisible();
   expect((await (await request.get(base + '/api/v1/photos/' + oriented.id + '/annotations')).json()).items).toHaveLength(1);
   await expect(page.getByRole('button', { name: 'Analisis foto', exact: true })).toBeDisabled();
-  await expect(page.getByText('Model belum tersedia. Penandaan manual tetap dapat digunakan.', { exact: true })).toBeVisible();
+  await expect(page.getByText('AI belum diaktifkan. Penandaan manual tetap dapat digunakan.', { exact: true })).toBeVisible();
   const pngPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Opsi ekspor', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Ekspor PNG anotasi', exact: true }).click();

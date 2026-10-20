@@ -8,6 +8,7 @@ import { PhotoFilmstrip, UploadControl } from './components/PhotoFilmstrip';
 import { SurveyForm } from './components/SurveyForm';
 import { WorkflowSteps } from './components/WorkflowSteps';
 import { WorkspaceHeader } from './components/WorkspaceHeader';
+import { ModelSetupSheet, ModelStatusBanner } from './components/ModelOnboarding';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogTitle } from './components/ui/alert-dialog';
 import { Button } from './components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from './components/ui/sheet';
@@ -42,6 +43,7 @@ function Workspace() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [mobilePhotosOpen, setMobilePhotosOpen] = useState(false);
   const [utilitiesOpen, setUtilitiesOpen] = useState(false);
+  const [modelSetupOpen, setModelSetupOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation>();
   const dirtyRef = useRef(false);
   const importRef = useRef<HTMLInputElement>(null);
@@ -151,8 +153,9 @@ function Workspace() {
       onMore={() => void surveys.fetchNextPage()} onUtilities={() => { setMobileNavOpen(false); setUtilitiesOpen(true); }} />
     <main className="app-main">
       <WorkspaceHeader survey={survey} apiState={health.isPending ? 'checking' : health.isError ? 'offline' : 'connected'}
-        modelLabel={model?.label ?? 'Model diperiksa'} modelAvailable={Boolean(model?.available)} onOpenMenu={() => setMobileNavOpen(true)}
+        modelLabel={model?.label ?? 'Model diperiksa'} modelState={model?.state} onOpenMenu={() => setMobileNavOpen(true)}
         onEdit={() => setForm('edit')} onDelete={removeSurvey} onImport={() => setUtilitiesOpen(true)} />
+      {model && <ModelStatusBanner model={model} onSetup={() => setModelSetupOpen(true)} onRefresh={() => void health.refetch()} />}
       {health.isError && <div role="alert" className="banner banner--error no-print"><CloudOff aria-hidden="true" /><div><b>API tidak dapat dijangkau</b>
         <p>{health.error.message}</p></div><Button variant="outline" onClick={() => void health.refetch()}>Coba lagi</Button></div>}
       {error && <p role="alert" className="banner banner--error no-print">{error}</p>}
@@ -184,7 +187,8 @@ function Workspace() {
             {allPhotos.length === 0 && !photos.isPending ? <div className="workspace-empty"><UploadCloud aria-hidden="true" /><h2>Unggah foto pertama</h2>
               <p>Editor dan review kandidat akan tersedia setelah foto berhasil disimpan.</p></div> : <>
               <div className="editor-area">{photo ? <EditorSession key={photo.id} photo={photo} survey={survey} model={health.data?.model}
-                apiConnected={Boolean(health.data)} inferenceTimeoutSeconds={health.data?.limits.inference_timeout_s} onDirty={onDirty} />
+                apiConnected={Boolean(health.data)} inferenceTimeoutSeconds={health.data?.limits.inference_timeout_s} onDirty={onDirty}
+                onOpenModelSetup={() => setModelSetupOpen(true)} onRefreshModel={() => void health.refetch()} />
                 : <div className="workspace-empty"><h2>Pilih foto untuk mulai</h2><p>Gunakan filmstrip untuk membuka foto pada kanvas.</p></div>}</div>
               <PhotoFilmstrip photos={allPhotos} activeId={photoId} busy={busy} onSelect={choosePhoto} onDelete={removePhoto}
                 onOpenMobile={() => setMobilePhotosOpen(true)} hasNextPage={photos.hasNextPage} fetchingMore={photos.isFetchingNextPage}
@@ -199,6 +203,7 @@ function Workspace() {
       <PhotoFilmstrip photos={allPhotos} activeId={photoId} busy={busy} onSelect={choosePhoto} onDelete={removePhoto}
         onOpenMobile={() => undefined} hasNextPage={photos.hasNextPage} fetchingMore={photos.isFetchingNextPage} onMore={() => void photos.fetchNextPage()} />
     </SheetContent></Sheet>
+    <ModelSetupSheet open={modelSetupOpen} onOpenChange={setModelSetupOpen} />
     <Sheet open={utilitiesOpen} onOpenChange={setUtilitiesOpen}><SheetContent side="right">
       <SheetTitle>Pengaturan & utilitas</SheetTitle><SheetDescription>Impor backup starter dan informasi penyimpanan lokal.</SheetDescription>
       <div className="utility-panel"><h3>Impor backup starter</h3><p>Backup schemaVersion 1 akan diimpor sebagai salinan melalui API.</p>

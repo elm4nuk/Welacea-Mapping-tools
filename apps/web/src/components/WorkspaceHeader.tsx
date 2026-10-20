@@ -3,9 +3,10 @@ import type { Survey } from '../api/client';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
+import type { ModelUiState } from '../features/editor/analysis';
 
-export function WorkspaceHeader({ survey, apiState, modelLabel, modelAvailable, onOpenMenu, onEdit, onDelete, onImport }: {
-  survey?: Survey; apiState: 'checking' | 'connected' | 'offline'; modelLabel: string; modelAvailable: boolean;
+export function WorkspaceHeader({ survey, apiState, modelLabel, modelState, onOpenMenu, onEdit, onDelete, onImport }: {
+  survey?: Survey; apiState: 'checking' | 'connected' | 'offline'; modelLabel: string; modelState?: ModelUiState;
   onOpenMenu: () => void; onEdit: () => void; onDelete: () => void; onImport: () => void;
 }) {
   return <header className="workspace-header no-print">
@@ -16,7 +17,7 @@ export function WorkspaceHeader({ survey, apiState, modelLabel, modelAvailable, 
     <div className="workspace-header__status" aria-label="Status sistem">
       <Badge tone={apiState === 'connected' ? 'success' : apiState === 'offline' ? 'danger' : 'neutral'}>
         <span className="status-dot" />API {apiState === 'connected' ? 'terhubung' : apiState === 'offline' ? 'tidak terjangkau' : 'diperiksa'}</Badge>
-      <Badge tone={modelAvailable ? 'info' : 'warning'}>{modelLabel}</Badge>
+      <Badge tone={modelState === 'error' ? 'danger' : modelState === 'simulation' || modelState === 'manual' || modelState === 'configured' ? 'warning' : 'info'}>{modelLabel}</Badge>
       <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Buka menu survei"><MoreHorizontal /></Button></DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {survey && <DropdownMenuItem onSelect={onEdit}><Pencil aria-hidden="true" />Edit survei</DropdownMenuItem>}

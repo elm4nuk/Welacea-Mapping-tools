@@ -14,7 +14,7 @@ import './editor.css';
 export type EditorPhoto = { key: string; name: string; image: HTMLImageElement; isIllustration: boolean };
 type Props = { photo: EditorPhoto; findings: Finding[]; onChange: (findings: Finding[]) => void; onUndo: () => void; onRedo: () => void;
   canUndo: boolean; canRedo: boolean; persistenceLabel?: string; integrated?: boolean;
-  modelByRunId?: Record<string, { id?: string; version?: string }> };
+  modelByRunId?: Record<string, { id?: string; version?: string; simulation?: boolean }> };
 type ReviewFilter = 'all' | 'pending' | 'accepted' | 'rejected';
 const labels: Record<Kind, string> = { plant: 'Tanaman', inspect: 'Perlu diperiksa', gap: 'Dugaan titik kosong' };
 const colors: Record<Kind, string> = { plant: '#145b40', inspect: '#9b5700', gap: '#7c4265' };
@@ -90,7 +90,7 @@ function PhotoEditorCanvas(props: Props) {
       <ul className="finding-list">{visibleFindings.map(finding => {
         const index = findings.indexOf(finding);
         const model = finding.analysisRunId ? props.modelByRunId?.[finding.analysisRunId] : undefined;
-        const status = findingStatus(finding, modelPresentation(model?.id).isDeepForest);
+        const status = findingStatus(finding, modelPresentation(model?.id).isDeepForest, model?.simulation);
         return <li key={finding.id} data-review={finding.review}><button aria-pressed={finding.id === selected} onClick={() => setSelected(finding.id)}>
           <span className="finding-list__status" aria-hidden="true">{finding.review === 'accepted' ? <Check /> : finding.review === 'rejected' ? <X /> : <Crosshair />}</span>
           <span><b>{index + 1}. {status.confirmed || labels[finding.kind]}</b><small>{status.source} · {status.review}</small></span>
@@ -111,7 +111,8 @@ function PhotoEditorCanvas(props: Props) {
           const runModel = active.analysisRunId ? props.modelByRunId?.[active.analysisRunId] : undefined;
           const metadata = [runModel?.id, runModel?.version].filter(Boolean).join(' / ');
           const presentation = modelPresentation(runModel?.id);
-          return <>{metadata && <p>Model dari API: {metadata}.</p>}{active.modelLabel && <p>Label model: {active.modelLabel}.</p>}
+          return <>{runModel?.simulation && <p className="editor-notice"><b>SIMULASI — BUKAN AI.</b> Kandidat ini hanya untuk menguji alur review.</p>}
+            {metadata && <p>{runModel?.simulation ? 'Sumber simulasi' : 'Model dari API'}: {metadata}.</p>}{active.modelLabel && <p>Label keluaran: {active.modelLabel}.</p>}
             {presentation.disclaimer && <p className="editor-notice">{presentation.disclaimer}</p>}</>;
         })()}
         <details className="advanced-settings"><summary>Pengaturan lanjutan</summary><form key={JSON.stringify(active.point) + JSON.stringify(active.box)} onSubmit={event => {
@@ -124,11 +125,12 @@ function PhotoEditorCanvas(props: Props) {
           {active.box && <><label>Lebar<input name="width" type="number" min="0.000001" max="1" step="any" defaultValue={active.box.width} required /></label>
             <label>Tinggi<input name="height" type="number" min="0.000001" max="1" step="any" defaultValue={active.box.height} required /></label></>}</div>
           {correctionError && <p role="alert">{correctionError}</p>}<Button variant="outline" size="sm">Terapkan koordinat</Button></form></details>
-        <div className="finding-form__actions"><Button size="sm" onClick={() => edit({ review: 'accepted' })}><Check />Terima</Button>
+        <div className="finding-form__actions">{active.source === 'model' ? <>
+          <Button size="sm" onClick={() => edit({ review: 'accepted' })}><Check />Terima</Button>
           <Button size="sm" variant="outline" onClick={() => edit({ review: 'rejected' })}><X />Tolak</Button>
-          <Button size="sm" variant="destructive" onClick={() => { if (active.source === 'model') edit({ review: 'rejected' });
-            else { onChange(findings.filter(finding => finding.id !== active.id)); setSelected(undefined); } }}>
-            {active.source === 'model' ? 'Tolak kandidat' : 'Hapus anotasi'}</Button></div>
+        </> : <Button size="sm" variant="destructive" onClick={() => {
+          onChange(findings.filter(finding => finding.id !== active.id)); setSelected(undefined);
+        }}>Hapus anotasi</Button>}</div>
       </div>}
       {!props.integrated && <p className="editor-notice">Deteksi AI belum terhubung. Penandaan manual tersedia.</p>}
     </div>;
