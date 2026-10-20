@@ -1,6 +1,6 @@
 .session-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 2px 0 10px; }
 .session-header h2 { margin: 3px 0; }.session-header p { margin: 0; font-size: 13px; }.session-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
-.draft-status { color: var(--warning); font-weight: 650; }.action-reason { margin: -4px 0 8px; color: var(--warning); font-size: 12px; text-align: right; }
+.draft-status { color: var(--warning); font-weight: 650; }.action-reason { display: grid; justify-items: end; gap: 6px; margin: -4px 0 8px; color: var(--warning); font-size: 12px; text-align: right; }.action-reason p { margin: 0; }.action-reason .button-row { justify-content: flex-end; }
 .analysis-rerun { padding: 14px; border: 1px solid #ead69e; border-radius: var(--radius-md); background: var(--warning-soft); }.analysis-rerun .toolbar { display: flex; gap: 8px; }
 .model-details { margin: 10px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); font-size: 13px; }
 .model-details summary { cursor: pointer; font-weight: 650; }.model-details p { margin: 9px 0 0; }
@@ -45,7 +45,7 @@
   .wallacea-editor .mobile-review-trigger { display: inline-flex; }.wallacea-editor .canvas-host { min-height: 420px; }
 }
 @media (max-width: 720px) {
-  .session-header { display: grid; gap: 8px; }.session-actions { justify-content: flex-start; overflow-x: auto; padding-bottom: 2px; }.session-actions .ui-button { flex: 0 0 auto; }.action-reason { text-align: left; }
+  .session-header { display: grid; gap: 8px; }.session-actions { justify-content: flex-start; overflow-x: auto; padding-bottom: 2px; }.session-actions .ui-button { flex: 0 0 auto; }.action-reason { justify-items: start; text-align: left; }.action-reason .button-row { justify-content: flex-start; }
   .wallacea-editor .editor-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }.wallacea-editor .editor-summary > div { border-right: 0; }.wallacea-editor .editor-summary p { grid-column: 1 / -1; order: 3; }.wallacea-editor .editor-summary .ui-button { position: absolute; right: 18px; }
   .wallacea-editor .editor-toolbar { overflow-x: auto; }.wallacea-editor .editor-toolbar .ui-button { flex: 0 0 auto; }.wallacea-editor .mobile-review-trigger { order: -1; position: sticky; left: 0; z-index: 2; margin-left: 0; background: var(--surface); }.wallacea-editor .kind-control span { display: none; }.wallacea-editor .kind-control select { width: 130px; }.wallacea-editor .canvas-host { min-height: 340px; }
   .wallacea-editor .editor-footnote { display: none; }.review-sheet { width: 100%; }.analysis-rerun .toolbar { display: grid; }

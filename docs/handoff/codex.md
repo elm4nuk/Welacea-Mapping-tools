@@ -1,112 +1,112 @@
-# Codex UI/UX handoff — 19 October 2026
+# Codex frontend handoff — 20 Oktober 2026
 
 ## Delivery
 
-- Branch: `agent/codex-uiux-v2`
-- Worktree: `D:\coding\wallacea-worktrees\codex-uiux-v2`
-- Base: `2e8a2d7` (`agent/codex-inference-integration`)
-- Backend/contract source reviewed: `agent/claude-backend` at `a91a594`; the latest
-  additive contract revision 3 (including all revision-2 model fields) was used to regenerate frontend types without editing
-  `packages/contracts` in this branch.
-- Commits: `e85906f` (tokens/components/shell), `de50ecc`
-  (canvas/review/workflow), followed by the delivery commit containing this file.
-  Resolve the final SHA with `git rev-parse agent/codex-uiux-v2`.
-- No push, merge, deployment, backend change, migration change, or contract edit.
+- Branch: `agent/codex-frontend`
+- Worktree: `D:\coding\wallacea-worktrees\codex-frontend`
+- Titik awal branch: `678ff41`
+- Implementasi onboarding/status awal: `be46aabb7807eb4efd42fa91aa7ef03c87049b25`
+- Integrasi kontrak revision 4 dan command final: `9e487376325e45d915477f63172dba0a329efb54`
+- Baseline frontend yang dibawa ke branch ini: `34b3572`, `b3fc2c0`, `2a0f7ff`,
+  `fc505df`, dan `2afbf36` (cherry-pick dari pekerjaan Codex yang sudah ada).
+- Sumber kebenaran backend/kontrak yang sudah **commit** dan dibaca:
+  `agent/claude-backend` @ `1ecda6c4eef476aaed84a212623c9ade9e696846`, OpenAPI revision 4
+  (`cfacdda`).
+- Tidak ada perubahan backend, OpenAPI, model, dataset, push, deploy, atau merge ke `main`.
 
-## Before and after
+## Perubahan UX
 
-Before, the photo competed with permanent survey/photo/review columns, core actions
-were scattered, API/model state was conflated, and coordinate forms dominated the
-editor. After, the real workflow is explicit: **Buat survei → Unggah foto → Analisis
-& review → Laporan**. The desktop canvas occupies the main workspace, the review
-panel can close, and tablet/mobile move navigation, filmstrip, and review into
-Sheets. The toolbar is reduced to select/pan, point/box, zoom/fit, and undo/redo;
-coordinate entry remains keyboard-accessible under Pengaturan lanjutan.
+Status koneksi API tetap terpisah dari status model. Status model kini diturunkan dari
+health response dan tampil sebagai salah satu dari:
 
-API connectivity now follows the health query independently from model readiness.
-The primary action becomes Simpan perubahan for a dirty draft and Analisis foto
-only for a clean, persisted, non-demo photo with a connected API and available
-model. Its disabled reason is visible. Pending, accepted, and rejected candidates
-have icon/text/style distinctions, and only accepted plants count as confirmed.
+- **Mode manual — model belum dikonfigurasi**;
+- **Model ditemukan — siap dimuat**;
+- **Model aktif**;
+- **Konfigurasi model bermasalah**;
+- **SIMULASI — BUKAN AI** sebagai banner permanen berkontras tinggi.
 
-Reports now use Indonesian survey → per-photo summary → findings hierarchy, preserve
-CSV/annotated PNG/browser PDF, and include overlap/GPS disclaimers and A4 print rules.
-No map, heatmap, inferred GPS, fake inference progress, or fabricated detection was
-added. Existing display orientation, normalized transforms, reducer undo/redo,
-sequential save, If-Match, partial-save blocking, conflict recovery, and exports
-remain in place.
+Panel responsif **Cara mengaktifkan AI** menjelaskan bahwa `best.pt` adalah file,
+bukan command; lokasi `apps\api\models\best.pt`; dependency PyTorch CPU 2.11 /
+torchvision 0.26 dan `requirements-ai.txt`; contoh command final
+`check-model.ps1` dan `run-with-model.ps1` dengan tombol salin; keterbatasan model
+COCO umum; dan kebutuhan training menggunakan dataset beranotasi. UI tidak menawarkan
+unggah bobot melalui browser.
 
-## Contract and requests
+Tombol analisis mengikuti keadaan nyata: manual mengarahkan pengguna ke setup,
+configured/loaded dapat menganalisis bila guard foto/draf/API terpenuhi, error
+menampilkan alasan ramah pengguna dan aksi periksa ulang, dan simulation tetap aktif
+namun tidak pernah disebut hasil AI. Pesan khusus mencakup bobot hilang, dependency
+Ultralytics, label map, timeout, inference failed, dan API terputus.
 
-The generated `ModelStatus` types accept revision-2 `target_label`, `target`,
-`adapter`, `device`, and `limitations`, with conservative revision-1 fallback.
-Revision 3 also adds `AnalysisRun.target` and the licensed sample catalog.
-CR-FE-002 and CR-FE-003 are marked contract-fulfilled; catalog-picker UI remains
-separate follow-up scope.
+Kandidat model/simulasi tetap `pending` sampai pengguna memilih Terima atau Tolak.
+Koreksi kategori, catatan, dan koordinat tetap tersedia. Hanya tanaman nyata/model
+`accepted` masuk hitungan tanaman final; simulation yang diterima ditampilkan sebagai
+hitungan simulasi terpisah. Confidence diberi label **Skor model**, bukan akurasi. Sumber
+simulasi ditampilkan eksplisit. Aksi duplikat “Tolak” dihapus tanpa mengubah reducer,
+transformasi koordinat, atau persistence.
 
-## Verification
+## Kontrak dan request
 
-Run from this worktree:
+Kontrak committed Claude revision 4 menyediakan empat state model, `mode`,
+`diagnostic_code`, metadata adapter, target, target label, device, limitations, serta
+target analysis run. Frontend memakai `mode=simulation` / target `simulation` secara
+typed dan memakai kode diagnosis untuk pesan setup; ia tidak menebak dari nama model
+atau teks bebas.
+
+`docs/requests/codex-model-onboarding.md` menandai CR-FE-004 **dipenuhi** oleh revision 4:
+
+1. discriminator simulation pada health dan analysis run;
+2. `ModelStatus.diagnostic_code` untuk penyebab setup;
+3. interface final script PowerShell.
+
+Tipe frontend sudah diregenerasi dari OpenAPI revision 4. Command panel sama dengan
+script committed Claude, termasuk `-ModelPath .\models\best.pt` dan
+`-LabelMap 'plant=plant'`.
+
+## Verifikasi aktual
+
+Perintah yang lulus:
 
     pnpm typecheck:web
-    pnpm build:web
     pnpm --filter @wallacea/web test
+    pnpm build:web
     pnpm peers check
-    pnpm --filter @wallacea/web test:e2e --reporter=list
     git diff --check
 
-Playwright uses a real FastAPI process on port 18080 and a dedicated temporary data
-directory. Projects are exactly 1440×900, 820×1180, and 390×844. Coverage includes
-create/edit/delete, multi-upload, EXIF orientation, duplicate/invalid/oversize files,
-draft/undo/redo/save/reload, pending→accepted/rejected, If-Match conflict with draft
-retention, navigation protection, responsive Sheets, API offline/retry, model not
-configured, CSV, annotated PNG, and Chromium PDF/print media.
+Hasil:
 
-Final recorded results are completed immediately before the delivery commit:
+- TypeScript typecheck: lulus.
+- Vitest: 23/23 lulus dalam 4 file.
+- Production build: lulus; hanya peringatan chunk Vite >500 kB yang sudah ada.
+- Peer dependency check: lulus.
+- Playwright: 21 lulus, 3 dilewati pada desktop 1440×900, tablet 820×1180, dan
+  mobile 390×844. Tiga yang dilewati adalah smoke test DeepForest nyata karena
+  `WALLACEA_E2E_REAL_MODEL`/bobot tidak diaktifkan pada API QA.
+- Status manual/configured/loaded/error/simulation dan panel setup diuji di ketiga
+  viewport. Workspace nyata juga menguji upload, EXIF, draf, undo/redo, save/reload,
+  candidate review, konflik revision, proteksi navigasi, API offline/retry,
+  CSV/PNG/PDF, edit/delete survei, dan validasi upload.
+- Focused E2E onboarding revision 4: 3/3 lulus pada ketiga viewport.
+- Real simulation E2E terhadap FastAPI revision 4: 3/3 lulus pada ketiga viewport.
+  Alur membuat survei, mengunggah foto QA, menjalankan simulation, memastikan kandidat
+  pending tanpa confidence, menerima kandidat, menyimpan, dan memastikan hitungan
+  tetap `0 Tanaman terkonfirmasi` + `1 simulasi diterima`.
+- Simulation tersebut adalah kotak deterministik QA dari backend dan selalu dilabeli
+  **SIMULASI — BUKAN AI**, bukan hasil deteksi atau bukti akurasi.
 
-- revision-3 API type regeneration comparison: passed;
-- typecheck and production build: passed;
-- Vitest: 21 tests passed in 4 files;
-- peer dependency check: passed;
-- Playwright: 18 tests passed across all three viewports;
-- `git diff --check`: passed.
+Tipe frontend diregenerasi langsung dari revision 4 committed pada branch Claude.
 
-The 18-test matrix used the revision-1-compatible API with no configured model and
-verifies honest unavailable-model behavior. A separate optional Playwright smoke
-test then ran the redesigned desktop UI against Claude's revision-3 API with loaded
-DeepForest CPU weights: upload of the attributed `OSBS_029.png` sample, real
-analysis, accept one/reject one, save, reload, and API persistence all passed in
-5.8 seconds. The API reported model version `sha256:d37a7af0b5ba2754`, target
-`tree_crown`; this is a pretrained forest-canopy baseline, not K919 or agricultural
-accuracy evidence. Synthetic files/candidates in the main matrix remain clearly QA
-contract data.
+## Urutan integrasi ke `integration/wallacea-mvp`
 
-## Screenshot evidence
+1. Integrasikan commit Claude `1ecda6c` lebih dahulu ke `integration/wallacea-mvp`.
+2. Integrasikan commit Codex `be46aab`, `9e48737`, dan commit dokumentasi setelahnya. Bila lima
+   commit baseline frontend belum ada di integration, cherry-pick berurutan:
+   `34b3572 b3fc2c0 2a0f7ff fc505df 2afbf36 be46aab 9e48737`.
+3. Pastikan `apps/web/src/api/schema.d.ts` tetap identik dengan OpenAPI Claude final;
+   jangan mengubah kontrak dari sisi frontend.
+4. Jalankan export/check kontrak, seluruh pytest backend/ML yang relevan, lalu
+   typecheck, Vitest, build, dan Playwright frontend termasuk real simulation serta
+   real-model smoke bila bobot tersedia.
 
-Matched baseline/after editor captures use the same API/database and same generated
-illustration state. Baseline is commit `2e8a2d7`; after is this delivery branch.
-
-- `docs/handoff/screenshots/uiux-v2/before-desktop.png`
-- `docs/handoff/screenshots/uiux-v2/after-desktop.png`
-- `docs/handoff/screenshots/uiux-v2/before-tablet.png`
-- `docs/handoff/screenshots/uiux-v2/after-tablet.png`
-- `docs/handoff/screenshots/uiux-v2/before-mobile.png`
-- `docs/handoff/screenshots/uiux-v2/after-mobile.png`
-
-Visual inspection confirmed canvas dominance on desktop, no horizontal page
-overflow, readable status/action hierarchy, persistent desktop review, and Sheet
-behavior at tablet/mobile sizes. The images are an explicitly labelled illustration,
-not drone imagery or model output.
-
-## Integration for Claude
-
-Inspect with:
-
-    git show agent/codex-uiux-v2:docs/handoff/codex.md
-    git log --oneline 2e8a2d7..agent/codex-uiux-v2
-
-Merge or cherry-pick the three frontend commits into the chosen integration branch.
-Keep Claude's revision-3 contract as authoritative; if it differs from the snapshot
-used here, rerun `pnpm --filter @wallacea/web generate:api` after the contract merge,
-then repeat typecheck, Vitest, and Playwright. Do not replace the editor transform or
-persistence modules during conflict resolution.
+Commit Claude revision 4 perlu diintegrasikan **lebih dahulu**. Jangan merge ke `main`
+sebelum review dan izin eksplisit.

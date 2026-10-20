@@ -2,6 +2,41 @@ import { ApiError } from '../../api/client';
 import type { Schema } from '../../api/client';
 
 export type AnalysisPhase = 'idle' | 'running' | 'succeeded' | 'failed';
+export type ModelUiState = 'manual' | 'configured' | 'loaded' | 'error' | 'simulation';
+
+export function isSimulationModel(model: Schema['ModelStatus']) {
+  return model.mode === 'simulation' || model.adapter === 'simulation' || model.target === 'simulation';
+}
+
+export function isSimulationRun(run: Schema['AnalysisRun']) {
+  const parameters = run.parameters as { adapter?: unknown; not_ai?: unknown };
+  return run.target === 'simulation' || parameters.adapter === 'simulation' || parameters.not_ai === true;
+}
+
+type DiagnosticCode = NonNullable<Schema['ModelStatus']['diagnostic_code']>;
+
+export function friendlyModelProblem(message: string, code?: DiagnosticCode | null) {
+  const byCode: Partial<Record<DiagnosticCode, string>> = {
+    DETECTOR_CONFIG_INVALID: 'Konfigurasi detector tidak valid. Periksa jenis detector, path model, confidence, dan perangkat.',
+    MODEL_FILE_NOT_FOUND: 'File bobot model tidak ditemukan. Periksa lokasi apps\\api\\models\\best.pt.',
+    MODEL_FILE_NOT_PT: 'Bobot Ultralytics harus berupa file .pt, bukan folder atau format model lain.',
+    MODEL_FILES_INCOMPLETE: 'Berkas model belum lengkap. Periksa kembali folder bobot model.',
+    DEPENDENCY_MISSING: 'Dependency AI Ultralytics belum terpasang pada environment API.',
+    LABEL_MAP_INVALID: 'Format label map tidak valid. Gunakan format seperti plant=plant.',
+    LABEL_MAP_MISMATCH: 'Label map tidak cocok dengan nama kelas yang ada di dalam model.',
+    NOT_DETECTION_MODEL: 'File model bukan model object detection. Gunakan bobot dengan task detect.',
+    MODEL_LOAD_FAILED: 'File model ditemukan tetapi gagal dimuat. Periksa integritas dan versi bobot.',
+  };
+  if (code && byCode[code]) return byCode[code]!;
+  const normalized = message.toLocaleLowerCase('id');
+  if (/ultralytics|no module|modul|dependen|package/.test(normalized))
+    return 'Dependency AI Ultralytics belum terpasang pada environment API.';
+  if (/label.map|label_map|pemetaan|kelas model|class/.test(normalized))
+    return 'Pemetaan label model tidak cocok dengan kelas yang didukung WALLACEA.';
+  if (/tidak ditemukan|not found|no such file|model.path|bobot|weight/.test(normalized))
+    return 'File bobot model tidak ditemukan. Periksa lokasi best.pt dan jalankan pemeriksaan model.';
+  return message ? `Backend melaporkan: ${message}` : 'Periksa konfigurasi model pada server API.';
+}
 
 /** Until the contract exposes output semantics, only opt into crown wording when the API identifies DeepForest. */
 export function modelPresentation(modelId: string | null | undefined) {
@@ -17,6 +52,9 @@ export function modelPresentation(modelId: string | null | undefined) {
 
 export function modelTargetPresentation(model: Schema['ModelStatus']) {
   const fallback = modelPresentation(model.model_id);
+  if (isSimulationModel(model)) return {
+    ...fallback, isDeepForest: false, candidate: model.target_label?.trim() || 'SIMULASI — BUKAN AI', disclaimer: '',
+  };
   return {
     ...fallback,
     isDeepForest: model.target === 'tree_crown' || fallback.isDeepForest,
@@ -28,15 +66,27 @@ export function modelTargetPresentation(model: Schema['ModelStatus']) {
 export function modelStatus(model: Schema['ModelStatus']) {
   const metadata = [model.model_id, model.model_version].filter((value): value is string => Boolean(value));
   const target = modelTargetPresentation(model);
+  const simulation = isSimulationModel(model);
   const common = { targetLabel: target.candidate, limitations: model.limitations ?? [],
-    device: model.device ?? '', adapter: model.adapter ?? '' };
+    device: model.device ?? '', adapter: model.adapter ?? '', simulation, diagnosticCode: model.diagnostic_code ?? null };
+  if (simulation) {
+    return { state: 'simulation' as const, label: 'SIMULASI — BUKAN AI', available: true, metadata: '',
+      detail: 'Detector simulasi menghasilkan kandidat uji, bukan hasil analisis model tanaman.', ...common };
+  }
   if (model.state === 'not_configured') {
-    return { label: 'Model belum dikonfigurasi', available: false, metadata: '', detail: model.message, ...common };
+    return { state: 'manual' as const, label: 'Mode manual — model belum dikonfigurasi', available: false, metadata: '',
+      detail: 'Penandaan manual tetap dapat digunakan. Aktifkan AI dari komputer yang menjalankan API.', ...common };
   }
   if (model.state === 'error' || !model.available) {
-    return { label: 'Model tidak tersedia', available: false, metadata: '', detail: model.message, ...common };
+    return { state: 'error' as const, label: 'Konfigurasi model bermasalah', available: false, metadata: '',
+      detail: friendlyModelProblem(model.message, model.diagnostic_code), ...common };
   }
-  return { label: model.target_label || 'Model tersedia', available: true, metadata: metadata.join(' / '), detail: model.message, ...common };
+  if (model.state === 'configured') {
+    return { state: 'configured' as const, label: 'Model ditemukan — siap dimuat', available: true,
+      metadata: metadata.join(' / '), detail: model.message || 'Model akan dimuat saat analisis pertama.', ...common };
+  }
+  return { state: 'loaded' as const, label: 'Model aktif', available: true, metadata: metadata.join(' / '),
+    detail: model.message, ...common };
 }
 
 export function analysisError(error: unknown): {
@@ -48,11 +98,13 @@ export function analysisError(error: unknown): {
   if (!(error instanceof ApiError)) {
     return { message: error instanceof Error ? error.message : String(error), phase: 'failed', canChooseRerun: false, refreshModel: false };
   }
+  const details = error.details && typeof error.details === 'object' ? error.details as { diagnostic_code?: unknown } : undefined;
+  const diagnosticCode = typeof details?.diagnostic_code === 'string' ? details.diagnostic_code as DiagnosticCode : undefined;
   switch (error.code) {
     case 'MODEL_NOT_CONFIGURED':
       return { message: 'Model tanaman belum dikonfigurasi. Penandaan manual tetap dapat digunakan.', phase: 'failed', canChooseRerun: false, refreshModel: true };
     case 'MODEL_UNAVAILABLE':
-      return { message: 'Model dikonfigurasi tetapi sedang tidak tersedia. Anotasi yang ada tidak berubah; coba lagi setelah konfigurasi model diperiksa.', phase: 'failed', canChooseRerun: false, refreshModel: true };
+      return { message: `Model belum dapat dipakai. ${friendlyModelProblem(error.message, diagnosticCode)} Anotasi yang ada tidak berubah.`, phase: 'failed', canChooseRerun: false, refreshModel: true };
     case 'INFERENCE_TIMEOUT':
       return { message: 'Analisis melewati batas waktu server. Anotasi yang ada tidak berubah. Periksa riwayat run sebelum mencoba lagi.', phase: 'failed', canChooseRerun: false, refreshModel: false };
     case 'INFERENCE_FAILED':
@@ -74,3 +126,5 @@ export function runStatus(run: Schema['AnalysisRun']) {
   const metadata = [run.model_id, run.model_version].filter((value): value is string => Boolean(value)).join(' / ');
   return { status, metadata };
 }
+
+export type ModelDisplay = ReturnType<typeof modelStatus>;

@@ -11,13 +11,15 @@ import { Button } from '../../components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogTitle } from '../../components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import { exportAnnotatedPng } from './export';
-import { analysisError, modelPresentation, modelStatus, modelTargetPresentation, runStatus } from './analysis';
+import { analysisError, isSimulationRun, modelPresentation, modelStatus, modelTargetPresentation, runStatus } from './analysis';
 import type { AnalysisPhase } from './analysis';
 import { analysisDisabledReason } from '../workflow';
-export function EditorSession({ photo, survey, model, apiConnected, inferenceTimeoutSeconds, onDirty }: {
+export function EditorSession({ photo, survey, model, apiConnected, inferenceTimeoutSeconds, onDirty, onOpenModelSetup, onRefreshModel }: {
   photo: Photo; survey: Survey; model?: Schema['ModelStatus']; inferenceTimeoutSeconds?: number;
   apiConnected: boolean;
   onDirty: (value: boolean) => void;
+  onOpenModelSetup: () => void;
+  onRefreshModel: () => void;
 }) {
   const client = useQueryClient();
   const query = useQuery({ queryKey: ['annotations', photo.id], queryFn: ({ signal }) => api.annotations(photo.id, signal) });
@@ -163,12 +165,12 @@ export function EditorSession({ photo, survey, model, apiConnected, inferenceTim
   if (query.isPending || (!initialized.current && !query.isError)) return <p role="status">Memuat anotasi...</p>;
   if (query.isError) return <div role="alert">{query.error.message}<Button onClick={() => void query.refetch()}>Coba lagi</Button></div>;
   const modelByRunId = Object.fromEntries((runs.data?.items ?? []).map(run => [run.id, {
-    id: run.model_id ?? undefined, version: run.model_version ?? undefined,
+    id: run.model_id ?? undefined, version: run.model_version ?? undefined, simulation: isSimulationRun(run),
   }]));
   const deepForest = [model?.model_id, ...(runs.data?.items ?? []).map(run => run.model_id)]
     .some(modelId => modelPresentation(modelId).isDeepForest);
-  const analyzeReason = analysisDisabledReason({ apiConnected, modelAvailable: Boolean(model?.available), dirty,
-    isDemo: survey.is_demo, busy });
+  const analyzeReason = analysisDisabledReason({ apiConnected, modelAvailable: Boolean(modelDisplay?.available),
+    modelState: modelDisplay?.state, modelDetail: modelDisplay?.detail, dirty, isDemo: survey.is_demo, busy });
   return <section aria-busy={busy}>
     <div className="session-header no-print"><div><span className="eyebrow">Tahap 2 · Analisis & review</span><h2>{photo.original_name}</h2>
       <p role="status" className={dirty ? 'draft-status' : undefined}>{analyzing ? `Analisis sedang berjalan${inferenceTimeoutSeconds ? ` (batas server ${inferenceTimeoutSeconds} detik)` : ''}. Tidak ada persentase progres.`
@@ -182,7 +184,11 @@ export function EditorSession({ photo, survey, model, apiConnected, inferenceTim
           if (image) void exportAnnotatedPng(image, findings, survey, photo, dirty).catch(reason => setError(String(reason)));
         }}><Download />Ekspor PNG anotasi</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
       </div></div>
-    {analyzeReason && !dirty && <p className="action-reason no-print">{analyzeReason}</p>}
+    {analyzeReason && !dirty && <div className="action-reason no-print"><p>{analyzeReason}</p>
+      {(modelDisplay?.state === 'manual' || modelDisplay?.state === 'error') && <div className="button-row">
+        <Button variant="outline" size="sm" onClick={onOpenModelSetup}>Cara mengaktifkan AI</Button>
+        {modelDisplay.state === 'error' && <Button variant="ghost" size="sm" onClick={onRefreshModel}><RefreshCw />Periksa status lagi</Button>}
+      </div>}</div>}
     {error && <p role="alert" className="error">{error}</p>}
     {canChooseRerun && <div className="notice analysis-rerun">
       <p>Analisis ulang tidak mengubah penanda manual atau kandidat yang sudah diterima/ditolak.</p>

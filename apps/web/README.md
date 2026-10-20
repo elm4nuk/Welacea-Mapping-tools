@@ -1,8 +1,8 @@
 # WALLACEA web
 
 React frontend for API v1. Generated types consume the additive contract revision
-3 from Claude's latest backend handoff while remaining compatible with revisions
-1–2. No
+4 from Claude's latest backend handoff while remaining compatible with revisions
+1–3. No
 mock service is enabled by default. The application needs the real FastAPI service.
 
 ## Run
@@ -59,9 +59,13 @@ Vite preview does not provide the development API proxy.
 
 - API connectivity and model readiness are separate statuses. Connectivity is
   based on the real health query; model availability is read from its response.
-  The UI distinguishes a
-  model that is not configured, available, or unavailable, and only shows the
-  model ID/version when those values are supplied by the API.
+  The UI distinguishes **Mode manual**, **Model ditemukan**, **Model aktif**,
+  **Konfigurasi model bermasalah**, and the permanent **SIMULASI — BUKAN AI**
+  warning. It only shows model ID/version when supplied by the API.
+- **Cara mengaktifkan AI** explains that `best.pt` is a file, gives the expected
+  server-side location and PowerShell setup/check/run commands, and warns that a
+  generic COCO model is not a trained drone-crop detector. The browser does not
+  accept model-weight uploads.
 - Analysis is synchronous. While the request is open the UI says that analysis
   is running and does not invent a progress percentage. The button is guarded
   against duplicate submission.
@@ -79,6 +83,9 @@ Vite preview does not provide the development API proxy.
   Contract-revision-2 responses use `target_label`, `target`, `adapter`, `device`,
   and `limitations` directly. Revision-1 responses retain conservative generic
   wording.
+- Simulation candidates use the same pending-first review flow but retain a
+  visible simulation source. Contract revision 4 exposes this through model
+  `mode`, adapter/target `simulation`, and analysis-run target `simulation`.
 - Reports state counts per photo. Image coordinates are not GPS, and sums across
   overlapping photos are not claimed as unique plants for the whole field.
 
