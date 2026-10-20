@@ -1,8 +1,9 @@
 # CR-FE-005 — kontrak workspace pemetaan lahan
 
 - Diajukan: Codex, 2026-10-20, branch `agent/codex-mapping`
-- Sumber yang diperiksa: `agent/claude-backend` @ `1ecda6c`, OpenAPI revision 4
-- Status: menunggu kontrak committed Claude; frontend tidak memanggil endpoint di bawah sebelum tersedia.
+- Sumber yang diperiksa: `agent/claude-backend` @ `f2e770f`, OpenAPI revision 5
+- Status: **dipenuhi** oleh backend `40ba487`, kontrak `f2e770f`, dan dokumentasi
+  `1d1d36c`; frontend mengonsumsi snapshot committed tersebut.
 
 ## Tujuan
 
@@ -55,3 +56,22 @@ backend yang sah.
 - OpenAPI, fixture sukses/error/conflict, CHANGELOG, dan handoff committed.
 - Fixture memuat polygon/raster/kandidat berlabel QA sintetis, bukan data lapangan nyata.
 - Backend menghitung metrik geometry dan membuktikan tile bounds pada tes integrasi.
+
+## Penyelesaian revision 5
+
+Kontrak final menggunakan boundary global di `/fields` lalu menautkannya melalui
+`Survey.field_id`, bukan endpoint boundary yang bersarang langsung di bawah survei.
+Ini memenuhi kebutuhan ownership tanpa frontend menebak endpoint. Impor mengembalikan
+`FieldImportResult`; update/delete batas dan review kandidat memakai `If-Match`.
+
+Raster tersedia melalui `/surveys/{survey_id}/rasters` dan `/rasters/{raster_id}`,
+dengan TileJSON, bounds WGS84, CRS sumber, footprint, run analisis, dan kandidat peta.
+Health menyediakan capability granular dan limit raster/batas. Laporan memuat ringkasan
+batas serta per-raster dengan hitungan accepted-only. Kontrak juga menegaskan bahwa:
+
+- impor GeoTIFF bukan pembuatan atau verifikasi orthomosaic;
+- foto biasa tidak dianggap tergeoreferensi;
+- kandidat simulasi bukan keluaran AI;
+- hitungan antar-raster tidak membuktikan tanaman unik.
+
+Tidak ada request kontrak lanjutan yang diperlukan untuk delivery frontend ini.
