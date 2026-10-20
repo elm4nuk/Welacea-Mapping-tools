@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "MODEL_UNAVAILABLE",
+    "message": "Berkas bobot tidak ditemukan: C:\\Model Tanaman\\best.pt. Periksa path (pakai path lengkap; bungkus dengan tanda kutip bila ada spasi).",
+    "details": {
+      "model_state": "error",
+      "diagnostic_code": "MODEL_FILE_NOT_FOUND"
+    },
+    "request_id": "965d4a022f3f4da49f049b5478be17b8"
+  }
+}

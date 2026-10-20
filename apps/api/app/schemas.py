@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from pydantic.json_schema import SkipJsonSchema
 
 from .errors import ERROR_CODES
+from .inference.base import DIAGNOSTIC_CODES
 
 Kind = Literal["plant", "check", "gap"]
 GeometryType = Literal["point", "bbox"]
@@ -24,6 +25,9 @@ RunStatus = Literal["running", "succeeded", "failed"]
 RunType = Literal["inference", "import"]
 OnExisting = Literal["reject", "replace_pending", "append"]
 ModelState = Literal["not_configured", "configured", "loaded", "error"]
+ModelMode = Literal["manual", "model", "simulation"]
+ModelDiagnosticCode = Literal[DIAGNOSTIC_CODES]  # type: ignore[valid-type]
+Target = Literal["plant", "tree_crown", "simulation"]
 ErrorCode = Literal[ERROR_CODES]  # type: ignore[valid-type]
 
 Unit = Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
@@ -80,14 +84,24 @@ class ModelStatus(BaseModel):
     model_version: str | None = Field(None, description="Sidik jari bobot (sha256 terpotong) bila diketahui.")
     message: str
     # Revisi 2 (aditif): apa yang sebenarnya dideteksi model, agar UI tidak menebak.
-    adapter: Literal["ultralytics", "deepforest"] | None = Field(
-        None, description="Jenis detector aktif. null bila mode manual / konfigurasi salah.")
-    target: Literal["plant", "tree_crown"] | None = Field(
+    adapter: Literal["ultralytics", "deepforest", "simulation"] | None = Field(
+        None, description="Jenis detector aktif. null bila mode manual / konfigurasi salah. Revisi 4: `simulation`.")
+    target: Target | None = Field(
         None, description="Objek yang dideteksi model. tree_crown = tajuk pohon (DeepForest pretrained), BUKAN semua "
-                          "tanaman. Kandidat tetap disimpan sebagai kind=plant (lihat Annotation.model_label).")
+                          "tanaman. simulation (revisi 4) = kotak buatan, BUKAN AI. Kandidat tetap disimpan sebagai "
+                          "kind=plant (lihat Annotation.model_label).")
     target_label: str | None = Field(None, description="Teks siap tampil, mis. 'Kandidat tajuk pohon (DeepForest pretrained)'.")
     device: str | None = Field(None, description="cpu | cuda | auto. Inferensi CPU dapat memakan puluhan detik per foto besar.")
     limitations: list[str] = Field(default_factory=list, description="Keterbatasan model yang perlu ditampilkan ke pengguna.")
+    # Revisi 4 (aditif): mode & diagnosis yang bisa dibaca mesin.
+    mode: ModelMode = Field(
+        "model", description="manual: tanpa model (penandaan manual saja); model: detector model sungguhan "
+                             "(state menjelaskan siap/tidak); simulation: WALLACEA_DETECTOR=simulation — kandidat "
+                             "SIMULASI, BUKAN AI. UI wajib menampilkan target_label/message bila mode=simulation.")
+    diagnostic_code: ModelDiagnosticCode | None = Field(
+        None, description="Alasan status yang bisa dibaca mesin (mis. MODEL_FILE_NOT_FOUND, DEPENDENCY_MISSING, "
+                          "LABEL_MAP_MISMATCH, SIMULATION_ACTIVE). null = model siap tanpa catatan. Teks untuk "
+                          "pengguna tetap di `message`.")
 
 
 class Capabilities(BaseModel):
@@ -311,9 +325,10 @@ class AnalysisRun(BaseModel):
     finished_at: dt.datetime | None
     error_code: str | None
     # Revisi 3 (CR-FE-003): semantik kandidat run ini, sama dengan health.model.target saat run dibuat.
-    target: Literal["plant", "tree_crown"] | None = Field(
+    target: Target | None = Field(
         None, description="Arti bbox kandidat run ini: plant = tanaman (model tim), tree_crown = tajuk pohon "
-                          "(DeepForest pretrained). null = tidak diketahui (mis. impor, run lama) → pakai istilah generik.")
+                          "(DeepForest pretrained), simulation = SIMULASI BUKAN AI (revisi 4). null = tidak diketahui "
+                          "(mis. impor, run lama) → pakai istilah generik.")
 
 
 class AnalysisRunPage(BaseModel):

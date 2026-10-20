@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import logging
+
 from ..config import Settings
 from .base import Detector, DetectorInfo, ModelUnavailable, UnconfiguredDetector
 from .deepforest_adapter import DEFAULT_LABEL_MAP as DEEPFOREST_LABEL_MAP
 from .deepforest_adapter import DeepForestDetector
+from .simulation import SimulationDetector
 from .ultralytics_adapter import UltralyticsDetector
+
+log = logging.getLogger("wallacea.inference")
 
 
 class MisconfiguredDetector(Detector):
@@ -14,17 +19,24 @@ class MisconfiguredDetector(Detector):
         self._message = message
 
     def info(self) -> DetectorInfo:
-        return DetectorInfo(state="error", message=self._message)
+        return DetectorInfo(state="error", message=self._message, mode="manual",
+                            diagnostic_code="DETECTOR_CONFIG_INVALID")
 
     def detect(self, image):
-        raise ModelUnavailable(self._message)
+        raise ModelUnavailable(self._message, "DETECTOR_CONFIG_INVALID")
 
 
 def build_detector(settings: Settings) -> Detector:
     """WALLACEA_DETECTOR: kosong = otomatis (ultralytics bila WALLACEA_MODEL_PATH ada, selain itu manual),
-    `none` = manual, `ultralytics` = bobot YOLO .pt, `deepforest` = folder bobot DeepForest lokal."""
+    `none` = manual, `ultralytics` = bobot YOLO .pt, `deepforest` = folder bobot DeepForest lokal,
+    `simulation` = kotak buatan KHUSUS development (BUKAN AI). Simulasi tidak pernah dipilih otomatis: bobot yang
+    hilang/rusak memberi state=error, bukan simulasi."""
     if settings.config_error:
         return MisconfiguredDetector(settings.config_error)
+    if settings.detector == "simulation":
+        if settings.model_path:
+            log.warning("WALLACEA_MODEL_PATH diabaikan karena WALLACEA_DETECTOR=simulation.")
+        return SimulationDetector()
     kind = settings.detector or ("ultralytics" if settings.model_path else "none")
     if kind == "none" or settings.model_path is None:
         return UnconfiguredDetector()

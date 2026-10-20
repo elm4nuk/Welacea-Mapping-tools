@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from .. import models as m
 from .. import schemas as s
 from .. import services as svc
+from ..inference.simulation import MODEL_ID as SIMULATION_MODEL_ID
 from ..db import utcnow
 from ..deps import get_db
 from . import errors
@@ -27,6 +28,17 @@ DISCLAIMERS = [
     "Confidence adalah keluaran model, bukan akurasi survei.",
 ]
 DEMO_DISCLAIMER = "DATA CONTOH: gambar ilustrasi dan penanda contoh, bukan foto drone dan bukan hasil AI."
+SIMULATION_DISCLAIMER = ("SIMULASI — BUKAN AI: survei ini memuat kandidat dari detector simulasi development "
+                         f"(model_id {SIMULATION_MODEL_ID}). Kandidat itu tidak berasal dari model; hitungan yang "
+                         "memakainya tidak boleh dipakai untuk keputusan lapangan.")
+
+
+def _has_simulation(db: Session, photo_ids: list[str]) -> bool:
+    if not photo_ids:
+        return False
+    return db.scalar(select(m.Annotation.id).join(m.AnalysisRun, m.Annotation.analysis_run_id == m.AnalysisRun.id)
+                     .where(m.Annotation.photo_id.in_(photo_ids), m.AnalysisRun.model_id == SIMULATION_MODEL_ID)
+                     .limit(1)) is not None
 
 
 def build_report(db: Session, survey_id: str) -> s.SurveyReport:
@@ -53,7 +65,8 @@ def build_report(db: Session, survey_id: str) -> s.SurveyReport:
         survey=svc.survey_out(survey, len(photos)), generated_at=utcnow(), photos=rows, totals=totals,
         findings=[s.Finding(annotation_id=a.id, photo_id=a.photo_id, photo_name=names[a.photo_id], kind=a.kind,
                             review_status=a.review_status, source=a.source, x=a.x, y=a.y, note=a.note) for a in findings],
-        disclaimers=([DEMO_DISCLAIMER] if survey.is_demo else []) + DISCLAIMERS,
+        disclaimers=([DEMO_DISCLAIMER] if survey.is_demo else [])
+        + ([SIMULATION_DISCLAIMER] if _has_simulation(db, list(names)) else []) + DISCLAIMERS,
     )
 
 

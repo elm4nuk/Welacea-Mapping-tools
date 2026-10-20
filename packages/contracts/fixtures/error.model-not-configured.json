@@ -1,8 +1,11 @@
 {
   "error": {
     "code": "MODEL_NOT_CONFIGURED",
-    "message": "Model tanaman belum dikonfigurasi. Atur WALLACEA_MODEL_PATH ke bobot lokal hasil pelatihan tim. Mode manual tetap dapat dipakai.",
-    "details": {},
-    "request_id": "7d0eaa97f82f4fe9948fd7f4a3890869"
+    "message": "Model tanaman belum dikonfigurasi (mode manual). Penandaan manual tetap berjalan. Untuk analisis otomatis, jalankan API lewat scripts\\run-with-model.ps1 dengan bobot YOLO hasil pelatihan (berkas best.pt) — lihat apps/api/README.md.",
+    "details": {
+      "model_state": "not_configured",
+      "diagnostic_code": "MODEL_PATH_NOT_SET"
+    },
+    "request_id": "de58ca422a9448e982084c903ab16d3b"
   }
 }

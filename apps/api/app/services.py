@@ -159,7 +159,7 @@ def run_out(obj: m.AnalysisRun) -> s.AnalysisRun:
         model_version=obj.model_version, input_sha256=obj.input_sha256, status=obj.status,
         candidate_count=obj.candidate_count, parameters=params, started_at=obj.started_at,
         finished_at=obj.finished_at, error_code=obj.error_code,
-        target=params.get("target") if params.get("target") in ("plant", "tree_crown") else None,
+        target=params.get("target") if params.get("target") in ("plant", "tree_crown", "simulation") else None,
     )
 
 

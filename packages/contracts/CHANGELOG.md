@@ -5,6 +5,55 @@ Pemilik: Claude (backend). Setiap perubahan kontrak: naikkan `CONTRACT_REVISION`
 dengan kompatibilitas dan fixture yang berubah, commit, lalu sampaikan SHA ke frontend.
 Usulan perubahan dari frontend: `docs/requests/codex-*.md`.
 
+## Revisi 4 — 2026-10-20 (`info.version` 1.4.0) — diagnostik model + mode simulasi development
+
+**Kompatibel mundur (aditif).** Tidak ada field yang dihapus atau diubah tipenya; `ModelStatus.state` tetap
+`not_configured | configured | loaded | error`; kode error HTTP sama. Ada nilai enum **baru** yang harus ditangani UI.
+
+`ModelStatus` (`GET /health` → `model`):
+
+| Field | Tipe | Arti |
+|---|---|---|
+| `mode` (baru) | `"manual" \| "model" \| "simulation"` | `manual` = tanpa model (`state=not_configured`, atau `WALLACEA_DETECTOR` salah → `state=error`); `model` = detector sungguhan, siap/tidaknya dari `state`; `simulation` = `WALLACEA_DETECTOR=simulation`, **SIMULASI — BUKAN AI** |
+| `diagnostic_code` (baru) | enum, nullable | Alasan status yang bisa dibaca mesin, lihat tabel bawah. `null` = siap tanpa catatan |
+| `adapter` | + nilai `"simulation"` | |
+| `target` | + nilai `"simulation"` | Kandidat adalah kotak buatan, bukan tanaman |
+
+`diagnostic_code`:
+
+| Kode | `state` | Arti / tindakan pengguna |
+|---|---|---|
+| `MODEL_PATH_NOT_SET` | `not_configured` | Mode manual (default). Bukan error |
+| `DETECTOR_CONFIG_INVALID` | `error` | `WALLACEA_DETECTOR` tak dikenal, `ultralytics/deepforest` tanpa `MODEL_PATH`, confidence/device/patch salah |
+| `MODEL_FILE_NOT_FOUND` | `error` | Path bobot/folder tidak ada (`message` berisi path lengkap) |
+| `MODEL_FILE_NOT_PT` | `error` | Ultralytics: bukan berkas `.pt` (mis. folder run, `.onnx`) |
+| `MODEL_FILES_INCOMPLETE` | `error` | DeepForest: folder bobot tidak lengkap |
+| `DEPENDENCY_MISSING` | `error` | `ultralytics`/`deepforest` belum terpasang di venv API |
+| `LABEL_MAP_INVALID` | `error` | `WALLACEA_LABEL_MAP_JSON` tidak bisa dibaca / nilai bukan `plant\|check\|gap` |
+| `LABEL_MAP_MISMATCH` | `error` | Bobot terbuka tetapi tidak ada kelas model di label map (`message` menyebut kelas model) |
+| `NOT_DETECTION_MODEL` | `error` | Bobot `task` ≠ `detect` (seg/cls/pose) |
+| `MODEL_LOAD_FAILED` | `error` | Berkas ada tetapi gagal dibuka (rusak/versi) |
+| `GENERIC_COCO_MODEL` | `loaded` | Model COCO umum: analisis jalan, tetapi `target_label` = "Kandidat dari model COCO umum (BUKAN model tanaman)" |
+| `SIMULATION_ACTIVE` | `loaded` | Mode simulasi aktif |
+
+Perilaku baru (tanpa perubahan skema):
+- Kegagalan **memuat** model (`LABEL_MAP_MISMATCH`, `NOT_DETECTION_MODEL`, `MODEL_LOAD_FAILED`) kini diingat: setelah
+  analisis pertama gagal, `/health` menunjukkan `state=error` + kode tersebut (dulu tetap `configured`). Berkas bobot
+  yang diganti (ukuran/mtime berubah) dicoba lagi.
+- 503 `MODEL_NOT_CONFIGURED` / `MODEL_UNAVAILABLE` dari `/analyze`: `details` = `{model_state, diagnostic_code}`
+  (+ `run_id` bila run sudah dibuat). `message` 503 MODEL_NOT_CONFIGURED tidak lagi diberi akhiran " Mode manual tetap
+  dapat dipakai." (kalimat itu kini sudah ada di `health.model.message`).
+- **Simulasi** (`WALLACEA_DETECTOR=simulation`, tidak pernah otomatis): `state=loaded`, `model_id="simulation-not-ai"`,
+  `model_version="simulation-v1"`, `target_label="SIMULASI — BUKAN AI"`. Kandidat: `source=model`,
+  `review_status=pending`, `kind=plant`, `confidence=null`, `model_label="SIMULASI — BUKAN AI"`; kotak deterministik
+  per gambar. `AnalysisRun.target="simulation"`, `parameters.not_ai=true`. `AnalysisResult.notice` diawali
+  "SIMULASI — BUKAN AI". `SurveyReport.disclaimers` mendapat butir "SIMULASI — BUKAN AI: …" bila survei memuat kandidat
+  simulasi (diterima atau tidak).
+
+Fixture: **baru** `health.simulation.json`, `health.model-file-not-found.json`, `error.model-unavailable.json`,
+`analyze.simulation.response.json`. `health.*.json` lain mendapat `mode` + `diagnostic_code`;
+`error.model-not-configured.json` mendapat `details`. Fixture lain hanya berubah ID/timestamp.
+
 ## Revisi 3 — 2026-10-19 (`info.version` 1.3.0) — jawaban CR-FE-001/002/003 Codex
 
 **Kompatibel mundur.** Endpoint baru + field response opsional; perilaku runtime request lama tidak berubah.

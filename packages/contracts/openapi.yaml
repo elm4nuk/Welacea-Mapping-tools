@@ -21,7 +21,7 @@ info:
     * Konkurensi penanda: `ETag`/`If-Match` berisi `revision` (wajib untuk PATCH/DELETE annotation).
 
     '
-  version: 1.3.0
+  version: 1.4.0
 paths:
   /api/v1/health:
     get:
@@ -704,7 +704,9 @@ paths:
       description: 'Sinkron: request menunggu sampai inferensi selesai atau melewati `limits.inference_timeout_s` (default
         120 s) → 504 INFERENCE_TIMEOUT. Latensi bergantung CPU/GPU dan resolusi; tidak ada progres persentase. Tidak ada run
         yang dibuat bila model belum dikonfigurasi. Run yang terputus karena server restart ditandai failed (error_code=INTERRUPTED)
-        saat startup.'
+        saat startup. Revisi 4: 503 MODEL_NOT_CONFIGURED/MODEL_UNAVAILABLE membawa `details.diagnostic_code` (= health.model.diagnostic_code,
+        mis. MODEL_FILE_NOT_FOUND, DEPENDENCY_MISSING, LABEL_MAP_MISMATCH). Dengan WALLACEA_DETECTOR=simulation, run.target=simulation,
+        model_id=simulation-not-ai dan `notice` menyatakan SIMULASI — BUKAN AI.'
       operationId: analyze_photo
       parameters:
       - name: photo_id
@@ -1106,10 +1108,11 @@ components:
             enum:
             - plant
             - tree_crown
+            - simulation
           - type: 'null'
           title: Target
-          description: 'Arti bbox kandidat run ini: plant = tanaman (model tim), tree_crown = tajuk pohon (DeepForest pretrained).
-            null = tidak diketahui (mis. impor, run lama) → pakai istilah generik.'
+          description: 'Arti bbox kandidat run ini: plant = tanaman (model tim), tree_crown = tajuk pohon (DeepForest pretrained),
+            simulation = SIMULASI BUKAN AI (revisi 4). null = tidak diketahui (mis. impor, run lama) → pakai istilah generik.'
       type: object
       required:
       - id
@@ -1778,19 +1781,21 @@ components:
             enum:
             - ultralytics
             - deepforest
+            - simulation
           - type: 'null'
           title: Adapter
-          description: Jenis detector aktif. null bila mode manual / konfigurasi salah.
+          description: 'Jenis detector aktif. null bila mode manual / konfigurasi salah. Revisi 4: `simulation`.'
         target:
           anyOf:
           - type: string
             enum:
             - plant
             - tree_crown
+            - simulation
           - type: 'null'
           title: Target
           description: Objek yang dideteksi model. tree_crown = tajuk pohon (DeepForest pretrained), BUKAN semua tanaman.
-            Kandidat tetap disimpan sebagai kind=plant (lihat Annotation.model_label).
+            simulation (revisi 4) = kotak buatan, BUKAN AI. Kandidat tetap disimpan sebagai kind=plant (lihat Annotation.model_label).
         target_label:
           anyOf:
           - type: string
@@ -1809,6 +1814,37 @@ components:
           type: array
           title: Limitations
           description: Keterbatasan model yang perlu ditampilkan ke pengguna.
+        mode:
+          type: string
+          enum:
+          - manual
+          - model
+          - simulation
+          title: Mode
+          description: 'manual: tanpa model (penandaan manual saja); model: detector model sungguhan (state menjelaskan siap/tidak);
+            simulation: WALLACEA_DETECTOR=simulation — kandidat SIMULASI, BUKAN AI. UI wajib menampilkan target_label/message
+            bila mode=simulation.'
+          default: model
+        diagnostic_code:
+          anyOf:
+          - type: string
+            enum:
+            - MODEL_PATH_NOT_SET
+            - DETECTOR_CONFIG_INVALID
+            - MODEL_FILE_NOT_FOUND
+            - MODEL_FILE_NOT_PT
+            - MODEL_FILES_INCOMPLETE
+            - DEPENDENCY_MISSING
+            - LABEL_MAP_INVALID
+            - LABEL_MAP_MISMATCH
+            - NOT_DETECTION_MODEL
+            - MODEL_LOAD_FAILED
+            - GENERIC_COCO_MODEL
+            - SIMULATION_ACTIVE
+          - type: 'null'
+          title: Diagnostic Code
+          description: Alasan status yang bisa dibaca mesin (mis. MODEL_FILE_NOT_FOUND, DEPENDENCY_MISSING, LABEL_MAP_MISMATCH,
+            SIMULATION_ACTIVE). null = model siap tanpa catatan. Teks untuk pengguna tetap di `message`.
       type: object
       required:
       - state

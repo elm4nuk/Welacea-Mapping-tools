@@ -1,0 +1,120 @@
+{
+  "run": {
+    "id": "4ad7d04a90d7491c92d1055f2d47a371",
+    "photo_id": "1eb54fab654d47d48a1d457503661f6a",
+    "run_type": "inference",
+    "model_id": "simulation-not-ai",
+    "model_version": "simulation-v1",
+    "input_sha256": "749bbe790252477408d27a34a9bdb25ac98df899980be5f826565bf44723eb41",
+    "status": "succeeded",
+    "candidate_count": 4,
+    "parameters": {
+      "on_existing": "reject",
+      "adapter": "simulation",
+      "target": "simulation",
+      "simulation": true,
+      "seed": "58ed4248a42622f5",
+      "not_ai": true
+    },
+    "started_at": "2026-10-20T04:06:46.465955Z",
+    "finished_at": "2026-10-20T04:06:46.471487Z",
+    "error_code": null,
+    "target": "simulation"
+  },
+  "candidates": [
+    {
+      "id": "7752c088415b4c22b575c5852a343f37",
+      "photo_id": "1eb54fab654d47d48a1d457503661f6a",
+      "analysis_run_id": "4ad7d04a90d7491c92d1055f2d47a371",
+      "kind": "plant",
+      "geometry_type": "bbox",
+      "x": 0.9091525,
+      "y": 0.293479,
+      "bbox": [
+        0.862305,
+        0.234404,
+        0.093695,
+        0.11815
+      ],
+      "source": "model",
+      "review_status": "pending",
+      "confidence": null,
+      "model_label": "SIMULASI — BUKAN AI",
+      "note": "",
+      "revision": 1,
+      "created_at": "2026-10-20T04:06:46.471487Z",
+      "updated_at": "2026-10-20T04:06:46.471487Z"
+    },
+    {
+      "id": "98d89747de9847f98b40c9ad29c27cb4",
+      "photo_id": "1eb54fab654d47d48a1d457503661f6a",
+      "analysis_run_id": "4ad7d04a90d7491c92d1055f2d47a371",
+      "kind": "plant",
+      "geometry_type": "bbox",
+      "x": 0.261766,
+      "y": 0.274297,
+      "bbox": [
+        0.200319,
+        0.202397,
+        0.122894,
+        0.1438
+      ],
+      "source": "model",
+      "review_status": "pending",
+      "confidence": null,
+      "model_label": "SIMULASI — BUKAN AI",
+      "note": "",
+      "revision": 1,
+      "created_at": "2026-10-20T04:06:46.471487Z",
+      "updated_at": "2026-10-20T04:06:46.471487Z"
+    },
+    {
+      "id": "380be353a8f6421ab9ce96593471f6a4",
+      "photo_id": "1eb54fab654d47d48a1d457503661f6a",
+      "analysis_run_id": "4ad7d04a90d7491c92d1055f2d47a371",
+      "kind": "plant",
+      "geometry_type": "bbox",
+      "x": 0.938418,
+      "y": 0.9429339999999999,
+      "bbox": [
+        0.887806,
+        0.896319,
+        0.101224,
+        0.09323
+      ],
+      "source": "model",
+      "review_status": "pending",
+      "confidence": null,
+      "model_label": "SIMULASI — BUKAN AI",
+      "note": "",
+      "revision": 1,
+      "created_at": "2026-10-20T04:06:46.471487Z",
+      "updated_at": "2026-10-20T04:06:46.471487Z"
+    },
+    {
+      "id": "27a33951cfe04377a7bdafd71d6631c7",
+      "photo_id": "1eb54fab654d47d48a1d457503661f6a",
+      "analysis_run_id": "4ad7d04a90d7491c92d1055f2d47a371",
+      "kind": "plant",
+      "geometry_type": "bbox",
+      "x": 0.22861550000000003,
+      "y": 0.9410075,
+      "bbox": [
+        0.173578,
+        0.907285,
+        0.110075,
+        0.067445
+      ],
+      "source": "model",
+      "review_status": "pending",
+      "confidence": null,
+      "model_label": "SIMULASI — BUKAN AI",
+      "note": "",
+      "revision": 1,
+      "created_at": "2026-10-20T04:06:46.471487Z",
+      "updated_at": "2026-10-20T04:06:46.471487Z"
+    }
+  ],
+  "replaced_annotation_ids": [],
+  "notice": "SIMULASI — BUKAN AI. Kandidat ini dibuat untuk menguji alur aplikasi, bukan hasil deteksi tanaman. Kandidat tetap pending dan tidak dihitung sampai ditinjau; jangan dipakai untuk keputusan lapangan."
+}

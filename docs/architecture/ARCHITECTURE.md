@@ -1,6 +1,6 @@
 # WALLACEA — Arsitektur
 
-Pemilik: Claude. Kontrak API: revisi 2 (`packages/contracts/openapi.yaml`, `info.version` 1.2.0).
+Pemilik: Claude. Kontrak API: revisi 4 (`packages/contracts/openapi.yaml`, `info.version` 1.4.0).
 
 ## Gambaran
 
@@ -12,8 +12,10 @@ Pemilik: Claude. Kontrak API: revisi 2 (`packages/contracts/openapi.yaml`, `info
    │                              └─ Detector (interface)
    │                                   ├─ UnconfiguredDetector  (default → 503 MODEL_NOT_CONFIGURED)
    │                                   ├─ UltralyticsDetector   (bobot YOLO .pt tim, opsional)
-   │                                   └─ DeepForestDetector    (folder bobot weecology/deepforest-tree lokal,
+   │                                   ├─ DeepForestDetector    (folder bobot weecology/deepforest-tree lokal,
    │                                                             kandidat TAJUK POHON, CPU, opsional)
+   │                                   └─ SimulationDetector    (WALLACEA_DETECTOR=simulation: kotak deterministik,
+   │                                                             SIMULASI — BUKAN AI, hanya uji alur UI)
    ▼
  Foto drone disalin manual dari kartu/aplikasi K919 → diunggah per berkas.
 ```
@@ -28,6 +30,8 @@ Tidak ada antrean (Redis/Celery). Analisis satu foto berjalan **sinkron** dengan
 | `apps/api/alembic/` | Migrasi skema | Claude |
 | `apps/api/tests/` | pytest (kontrak, validasi, persistensi, pipeline) | Claude |
 | `apps/api/scripts/export_contract.py` | Generate snapshot OpenAPI + fixtures dari API sungguhan | Claude |
+| `apps/api/scripts/*.ps1`, `check_model.py` | Onboarding model Windows: periksa `.pt`, jalankan API dengan model / simulasi | Claude |
+| `apps/api/ml/` | Scaffold training minimal: dataset YOLO pengguna → `best.pt` + validasi | Claude |
 | `ml/` | Workspace ML (Python + JupyterLab, venv terpisah): katalog dataset, validasi anotasi, prepare COCO→YOLO, split tanpa kebocoran, training, evaluasi via adapter API, notebook 01–04 | Claude |
 | `packages/contracts/` | `openapi.yaml`, `fixtures/`, `CHANGELOG.md` | Claude |
 | `apps/web/` | Frontend React | Codex |
@@ -109,6 +113,22 @@ folder model (backbone torchvision sudah diunduh skrip). Input = array RGB dari 
 path — DeepForest membaca path tanpa EXIF transpose). Label asli `Tree` → `kind=plant` eksplisit, `model_label=Tree`;
 `/health` menyebut `target=tree_crown` agar UI menamai hasil sebagai kandidat tajuk pohon.
 
+## Status model dan diagnosis (revisi 4)
+
+`/health.model` = `DetectorInfo` adapter aktif: `state` (`not_configured|configured|loaded|error`), `mode`
+(`manual|model|simulation`), dan `diagnostic_code` (mis. `MODEL_FILE_NOT_FOUND`, `DEPENDENCY_MISSING`,
+`LABEL_MAP_MISMATCH`, `NOT_DETECTION_MODEL`, `GENERIC_COCO_MODEL`, `SIMULATION_ACTIVE`; daftar lengkap di
+`app/inference/base.py` dan `packages/contracts/CHANGELOG.md`). Pemeriksaan tanpa memuat bobot (path, ekstensi,
+paket) terlihat langsung. Kegagalan saat memuat (label map, task, berkas rusak) diingat per berkas (ukuran+mtime),
+sehingga `/health` menjadi `error` setelah percobaan pertama, bukan tetap `configured`. 503 dari `/analyze` membawa
+`details.diagnostic_code` yang sama.
+
+Mode simulasi tidak pernah dipilih otomatis. Kandidatnya `pending`, `confidence=null`,
+`model_label="SIMULASI — BUKAN AI"`, `run.target=simulation`; laporan survei yang memuatnya mendapat disclaimer.
+
+`.env`: `python -m app` memuat `apps/api/.env` tanpa menimpa env yang sudah ada (`app/envfile.py`).
+`load_settings()` sendiri hanya membaca `os.environ`, sehingga test tetap deterministik.
+
 ## Error
 
 Semua error (termasuk 404 route, 422 validasi, 413 middleware, 500):
@@ -165,10 +185,10 @@ jalankan `alembic upgrade head`. Belum diuji di PostgreSQL — perlu uji sebelum
 | `WALLACEA_DATABASE_URL` | `sqlite:///<DATA_DIR>/wallacea.db` |
 | `WALLACEA_ALLOWED_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` |
 | `WALLACEA_AUTO_MIGRATE` | `true` (migrasi saat startup) |
-| `WALLACEA_DETECTOR` | kosong = otomatis (ultralytics bila MODEL_PATH ada) · `none` · `ultralytics` · `deepforest` |
+| `WALLACEA_DETECTOR` | kosong = otomatis (ultralytics bila MODEL_PATH ada) · `none` · `ultralytics` · `deepforest` · `simulation` (dev, BUKAN AI; tidak pernah otomatis) |
 | `WALLACEA_MODEL_PATH` | kosong → mode manual (DeepForest: folder hasil `scripts/download_deepforest.py`) |
 | `WALLACEA_MODEL_ID` | stem nama berkas bobot |
-| `WALLACEA_LABEL_MAP_JSON` | `{"plant":"plant","check":"check","gap":"gap"}` |
+| `WALLACEA_LABEL_MAP_JSON` | `{"plant":"plant","check":"check","gap":"gap"}`; JSON atau bentuk sederhana `kelas=plant,kelas2=check` |
 | `WALLACEA_CONFIDENCE` / `WALLACEA_IMGSZ` | `0.35` / `1280` |
 | `WALLACEA_INFERENCE_TIMEOUT_S` | `120` |
 | `WALLACEA_DEVICE` | `cpu` (DeepForest; `cuda`/`auto` opsional) |

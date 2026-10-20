@@ -4,8 +4,8 @@
     "message": "Penanda sudah diubah di tempat lain. Perubahan Anda tidak disimpan; tinjau versi terbaru.",
     "details": {
       "current": {
-        "id": "03342f2f0ee74aafb726d6cedc3a6d1a",
-        "photo_id": "556d76877e8643a495163eecc5b9133e",
+        "id": "609d0fb7df4b422e84d3a87d87641095",
+        "photo_id": "8d0388ed15d84d7986c5503069f6a456",
         "analysis_run_id": null,
         "kind": "gap",
         "geometry_type": "point",
@@ -18,10 +18,10 @@
         "model_label": null,
         "note": "Ternyata titik kosong.",
         "revision": 2,
-        "created_at": "2026-10-19T16:27:07.584683Z",
-        "updated_at": "2026-10-19T16:27:07.595447Z"
+        "created_at": "2026-10-20T04:06:46.110501Z",
+        "updated_at": "2026-10-20T04:06:46.122473Z"
       }
     },
-    "request_id": "e3869eac245b4a7caf682d49fba00b39"
+    "request_id": "ee48a48e762d4ca8a740f241163bf6ce"
   }
 }

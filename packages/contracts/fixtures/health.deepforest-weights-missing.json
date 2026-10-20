@@ -1,7 +1,7 @@
 {
   "status": "ok",
   "api_version": "1",
-  "contract_revision": 3,
+  "contract_revision": 4,
   "database": "ok",
   "model": {
     "state": "error",
@@ -17,7 +17,9 @@
       "Model pretrained tajuk pohon dari citra pesawat NEON ±10 cm/px (hutan AS), bukan model tanaman pertanian.",
       "Belum dievaluasi pada foto K919 MAX; ukuran objek bergantung ketinggian terbang dan resolusi.",
       "Tanaman semusim kecil (jagung muda, padi, sayuran) umumnya tidak cocok untuk model ini."
-    ]
+    ],
+    "mode": "model",
+    "diagnostic_code": "MODEL_FILE_NOT_FOUND"
   },
   "capabilities": {
     "flight_control": false,

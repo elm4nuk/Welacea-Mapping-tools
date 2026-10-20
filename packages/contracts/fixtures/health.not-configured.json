@@ -1,19 +1,21 @@
 {
   "status": "ok",
   "api_version": "1",
-  "contract_revision": 3,
+  "contract_revision": 4,
   "database": "ok",
   "model": {
     "state": "not_configured",
     "available": false,
     "model_id": null,
     "model_version": null,
-    "message": "Model tanaman belum dikonfigurasi. Atur WALLACEA_MODEL_PATH ke bobot lokal hasil pelatihan tim.",
+    "message": "Model tanaman belum dikonfigurasi (mode manual). Penandaan manual tetap berjalan. Untuk analisis otomatis, jalankan API lewat scripts\\run-with-model.ps1 dengan bobot YOLO hasil pelatihan (berkas best.pt) — lihat apps/api/README.md.",
     "adapter": null,
     "target": null,
     "target_label": null,
     "device": null,
-    "limitations": []
+    "limitations": [],
+    "mode": "manual",
+    "diagnostic_code": "MODEL_PATH_NOT_SET"
   },
   "capabilities": {
     "flight_control": false,

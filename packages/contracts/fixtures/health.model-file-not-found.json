@@ -1,0 +1,41 @@
+{
+  "status": "ok",
+  "api_version": "1",
+  "contract_revision": 4,
+  "database": "ok",
+  "model": {
+    "state": "error",
+    "available": false,
+    "model_id": "best",
+    "model_version": null,
+    "message": "Berkas bobot tidak ditemukan: C:\\Model Tanaman\\best.pt. Periksa path (pakai path lengkap; bungkus dengan tanda kutip bila ada spasi).",
+    "adapter": "ultralytics",
+    "target": "plant",
+    "target_label": "Kandidat tanaman (model deteksi tim)",
+    "device": "auto",
+    "limitations": [
+      "Hanya akurat untuk tanaman, kamera, dan ketinggian yang sama dengan data latihnya — lihat model card."
+    ],
+    "mode": "model",
+    "diagnostic_code": "MODEL_FILE_NOT_FOUND"
+  },
+  "capabilities": {
+    "flight_control": false,
+    "live_video": false,
+    "georeferencing": false,
+    "orthomosaic": false
+  },
+  "limits": {
+    "max_upload_bytes": 20971520,
+    "max_pixels": 60000000,
+    "allowed_mime_types": [
+      "image/jpeg",
+      "image/png",
+      "image/webp"
+    ],
+    "max_annotations_per_photo": 3000,
+    "max_detection_payload_bytes": 5242880,
+    "max_backup_bytes": 104857600,
+    "inference_timeout_s": 120.0
+  }
+}

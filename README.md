@@ -20,14 +20,31 @@ dan bisa dipakai secara manual. Bukan alat kontrol drone, bukan peta GPS, bukan 
 
 ## Menjalankan lokal
 
-Terminal 1 — API (lihat `apps/api/README.md`):
+Terminal 1 — API (detail: `apps/api/README.md`). Setup sekali:
 
 ```powershell
-cd apps/api
+cd apps\api
 py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.lock.txt
-.venv\Scripts\python -m app          # http://127.0.0.1:8000/api/v1/docs
 ```
+
+Lalu pilih **satu** dari tiga cara (tetap di folder `apps\api`):
+
+```powershell
+# A. Manual tanpa model (default). Pesan "Model tanaman belum dikonfigurasi" = normal, bukan error.
+.venv\Scripts\python -m app
+
+# B. Simulasi development: kotak kandidat buatan berlabel "SIMULASI — BUKAN AI". Hanya uji alur UI.
+powershell -ExecutionPolicy Bypass -File .\scripts\run-simulation.ps1
+
+# C. Model YOLO tanaman asli (berkas best.pt hasil training; pasang requirements-ai.txt dulu).
+powershell -ExecutionPolicy Bypass -File .\scripts\check-model.ps1 -ModelPath .\models\best.pt -LabelMap 'jagung=plant'
+powershell -ExecutionPolicy Bypass -File .\scripts\run-with-model.ps1 -ModelPath .\models\best.pt -LabelMap 'jagung=plant'
+```
+
+`models\best.pt` adalah **path berkas** untuk `-ModelPath`, bukan perintah. Mengetiknya sendirian di PowerShell
+menghasilkan error "is not recognized". Belum ada model tanaman terlatih di repo ini. Cara membuatnya dari foto
+drone berlabel: `apps/api/ml/README.md`. API: <http://127.0.0.1:8000/api/v1/docs>.
 
 Terminal 2 — Web:
 

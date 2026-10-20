@@ -1,7 +1,7 @@
 {
   "status": "ok",
   "api_version": "1",
-  "contract_revision": 3,
+  "contract_revision": 4,
   "database": "ok",
   "model": {
     "state": "loaded",
@@ -13,7 +13,9 @@
     "target": null,
     "target_label": null,
     "device": null,
-    "limitations": []
+    "limitations": [],
+    "mode": "model",
+    "diagnostic_code": null
   },
   "capabilities": {
     "flight_control": false,

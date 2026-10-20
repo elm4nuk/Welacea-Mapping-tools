@@ -24,7 +24,8 @@ def health(db: Session = Depends(get_db), settings: Settings = Depends(get_setti
         model=s.ModelStatus(state=info.state, available=info.available, model_id=info.model_id,
                             model_version=info.model_version, message=info.message, adapter=info.adapter,
                             target=info.target, target_label=info.target_label, device=info.device,
-                            limitations=list(info.limitations)),
+                            limitations=list(info.limitations), mode=info.mode,
+                            diagnostic_code=info.diagnostic_code),
         capabilities=s.Capabilities(),
         limits=s.Limits(
             max_upload_bytes=settings.max_upload_bytes, max_pixels=settings.max_pixels,

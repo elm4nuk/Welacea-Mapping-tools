@@ -27,6 +27,7 @@ from PIL import Image  # noqa: E402
 from app.config import load_settings  # noqa: E402
 from app.inference import DetectionOutput, Detector, DetectorInfo, RawDetection  # noqa: E402
 from app.inference.deepforest_adapter import DeepForestDetector  # noqa: E402
+from app.inference.ultralytics_adapter import UltralyticsDetector  # noqa: E402
 from app.main import create_app  # noqa: E402
 
 CONTRACTS = API_ROOT.parents[1] / "packages" / "contracts"
@@ -164,6 +165,23 @@ def build_fixtures() -> dict[str, tuple[str, object]]:
         missing = DeepForestDetector(base / "c" / "models" / "deepforest-tree")
         with TestClient(create_app(load_settings(data_dir=base / "c"), detector=missing)) as c:
             put("health.deepforest-weights-missing.json", "Health", c.get(f"{V1}/health"))
+
+        # Revisi 4. Adapter Ultralytics ASLI, berkas bobot tidak ada → state=error, diagnostic_code=MODEL_FILE_NOT_FOUND.
+        absent = UltralyticsDetector(Path("C:/Model Tanaman/best.pt"), {"jagung": "plant"})
+        with TestClient(create_app(load_settings(data_dir=base / "d"), detector=absent)) as c:
+            put("health.model-file-not-found.json", "Health", c.get(f"{V1}/health"))
+            s = c.post(f"{V1}/surveys", json=survey_req).json()
+            p = c.post(f"{V1}/surveys/{s['id']}/photos",
+                       files={"file": ("DJI_0003.JPG", jpeg_oriented(), "image/jpeg")}).json()["photo"]
+            put("error.model-unavailable.json", "ErrorEnvelope", c.post(f"{V1}/photos/{p['id']}/analyze"))
+
+        # Revisi 4. Detector SIMULASI development (WALLACEA_DETECTOR=simulation) — SIMULASI, BUKAN AI.
+        with TestClient(create_app(load_settings(data_dir=base / "e", detector="simulation"))) as c:
+            put("health.simulation.json", "Health", c.get(f"{V1}/health"))
+            s = c.post(f"{V1}/surveys", json=survey_req).json()
+            p = c.post(f"{V1}/surveys/{s['id']}/photos",
+                       files={"file": ("DJI_0004.JPG", jpeg_oriented(), "image/jpeg")}).json()["photo"]
+            put("analyze.simulation.response.json", "AnalysisResult", c.post(f"{V1}/photos/{p['id']}/analyze"))
 
         with TestClient(create_app(load_settings(data_dir=base / "b"), detector=ContractTestDouble())) as c:
             put("health.test-double-loaded.json", "Health", c.get(f"{V1}/health"))
