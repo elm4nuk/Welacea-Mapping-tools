@@ -8,7 +8,9 @@
   `0c327c2`, `e04ae04`, `834f411`, dan `a3c9a2c`.
 - Sumber kebenaran Claude: backend `40ba48764e9107f3aafb253b8bf9a4431a4e9977`,
   OpenAPI revision 5 `f2e770f7f9a4b51b0923ccc49971c0c6c7ffc2c2`, dan docs
-  `1d1d36ce858bbc2a1d2b1a468bdcd56e1ef910d2`.
+  `1d1d36ce858bbc2a1d2b1a468bdcd56e1ef910d2`. Handoff `CONTRACT_READY`
+  terbaru dibaca pada `a911f30d4c620f2bd49881065884b824e3fa4c7c`; Claude juga mencatat
+  baseline integrasi backend revision 5 di `integration/wallacea-mapping` @ `ca67ffe`.
 - Commit integrasi revision 5: `e0c598d` (`feat(web): integrate revision 5 mapping
   API`). Commit dokumentasi/screenshot menyusul commit ini. Tidak ada push, merge
   `main`, deploy, perubahan backend/OpenAPI, model, atau dataset.
@@ -73,12 +75,16 @@ raster lokal, atribusi, dan pesan offline dapat diverifikasi deterministik.
 
 ### Urutan integrasi yang aman
 
-1. Cherry-pick Claude `40ba487`, lalu `f2e770f`, lalu `1d1d36c` ke
+1. Cherry-pick Claude `40ba487`, lalu `f2e770f`, `1d1d36c`, dan handoff `a911f30` ke
    `integration/wallacea-mvp` jika commit itu belum ada.
 2. Cherry-pick rangkaian Codex `472fe75`, `0c327c2`, `e04ae04`, `834f411`,
    `a3c9a2c`, lalu `e0c598d`, kemudian commit dokumentasi/screenshot sesudahnya.
 3. Jalankan export/check kontrak, migrasi DB sementara, seluruh pytest backend,
    typecheck, Vitest, build, peer check, serta kedua suite Playwright API nyata.
+
+Alternatif yang lebih pendek: bila `integration/wallacea-mapping` @ `ca67ffe` dipakai
+sebagai baseline resmi, langsung cherry-pick rangkaian Codex pada langkah 2; jangan
+mengulang commit Claude yang sudah terkandung di baseline itu.
 
 ---
 
