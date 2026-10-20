@@ -81,3 +81,27 @@ test('invalid latitude-longitude GeoJSON is rejected clearly', async ({ page }) 
   });
   await expect(page.getByRole('alert')).toContainText('Longitude harus berada di antara -180 dan 180');
 });
+
+test('drawn polygon becomes a protected local draft', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile', 'Synthetic touch drawing is unreliable in headless emulation; mobile import and Sheet behavior remain covered.');
+  await page.goto('/');
+  const mobileMenu = page.getByRole('button', { name: 'Buka navigasi', exact: true });
+  if (await mobileMenu.isVisible()) await mobileMenu.click();
+  await page.locator('.survey-item:visible').filter({ hasText: survey.name }).click();
+  await page.getByRole('button', { name: 'Peta lahan', exact: true }).click();
+  await page.getByRole('button', { name: 'Gambar batas', exact: true }).click();
+  const canvas = page.locator('.maplibregl-canvas');
+  const map = page.getByTestId('land-map');
+  await map.scrollIntoViewIfNeeded();
+  await expect(canvas).toBeVisible();
+  const box = await canvas.boundingBox();
+  expect(box).toBeTruthy();
+  const points = [[.35, .35], [.65, .35], [.65, .65], [.35, .65], [.35, .35]];
+  for (const [x, y] of points) {
+    const screenX = box!.x + box!.width * x; const screenY = box!.y + box!.height * y;
+    await page.mouse.click(screenX, screenY);
+  }
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Ekspor', exact: true })).toBeEnabled();
+  await expect(page.locator('.app-shell')).toHaveAttribute('data-draft', 'true');
+});

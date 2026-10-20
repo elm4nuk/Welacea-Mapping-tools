@@ -77,6 +77,9 @@ export function LandMapWorkspace({ surveyName, apiConnected, georeferencingCapab
     const map = mapRef.current?.getMap();
     if (map?.getLayer('osm-basemap')) map.setLayoutProperty('osm-basemap', 'visibility', basemapVisible ? 'visible' : 'none');
   }, [basemapVisible, mapLoaded]);
+  useEffect(() => {
+    if (mapLoaded) drawRef.current?.setMode(mode);
+  }, [mapLoaded, mode]);
 
   function boundaryFromDraw() {
     if (syncingDrawRef.current) return;
