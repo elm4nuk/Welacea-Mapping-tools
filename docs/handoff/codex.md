@@ -5,11 +5,13 @@
 - Branch: `agent/codex-frontend`
 - Worktree: `D:\coding\wallacea-worktrees\codex-frontend`
 - Titik awal branch: `678ff41`
-- Implementasi onboarding/status model: `be46aabb7807eb4efd42fa91aa7ef03c87049b25`
+- Implementasi onboarding/status awal: `be46aabb7807eb4efd42fa91aa7ef03c87049b25`
+- Integrasi kontrak revision 4 dan command final: `9e487376325e45d915477f63172dba0a329efb54`
 - Baseline frontend yang dibawa ke branch ini: `34b3572`, `b3fc2c0`, `2a0f7ff`,
   `fc505df`, dan `2afbf36` (cherry-pick dari pekerjaan Codex yang sudah ada).
 - Sumber kebenaran backend/kontrak yang sudah **commit** dan dibaca:
-  `agent/claude-backend` @ `e7f99cbeff82e7ad768ff2c64a958cbf2509e6b6`, OpenAPI revision 3.
+  `agent/claude-backend` @ `1ecda6c4eef476aaed84a212623c9ade9e696846`, OpenAPI revision 4
+  (`cfacdda`).
 - Tidak ada perubahan backend, OpenAPI, model, dataset, push, deploy, atau merge ke `main`.
 
 ## Perubahan UX
@@ -24,7 +26,8 @@ health response dan tampil sebagai salah satu dari:
 - **SIMULASI — BUKAN AI** sebagai banner permanen berkontras tinggi.
 
 Panel responsif **Cara mengaktifkan AI** menjelaskan bahwa `best.pt` adalah file,
-bukan command; lokasi bobot server-side; dependency AI; contoh command
+bukan command; lokasi `apps\api\models\best.pt`; dependency PyTorch CPU 2.11 /
+torchvision 0.26 dan `requirements-ai.txt`; contoh command final
 `check-model.ps1` dan `run-with-model.ps1` dengan tombol salin; keterbatasan model
 COCO umum; dan kebutuhan training menggunakan dataset beranotasi. UI tidak menawarkan
 unggah bobot melalui browser.
@@ -36,30 +39,29 @@ namun tidak pernah disebut hasil AI. Pesan khusus mencakup bobot hilang, depende
 Ultralytics, label map, timeout, inference failed, dan API terputus.
 
 Kandidat model/simulasi tetap `pending` sampai pengguna memilih Terima atau Tolak.
-Koreksi kategori, catatan, dan koordinat tetap tersedia. Hanya tanaman `accepted`
-masuk hitungan final. Confidence diberi label **Skor model**, bukan akurasi. Sumber
+Koreksi kategori, catatan, dan koordinat tetap tersedia. Hanya tanaman nyata/model
+`accepted` masuk hitungan tanaman final; simulation yang diterima ditampilkan sebagai
+hitungan simulasi terpisah. Confidence diberi label **Skor model**, bukan akurasi. Sumber
 simulasi ditampilkan eksplisit. Aksi duplikat “Tolak” dihapus tanpa mengubah reducer,
 transformasi koordinat, atau persistence.
 
 ## Kontrak dan request
 
-Kontrak committed Claude revision 3 menyediakan empat state model, metadata adapter,
-target, target label, device, limitations, serta target analysis run. Kontrak itu belum
-memiliki discriminator simulasi atau kode diagnosis setup yang stabil. Frontend
-sementara hanya mengenali field aditif eksplisit `simulation`, `adapter=simulation`,
-atau `mode=simulation`; ia tidak menebak dari nama model atau teks bebas.
+Kontrak committed Claude revision 4 menyediakan empat state model, `mode`,
+`diagnostic_code`, metadata adapter, target, target label, device, limitations, serta
+target analysis run. Frontend memakai `mode=simulation` / target `simulation` secara
+typed dan memakai kode diagnosis untuk pesan setup; ia tidak menebak dari nama model
+atau teks bebas.
 
-`docs/requests/codex-model-onboarding.md` mencatat CR-FE-004 untuk:
+`docs/requests/codex-model-onboarding.md` menandai CR-FE-004 **dipenuhi** oleh revision 4:
 
 1. discriminator simulation pada health dan analysis run;
-2. `ModelStatus.error_code` untuk penyebab setup;
+2. `ModelStatus.diagnostic_code` untuk penyebab setup;
 3. interface final script PowerShell.
 
-Pada saat handoff ini ditulis, worktree Claude masih memiliki perubahan backend,
-simulation, fixture kontrak, dan script yang belum di-commit; SHA terbaru tetap
-`e7f99cb`. Perubahan setengah jadi tersebut sengaja tidak dikonsumsi. Setelah Claude
-membuat commit final, cocokkan nama field serta parameter script dengan CR-FE-004,
-regenerasi tipe dari kontrak final, lalu hapus compatibility shim bila tidak diperlukan.
+Tipe frontend sudah diregenerasi dari OpenAPI revision 4. Command panel sama dengan
+script committed Claude, termasuk `-ModelPath .\models\best.pt` dan
+`-LabelMap 'plant=plant'`.
 
 ## Verifikasi aktual
 
@@ -84,27 +86,27 @@ Hasil:
   viewport. Workspace nyata juga menguji upload, EXIF, draf, undo/redo, save/reload,
   candidate review, konflik revision, proteksi navigasi, API offline/retry,
   CSV/PNG/PDF, edit/delete survei, dan validasi upload.
-- API pengujian adalah FastAPI revision 3 yang bersih pada port terpisah. Simulation
-  E2E menggunakan health fixture bernama QA, bukan hasil ML. Inferensi/simulation
-  backend Claude yang sedang dikerjakan belum dapat diuji sebelum ada commit final.
+- Focused E2E onboarding revision 4: 3/3 lulus pada ketiga viewport.
+- Real simulation E2E terhadap FastAPI revision 4: 3/3 lulus pada ketiga viewport.
+  Alur membuat survei, mengunggah foto QA, menjalankan simulation, memastikan kandidat
+  pending tanpa confidence, menerima kandidat, menyimpan, dan memastikan hitungan
+  tetap `0 Tanaman terkonfirmasi` + `1 simulasi diterima`.
+- Simulation tersebut adalah kotak deterministik QA dari backend dan selalu dilabeli
+  **SIMULASI — BUKAN AI**, bukan hasil deteksi atau bukti akurasi.
 
-Tipe frontend diregenerasi langsung dari snapshot revision 3 yang committed pada
-integration/Claude, bukan dari OpenAPI lama yang masih ada pada branch frontend.
+Tipe frontend diregenerasi langsung dari revision 4 committed pada branch Claude.
 
 ## Urutan integrasi ke `integration/wallacea-mvp`
 
-1. Selesaikan dan commit pekerjaan Claude. Review SHA, `packages/contracts/CHANGELOG.md`,
-   OpenAPI, fixture, serta interface `check-model.ps1`/`run-with-model.ps1`.
-2. Integrasikan commit Claude lebih dahulu ke `integration/wallacea-mvp`.
-3. Integrasikan commit Codex `be46aab` (dan commit dokumentasi setelahnya). Bila lima
+1. Integrasikan commit Claude `1ecda6c` lebih dahulu ke `integration/wallacea-mvp`.
+2. Integrasikan commit Codex `be46aab`, `9e48737`, dan commit dokumentasi setelahnya. Bila lima
    commit baseline frontend belum ada di integration, cherry-pick berurutan:
-   `34b3572 b3fc2c0 2a0f7ff fc505df 2afbf36 be46aab`.
-4. Regenerasi `apps/web/src/api/schema.d.ts` dari OpenAPI Claude final. Selaraskan
-   discriminator simulation dan command setup dengan CR-FE-004; jangan mengubah
-   kontrak diam-diam dari sisi frontend.
-5. Jalankan export/check kontrak, seluruh pytest backend/ML yang relevan, lalu
+   `34b3572 b3fc2c0 2a0f7ff fc505df 2afbf36 be46aab 9e48737`.
+3. Pastikan `apps/web/src/api/schema.d.ts` tetap identik dengan OpenAPI Claude final;
+   jangan mengubah kontrak dari sisi frontend.
+4. Jalankan export/check kontrak, seluruh pytest backend/ML yang relevan, lalu
    typecheck, Vitest, build, dan Playwright frontend termasuk real simulation serta
    real-model smoke bila bobot tersedia.
 
-Commit Claude final perlu diintegrasikan **lebih dahulu** apabila ia mengubah kontrak
-revision 3. Jangan merge ke `main` sebelum review dan izin eksplisit.
+Commit Claude revision 4 perlu diintegrasikan **lebih dahulu**. Jangan merge ke `main`
+sebelum review dan izin eksplisit.
