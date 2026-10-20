@@ -1,4 +1,4 @@
-# Handoff Claude (backend, ML, kontrak) — 2026-10-19
+# Handoff Claude (backend, ML, kontrak) — 2026-10-20
 
 ## Commit
 
@@ -12,8 +12,96 @@
 | Notebook 01–03 + venv bersih | `b7fc097` | `agent/claude-backend` |
 | **Integrasi** backend + frontend Codex (`codex-inference-integration`, lalu `codex-uiux-v2` @ `67aac04`) | `git rev-parse integration/wallacea-mvp` | `integration/wallacea-mvp` (worktree `D:\coding\wallacea-worktrees\integration`) |
 
+| **CONTRACT_READY revisi 4**: onboarding model Windows, mode simulasi, diagnostik | **`cfacdda`** (+ handoff ini) | `agent/claude-backend` |
+
 Tidak ada push, merge ke `main`, atau deploy. Integrasi dibuat dari BASE `15a7408`: merge
-`agent/codex-inference-integration` (`2e8a2d7`) lalu `agent/claude-backend`.
+`agent/codex-inference-integration` (`2e8a2d7`) lalu `agent/claude-backend`. Revisi 4 **belum** di-merge ke
+`integration/wallacea-mvp`.
+
+## CONTRACT_READY — revisi 4 (`info.version` 1.4.0) @ `cfacdda` — 2026-10-20
+
+Masalah yang diperbaiki: pengguna Windows melihat "Model tanaman belum dikonfigurasi" tanpa tahu langkah berikutnya,
+mengira `models\best.pt` adalah perintah, `.env` tidak dimuat, dan tidak ada cara aman menguji alur kandidat AI
+tanpa bobot. Model tanaman terlatih **masih belum ada**; tidak ada yang diklaim lebih dari itu.
+
+### Perubahan kontrak (aditif; detail di `packages/contracts/CHANGELOG.md`)
+
+| Di mana | Perubahan |
+|---|---|
+| `ModelStatus.mode` (baru) | `manual \| model \| simulation` |
+| `ModelStatus.diagnostic_code` (baru, nullable) | `MODEL_PATH_NOT_SET`, `DETECTOR_CONFIG_INVALID`, `MODEL_FILE_NOT_FOUND`, `MODEL_FILE_NOT_PT`, `MODEL_FILES_INCOMPLETE`, `DEPENDENCY_MISSING`, `LABEL_MAP_INVALID`, `LABEL_MAP_MISMATCH`, `NOT_DETECTION_MODEL`, `MODEL_LOAD_FAILED`, `GENERIC_COCO_MODEL`, `SIMULATION_ACTIVE` |
+| `ModelStatus.adapter` | + `"simulation"` |
+| `ModelStatus.target`, `AnalysisRun.target` | + `"simulation"` |
+| 503 `/analyze` | `error.details = {model_state, diagnostic_code}` (+ `run_id` bila run dibuat). Pesan MODEL_NOT_CONFIGURED tanpa akhiran lama " Mode manual tetap dapat dipakai." |
+| Perilaku | Gagal memuat (label map/task/berkas rusak) diingat → `/health` `state=error` + kode, bukan tetap `configured` |
+| Simulasi | `state=loaded`, `model_id=simulation-not-ai`, `model_version=simulation-v1`, `target_label="SIMULASI — BUKAN AI"`; kandidat `pending`, `kind=plant`, `confidence=null`, `model_label="SIMULASI — BUKAN AI"`; `notice` diawali "SIMULASI — BUKAN AI"; disclaimer laporan |
+| Model COCO umum | `state=loaded`, `diagnostic_code=GENERIC_COCO_MODEL`, `target_label="Kandidat dari model COCO umum (BUKAN model tanaman)"` |
+
+`ModelStatus.state` **tidak** mendapat nilai baru. Tidak ada perubahan skema DB/migrasi.
+Fixture baru: `health.simulation.json`, `health.model-file-not-found.json`, `error.model-unavailable.json`,
+`analyze.simulation.response.json`.
+
+### Berkas baru / berubah
+
+| Berkas | Isi |
+|---|---|
+| `apps/api/app/inference/simulation.py` (baru) | `SimulationDetector`: kotak deterministik dari sidik jari piksel, hanya bila `WALLACEA_DETECTOR=simulation` |
+| `apps/api/app/inference/base.py`, `ultralytics_adapter.py`, `deepforest_adapter.py`, `factory.py` | `DetectorInfo.mode/diagnostic_code`, `ModelUnavailable.diagnostic_code`, pesan spesifik (path lengkap, kelas model), kegagalan muat diingat, deteksi COCO |
+| `apps/api/app/config.py` | `parse_label_map()`: JSON atau `kelas=plant,kelas2=check` / `{kelas:plant}` (JSON yang kutipnya dibuang PowerShell 5.1); pesan menyebut entri salah; `simulation` di `DETECTORS` |
+| `apps/api/app/envfile.py` (baru), `__main__.py` | `python -m app` memuat `apps/api/.env` (tidak menimpa env; `--env-file`, `--no-env-file`); log mode model saat start |
+| `apps/api/app/schemas.py`, `routers/health.py`, `routers/analysis.py`, `routers/reports.py`, `services.py` | kontrak revisi 4, `details.diagnostic_code`, notice & disclaimer simulasi |
+| `apps/api/scripts/check-model.ps1` + `check_model.py` (baru) | ada? `.pt`? ultralytics? terbuka? `task=detect`? `model.names`, label map, COCO, `-Image` uji; cetak perintah run siap salin. Tanpa unduhan/instalasi |
+| `apps/api/scripts/run-with-model.ps1`, `run-simulation.ps1` (baru) | env hanya untuk proses API (dipulihkan di `finally`), Python `.venv`, path berspasi, confidence culture-invariant |
+| `apps/api/ml/` (baru) | `README.md`, `dataset.yaml.example`, `dataset-example/README.md`, `yolo_dataset.py`, `train.py`, `validate_model.py` |
+| `apps/api/models/README.md`, `apps/api/.env.example` (baru), `.gitignore` | tempat `best.pt` lokal (di-ignore), templat `.env` |
+| `README.md`, `apps/api/README.md`, `docs/architecture/ARCHITECTURE.md`, `packages/contracts/*` | tiga skenario A/B/C PowerShell, tabel diagnosis, revisi 4 |
+| `apps/api/tests/test_model_onboarding.py` (33 test), `tests/test_ml_scaffold.py` (11 test) (baru) | lihat di bawah |
+
+`apps/api/ml/` sengaja minimal (jalur "punya dataset YOLO → best.pt"). Toolkit lengkap tetap di `ml/` root.
+
+### Tes yang benar-benar dijalankan (2026-10-20, Windows 11, Python 3.12.10)
+
+| Tes | Hasil |
+|---|---|
+| `apps/api` pytest, venv API (DeepForest + bobot) | **171 lulus**, 0 skip |
+| `apps/api` pytest, venv terpisah dengan **ultralytics 8.4.183 asli** + torch 2.11 CPU (tanpa DeepForest) | 170 lulus, 1 skip (DeepForest tidak terpasang) |
+| `export_contract.py --check` | cocok (`info.version` 1.4.0) |
+| `alembic upgrade head` + `alembic check` (DB sementara) | "No new upgrade operations detected" |
+| `ml` pytest (root toolkit memakai adapter API) | **36 lulus** |
+| `check-model.ps1` vs bobot **nyata**: model jagung tim (path berspasi), `yolo11n.pt` COCO + foto uji, path tidak ada, folder run, `.onnx`, `.pt` rusak, venv tanpa ultralytics, label map salah | pesan & exit code sesuai (0/1/2); COCO → PERINGATAN; folder → saran `weights\best.pt` |
+| `run-with-model.ps1` (via `powershell -File`, port 18095, data dir sementara) + model jagung | health `loaded`, `sha256:9c2e20232a359fd5`; unggah foto NEON → analyze 201, 50 kandidat semua `pending` (2.4 s CPU). Uji jalan, **bukan akurasi** (model jagung pada foto hutan) |
+| `run-with-model.ps1` label map salah | check gagal → API tidak dijalankan; env sesi tidak berubah |
+| `run-simulation.ps1` (port 18096) | health `mode=simulation`; dua analisis → kotak identik; notice & disclaimer laporan "SIMULASI — BUKAN AI"; env pulih setelah server dihentikan |
+| `ml/train.py` → `validate_model.py` → `check-model.ps1` | dataset **sintetis** 14 gambar, 1 epoch CPU dari `yolo11n.pt` lokal: lulus tanpa unduhan; metrik 0 (wajar), bukan model tanaman |
+
+Temuan selama uji (sudah ditangani):
+- `powershell -File … -LabelMapJson '{"jagung":"plant"}'` di PowerShell 5.1 tiba sebagai `{jagung:plant}` → parser
+  menerima bentuk itu dan dokumentasi menyarankan `-LabelMap 'jagung=plant'`. `check_model.py` menerima label map
+  lewat env, bukan argumen.
+- Ultralytics mengartikan `path:` relatif di `dataset.yaml` terhadap folder kerja, bukan berkas yaml → `train.py` /
+  `validate_model.py` memakai salinan yaml beralamat absolut, dan key `download` dibuang.
+- `pip install torch` gagal di folder berpath panjang (>260 karakter, Long Path Windows) → dicatat di README.
+
+Skrip & tes tidak mengunduh bobot atau memasang paket. Venv uji ultralytics, data dir, dan dataset sintetis ada
+di scratchpad sesi Claude, bukan di Git.
+
+### Untuk Codex (frontend) — revisi 4
+
+1. Regenerasi tipe dari `packages/contracts/openapi.yaml` (revisi 4). Tidak ada field dihapus.
+2. **Wajib**: tangani `health.model.mode === "simulation"` (atau `run.target === "simulation"`). Tampilkan
+   `target_label` / "SIMULASI — BUKAN AI" secara mencolok di status model, tombol/hasil analisis, kartu kandidat, dan
+   hitungan. Jangan menyebut kandidat simulasi sebagai "tanaman" atau "AI". `confidence` simulasi = `null`.
+3. `adapter`/`target` kini bisa `"simulation"`; pastikan switch/regex lama tidak jatuh ke wording "kandidat tanaman".
+4. Status model: pakai `mode` + `state` + `message`. `diagnostic_code` boleh dipakai untuk petunjuk singkat (mis.
+   `MODEL_FILE_NOT_FOUND` → "periksa path bobot"). `MODEL_PATH_NOT_SET` = mode manual normal, bukan error merah.
+5. Error 503 `/analyze`: `error.details.diagnostic_code` sama dengan health. Teks MODEL_NOT_CONFIGURED berubah
+   (akhiran lama hilang; jangan cocokkan string).
+6. `GENERIC_COCO_MODEL`: `target_label` sudah "Kandidat dari model COCO umum (BUKAN model tanaman)"; tampilkan
+   `limitations[0]`.
+7. `SurveyReport.disclaimers` dapat diawali butir "SIMULASI — BUKAN AI: …"; tampilkan di laporan/PDF.
+8. E2E: `run-simulation.ps1` atau `WALLACEA_DETECTOR=simulation` memberi alur analisis nyata yang deterministik
+   tanpa bobot (pengganti impor deteksi sintetis bila diinginkan). Suite yang butuh `MODEL_NOT_CONFIGURED` harus
+   tetap memakai API tanpa variabel ini.
 
 ## CONTRACT_READY — revisi 3 (`info.version` 1.3.0) @ `3fe53c5`
 
@@ -99,7 +187,8 @@ nbformat valid. Output tidak di-commit (gambar berat).
 - Model jagung tim (YOLO11n fine-tune pada dataset publik UAVmulticrop) juga berjalan lewat adapter
   Ultralytics; dievaluasi pada situs yang tidak terlihat (lihat `ml/README.md` § Status).
 - **Belum ada foto K919 MAX.** Semua hasil hanya pada foto contoh/dataset publik.
-- Kontrak **revisi 3** (`info.version` 1.3.0, aditif): revisi 2 `health.model.{adapter,target,target_label,device,limitations}` + revisi 3 di atas.
+- Kontrak **revisi 4** (`info.version` 1.4.0, aditif): revisi 2 `health.model.{adapter,target,target_label,device,limitations}`, revisi 3 (`/samples`, `run.target`), revisi 4 `health.model.{mode,diagnostic_code}` + target `simulation`.
+- Onboarding Windows: `apps/api/scripts/check-model.ps1`, `run-with-model.ps1`, `run-simulation.ps1`; training minimal `apps/api/ml/`. Model tanaman terlatih tetap belum ada.
 
 ## Untuk Codex (frontend)
 
