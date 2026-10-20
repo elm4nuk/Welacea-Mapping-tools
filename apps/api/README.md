@@ -158,6 +158,87 @@ sha256 `d37a7af0b5ba2754282a80d41b4c7b66e8c7149234df5bf3f41bdaf57d329fc8` (dicat
 mengambil backbone ImageNet `resnet50-0676ba61.pth` (lalu ditimpa bobot DeepForest); skrip unduh mengambilnya
 ke `torch_home/` folder model dan adapter menolak memuat (503) bila berkas itu tidak ada.
 
+## Mapping (revisi 5): batas lahan, peta GeoTIFF, AI ke peta
+
+Paket geospasial (rasterio 1.5.2 + GDAL 3.12.2, pyproj 3.8.0, shapely 2.2.0) sudah ada di `requirements.lock.txt`.
+Venv lama cukup dipasang ulang dari lock file; migrasi DB `0002` berjalan otomatis saat API start.
+
+```powershell
+cd apps\api
+.venv\Scripts\python -m pip install -r requirements.lock.txt      # menambah rasterio/pyproj/shapely/numpy
+.venv\Scripts\python -m app                                       # migrasi 0001 → 0002 otomatis
+```
+
+Cek `GET /api/v1/health` → `capabilities`: `field_boundaries`, `georeferenced_raster_import`, `map_ai_detections`
+= `true`; `orthomosaic_generation` = `false` (belum ada pembuatan orthomosaic).
+
+**Sebelum migrasi data penting:** matikan API, salin folder `apps\api\var\` sebagai backup. Migrasi 0002 menambah
+tabel dan kolom `surveys.field_id` tanpa membuat ulang tabel lama (diuji pada salinan DB nyata: semua survei, foto,
+dan penanda tetap).
+
+### A. Batas lahan
+
+```powershell
+$B = "http://127.0.0.1:8000/api/v1"
+$field = @{ name = "Blok Jagung A"; boundary_source = "gnss_survey"; source_note = "GNSS genggam"
+  geometry = @{ type = "Polygon"; coordinates = @(,@(@(106.8000,-6.6000), @(106.8009,-6.6000), @(106.8009,-6.5991),
+                                                    @(106.8000,-6.5991), @(106.8000,-6.6000))) } } | ConvertTo-Json -Depth 10
+$f = Invoke-RestMethod -Method Post -Uri "$B/fields" -ContentType "application/json" -Body $field
+$f.measures                                                       # area_m2, area_ha, perimeter_m (geodesik)
+curl.exe -F "file=@D:\data\batas lahan.geojson" "$B/fields/import"   # impor FeatureCollection
+curl.exe -o lahan.geojson "$B/fields-export.geojson"                 # ekspor
+```
+
+- Koordinat **[longitude, latitude]** WGS84 (RFC 7946). `[lat, lon]` yang tertukar biasanya ditolak (lat > 90) atau
+  jatuh di lokasi lain; periksa di peta.
+- Ditolak dengan `422 INVALID_GEOMETRY` dan alasan + lokasinya: ring tidak tertutup/kurang dari 4 titik,
+  self-intersection, lubang di luar poligon, koordinat di luar rentang/NaN, altitude (3D), melintasi antimeridian,
+  lebih dari 20 000 titik. **Tidak ada perbaikan otomatis.**
+- Luas = geodesik pada elipsoid WGS84 (`pyproj.Geod`, algoritme Karney); lubang dikurangkan. Keliling = semua ring
+  (luar + lubang); `exterior_perimeter_m` = batas luar saja. Nilai tersimpan hanya dari backend.
+- Tautkan survei: `PATCH /surveys/{id}` `{"field_id": "<id>"}`. Hapus lahan → `field_id` survei menjadi null.
+
+### B. Impor peta foto udara (GeoTIFF bergeoreferensi)
+
+```powershell
+curl.exe -F "file=@D:\peta\ortho blok A.tif" -F "source_description=Ekspor WebODM 2026-10-01" `
+  "$B/surveys/<survey_id>/rasters"
+# contoh raster nyata (NEON, CC BY 4.0, bukan K919):
+curl.exe -F "file=@..\..\samples\georeferenced\OSBS_029.tif" "$B/surveys/<survey_id>/rasters"
+```
+
+| Diterima | Ditolak (tanpa ditempel ke peta) |
+|---|---|
+| GeoTIFF, 3 band RGB uint8 atau 4 band RGBA (band 4 = alpha) | PNG/JPG/format lain, 1 band, 16-bit (415 `UNSUPPORTED_RASTER`) |
+| CRS geografis/proyeksi (mis. EPSG:4326, UTM) + geotransform (rotasi boleh) | tanpa CRS, hanya GCP, transform identitas (422 `RASTER_NOT_GEOREFERENCED`) |
+| ≤ 1 GiB, ≤ 400 MP, cakupan ≤ 2500 km² | lebih besar (413 `RASTER_TOO_LARGE` / 422 `footprint_too_large`) |
+
+- Disimpan: berkas asli byte-per-byte (sha256), CRS (WKT + EPSG), transform, bounds, footprint WGS84, GSD, nodata/
+  mask, keterangan sumber (klaim pengguna), dan metadata proses. Turunan tampilan RGBA ber-overview dibuat per blok
+  (raster 144 MP sintetis: impor ±51 s, memori proses +74 MB).
+- Tile web: `GET /rasters/{id}/tiles/{z}/{x}/{y}.png` (XYZ EPSG:3857, PNG 256, implementasi minimal rasterio
+  `WarpedVRT` + overview; 40–130 ms/tile pada uji 144 MP), `tilejson.json`, `preview.png`. TiTiler tidak dipakai.
+- `product_type = imported_georeferenced_raster`, `is_verified_orthomosaic = false`: georeferensi diambil apa adanya.
+
+### C. AI ke peta
+
+```powershell
+# API harus berjalan dengan model aktif (mis. DeepForest, lihat di atas) atau simulasi berlabel.
+Invoke-RestMethod -Method Post -Uri "$B/rasters/<raster_id>/analyze" -ContentType "application/json" `
+  -Body '{"tile_size": 1024, "overlap_px": 128}'
+curl.exe -o deteksi.geojson "$B/rasters/<raster_id>/detections.geojson"
+```
+
+Alur: jendela `tile_size` px ber-overlap → model aktif → bbox ternormalisasi dikembalikan ke **piksel raster asal**
+(offset jendela; `scale` resize tidak mengubah hasil) → kotak yang menempel tepi dalam jendela dibuang → NMS per
+kind (IoU ≥ 0,5 atau intersection/area-terkecil ≥ 0,8) → pusat di area mask dibuang → transform raster → CRS → WGS84
+(`always_xy`, [lon, lat]). Kandidat selalu `pending`; review `PATCH /map-detections/{id}` (If-Match wajib).
+
+- `overlap_px` harus ≥ ukuran objek terbesar; `tile_size` sebaiknya ≥ patch latih model. Uji nyata DeepForest pada
+  NEON 10 cm: `tile_size` 400 → precision/recall 0,78/0,62 vs anotasi manusia; `tile_size` 256 → 0,33/0,33.
+- Hitungan per raster. Jangan jumlahkan raster/penerbangan berbeda sebagai tanaman unik.
+- Foto biasa tidak berubah: penandanya tetap 0–1 gambar; EXIF GPS foto bukan posisi tanaman.
+
 ## Catatan Windows
 
 - `pandas` 3.0.6 diblokir **Smart App Control** pada mesin uji ("An Application Control policy has blocked this

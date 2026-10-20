@@ -75,5 +75,9 @@ Tes ML: `cd ml; .venv\Scripts\python -m pytest` (setup & notebook: `ml/README.md
 ## Batas produk
 
 Tidak ada: blockchain, autopilot, sprayer, sensor tambahan, diagnosis penyakit, dosis pupuk, estimasi
-panen, luas lahan otomatis. Koordinat foto bukan GPS. Hitungan antar foto bertumpang tindih bukan
-jumlah tanaman unik. Detail: `docs/architecture/PROJECT_BRIEF.md`.
+panen. Koordinat penanda foto bukan GPS. Hitungan antar foto/raster bertumpang tindih bukan jumlah tanaman unik.
+
+**Mapping (revisi 5, 2026-10-20):** batas lahan GeoJSON WGS84 dengan luas/keliling geodesik dihitung backend; impor
+GeoTIFF RGB yang **sudah** bergeoreferensi + tile peta; analisis model per jendela raster → kandidat berkoordinat
+WGS84. **Belum ada** pembuatan orthomosaic dari foto K919 (tahap berikutnya, ODM/NodeODM); impor GeoTIFF bukan
+fotogrametri. Detail: `docs/architecture/PROJECT_BRIEF.md`, `apps/api/README.md` § Mapping.

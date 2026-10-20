@@ -1,6 +1,6 @@
 # WALLACEA — Arsitektur
 
-Pemilik: Claude. Kontrak API: revisi 4 (`packages/contracts/openapi.yaml`, `info.version` 1.4.0).
+Pemilik: Claude. Kontrak API: revisi 5 (`packages/contracts/openapi.yaml`, `info.version` 1.5.0).
 
 ## Gambaran
 
@@ -9,6 +9,9 @@ Pemilik: Claude. Kontrak API: revisi 4 (`packages/contracts/openapi.yaml`, `info
    │  /api/*  ──proxy Vite──▶  FastAPI (apps/api, 127.0.0.1:8000, prefix /api/v1)
    │                              ├─ SQLAlchemy 2 + Alembic ─▶ SQLite  apps/api/var/wallacea.db
    │                              ├─ Storage lokal            ─▶ apps/api/var/uploads/xx/<uuid>.<ext>
+   │                              │                              (raster: <uuid>_raster.tif asli + _rdisplay.tif)
+   │                              ├─ app/geo (revisi 5)       ─▶ batas lahan (shapely+pyproj.Geod), raster
+   │                              │                              (rasterio/GDAL), tile XYZ, jendela AI → WGS84
    │                              └─ Detector (interface)
    │                                   ├─ UnconfiguredDetector  (default → 503 MODEL_NOT_CONFIGURED)
    │                                   ├─ UltralyticsDetector   (bobot YOLO .pt tim, opsional)
@@ -21,6 +24,32 @@ Pemilik: Claude. Kontrak API: revisi 4 (`packages/contracts/openapi.yaml`, `info
 ```
 
 Tidak ada antrean (Redis/Celery). Analisis satu foto berjalan **sinkron** dengan batas waktu.
+
+## Mapping (revisi 5)
+
+```
+ Field (lahan, GeoJSON WGS84) 1─* Survey 1─* Photo        (koordinat 0–1 gambar, tidak berubah)
+                                       1─* RasterAsset    (GeoTIFF impor, CRS nyata) 1─* RasterAnalysisRun
+                                                                                    1─* MapDetection (piksel + WGS84)
+```
+
+- **Field**: geometri disimpan apa adanya setelah validasi (`app/geo/boundary.py`); `area_m2`, `perimeter_m`
+  dihitung `pyproj.Geod(ellps="WGS84")` — tidak pernah `shapely.area` pada derajat. Validitas topologi = Shapely planar
+  pada lon/lat (cukup untuk lahan; antimeridian ditolak).
+- **RasterAsset** terpisah dari Photo agar makna koordinat foto lama tidak berubah. Validasi (`app/geo/raster.py`):
+  driver GTiff, 3/4 band uint8, CRS geografis/proyeksi, transform bukan identitas (GCP-only ditolak), footprint
+  WGS84 finite & dalam ±85°, ukuran/dimensi/cakupan dibatasi. Turunan tampilan RGBA (alpha = dataset mask) ditulis per
+  blok + overview rata-rata; tile = `WarpedVRT(EPSG:3857)` + pembacaan tereduksi (overview), tidak memuat raster utuh.
+  Akses hanya lewat ID aset (`Storage` regex key), tidak ada path/URL dari pengguna.
+- **Analisis raster** (`app/geo/detection.py`, `routers/rasters.py`): jendela ber-overlap → `detector.detect`
+  (adapter yang sama dengan foto) → bbox ternormalisasi × ukuran jendela asli + offset → buang kotak di tepi dalam
+  jendela → NMS per kind (IoU/IoS) → buang pusat ber-mask 0 → `PixelGeo` (affine eksplisit, pyproj `always_xy`).
+  Satu run `running` per raster (indeks unik parsial). Run terputus → `INTERRUPTED` saat startup.
+- **Migrasi 0002**: tabel baru + `ALTER TABLE surveys ADD COLUMN field_id … REFERENCES fields ON DELETE SET NULL`
+  tanpa batch-recreate (batch SQLite = DROP TABLE → ON DELETE CASCADE ke photos). Downgrade SQLite mengosongkan kolom
+  (tidak menghapusnya). `app.db.include_object` menutup false-positive refleksi FK inline di autogenerate.
+- **Capabilities**: `field_boundaries`/`georeferenced_raster_import`/`map_ai_detections` = paket terpasang;
+  `georeferencing` (foto) & `orthomosaic`/`orthomosaic_generation` = false.
 
 ## Struktur repo
 
