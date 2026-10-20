@@ -1,0 +1,69 @@
+{
+  "survey": {
+    "id": "7f95825ec88f4e7e8694cbc95e5a6e55",
+    "name": "Survei peta contoh",
+    "crop_type": "Pohon (contoh NEON)",
+    "location_label": "",
+    "survey_date": "2026-10-20",
+    "notes": "",
+    "is_demo": false,
+    "revision": 1,
+    "photo_count": 0,
+    "field_id": "5c281d1813f942fba4c07bacde2a3d9e",
+    "created_at": "2026-10-20T14:26:57.481655Z",
+    "updated_at": "2026-10-20T14:26:57.481655Z"
+  },
+  "generated_at": "2026-10-20T14:26:57.764355Z",
+  "photos": [],
+  "totals": {
+    "photo_count": 0,
+    "plant_accepted_sum_across_photos": 0,
+    "pending_review": 0,
+    "check_accepted": 0,
+    "gap_accepted": 0,
+    "counts_are_unique_plants": false
+  },
+  "findings": [],
+  "disclaimers": [
+    "Hitungan tanaman = penanda kind=plant berstatus accepted per foto. Kandidat model pending/rejected tidak dihitung.",
+    "Hitungan antar foto yang bertumpang tindih tidak boleh dijumlahkan sebagai jumlah tanaman unik lahan.",
+    "Posisi penanda foto adalah koordinat relatif dalam gambar (0–1), bukan lintang/bujur GPS. EXIF GPS foto = posisi kamera, bukan posisi tanaman.",
+    "Foto biasa bukan orthomosaic; luas lahan tidak dihitung dari foto.",
+    "Titik kosong dan titik periksa memerlukan pemeriksaan lapangan; ini bukan diagnosis penyakit.",
+    "Confidence adalah keluaran model, bukan akurasi survei.",
+    "Luas lahan 0.1021 ha dihitung geodesik (WGS84) dari batas digitasi di atas raster impor; akurasinya mengikuti sumber batas, bukan hasil ukur bersertifikat.",
+    "Peta udara = GeoTIFF bergeoreferensi yang DIIMPOR pengguna. Georeferensi diambil apa adanya dari berkas dan tidak diverifikasi WALLACEA; bukan orthomosaic yang dibuat aplikasi.",
+    "Hitungan kandidat peta berlaku per raster. Jangan menjumlahkan raster/penerbangan berbeda sebagai tanaman unik lahan."
+  ],
+  "mapping": {
+    "field": {
+      "id": "5c281d1813f942fba4c07bacde2a3d9e",
+      "name": "Petak contoh OSBS",
+      "boundary_source": "digitized_from_raster",
+      "measures": {
+        "area_m2": 1021.3113629817963,
+        "area_ha": 0.10213113629817963,
+        "perimeter_m": 127.88647667172295,
+        "exterior_perimeter_m": 127.88647667172295,
+        "method": "geodesic_wgs84"
+      }
+    },
+    "rasters": [
+      {
+        "raster_id": "2146878723f34687be2cd71de5af1031",
+        "name": "OSBS_029.tif",
+        "product_type": "imported_georeferenced_raster",
+        "approx_gsd_m": 0.10002869177827145,
+        "footprint_area_m2": 1600.9182842356968,
+        "counts": {
+          "plant_accepted": 0,
+          "plant_accepted_inside_field": 0,
+          "pending_review": 1,
+          "rejected": 0,
+          "total": 2
+        }
+      }
+    ],
+    "counts_are_unique_plants": false
+  }
+}

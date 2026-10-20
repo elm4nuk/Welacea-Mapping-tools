@@ -21,7 +21,7 @@ info:
     * Konkurensi penanda: `ETag`/`If-Match` berisi `revision` (wajib untuk PATCH/DELETE annotation).
 
     '
-  version: 1.4.0
+  version: 1.5.0
 paths:
   /api/v1/health:
     get:
@@ -92,7 +92,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Survey'
         '422':
-          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED)
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
           content:
             application/json:
               schema:
@@ -155,7 +156,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Survey'
         '400':
-          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
           content:
             application/json:
               schema:
@@ -173,7 +174,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED)
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
           content:
             application/json:
               schema:
@@ -194,7 +196,7 @@ paths:
         '204':
           description: Successful Response
         '400':
-          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
           content:
             application/json:
               schema:
@@ -259,7 +261,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhotoUploadResult'
         '400':
-          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
           content:
             application/json:
               schema:
@@ -277,13 +279,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '413':
-          description: Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE)
+          description: Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE, RASTER_TOO_LARGE)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '415':
-          description: Format tidak didukung (UNSUPPORTED_MEDIA_TYPE)
+          description: Format tidak didukung (UNSUPPORTED_MEDIA_TYPE, UNSUPPORTED_RASTER)
           content:
             application/json:
               schema:
@@ -390,7 +392,7 @@ paths:
         '204':
           description: Successful Response
         '400':
-          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
           content:
             application/json:
               schema:
@@ -588,7 +590,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED)
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
           content:
             application/json:
               schema:
@@ -622,7 +625,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Annotation'
         '400':
-          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
           content:
             application/json:
               schema:
@@ -640,7 +643,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED)
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
           content:
             application/json:
               schema:
@@ -667,7 +671,7 @@ paths:
         '204':
           description: Successful Response
         '400':
-          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
           content:
             application/json:
               schema:
@@ -743,7 +747,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED)
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
           content:
             application/json:
               schema:
@@ -755,7 +760,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '503':
-          description: Model tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE)
+          description: Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE)
           content:
             application/json:
               schema:
@@ -807,13 +812,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '413':
-          description: Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE)
+          description: Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE, RASTER_TOO_LARGE)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED)
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
           content:
             application/json:
               schema:
@@ -949,19 +955,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/StarterBackupImportResult'
         '400':
-          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP)
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '413':
-          description: Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE)
+          description: Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE, RASTER_TOO_LARGE)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '415':
-          description: Format tidak didukung (UNSUPPORTED_MEDIA_TYPE)
+          description: Format tidak didukung (UNSUPPORTED_MEDIA_TYPE, UNSUPPORTED_RASTER)
           content:
             application/json:
               schema:
@@ -1019,6 +1025,988 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/fields:
+    get:
+      tags:
+      - fields
+      summary: Daftar lahan (terbaru dulu)
+      operationId: list_fields
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FieldPage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - fields
+      summary: Buat lahan dari GeoJSON Polygon/MultiPolygon WGS84. Luas & keliling dihitung server.
+      operationId: create_field
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FieldCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FarmField'
+        '413':
+          description: Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE, RASTER_TOO_LARGE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/fields/{field_id}:
+    get:
+      tags:
+      - fields
+      summary: Get Field
+      operationId: get_field
+      parameters:
+      - name: field_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Field Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FarmField'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - fields
+      summary: Ubah lahan. If-Match opsional; bila dikirim harus = revision. Geometri baru diukur ulang.
+      operationId: update_field
+      parameters:
+      - name: field_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Field Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FieldUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FarmField'
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    delete:
+      tags:
+      - fields
+      summary: Hapus lahan. Survei yang tertaut tetap ada (field_id menjadi null).
+      operationId: delete_field
+      parameters:
+      - name: field_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Field Id
+      responses:
+        '204':
+          description: Successful Response
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/fields/{field_id}/geojson:
+    get:
+      tags:
+      - fields
+      summary: Ekspor satu lahan sebagai GeoJSON Feature (geometri persis seperti tersimpan)
+      operationId: export_field
+      parameters:
+      - name: field_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Field Id
+      responses:
+        '200':
+          description: GeoJSON (RFC 7946), WGS84 [lon, lat]
+          content:
+            application/json:
+              schema: {}
+            application/geo+json: {}
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/fields-export.geojson:
+    get:
+      tags:
+      - fields
+      summary: Ekspor semua lahan sebagai GeoJSON FeatureCollection
+      operationId: export_fields
+      responses:
+        '200':
+          description: GeoJSON (RFC 7946), WGS84 [lon, lat]
+          content:
+            application/json:
+              schema: {}
+            application/geo+json: {}
+  /api/v1/fields/import:
+    post:
+      tags:
+      - fields
+      summary: Impor lahan dari berkas GeoJSON (FeatureCollection/Feature/Polygon/MultiPolygon). Semua-atau-tidak.
+      description: 'Setiap Feature menjadi satu lahan. Nama dari properties.name (atau `name_prefix` + nomor). Bila satu geometri
+        tidak valid, tidak ada yang disimpan dan error menyebut feature-nya. CRS harus WGS84 lon/lat: GeoJSON dengan member
+        `crs` non-WGS84 ditolak.'
+      operationId: import_fields
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_import_fields'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FieldImportResult'
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '413':
+          description: Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE, RASTER_TOO_LARGE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/surveys/{survey_id}/rasters:
+    post:
+      tags:
+      - rasters
+      summary: Impor SATU GeoTIFF RGB bergeoreferensi (multipart `file`). Bukan pembuatan orthomosaic.
+      description: 'Diterima: GTiff, 3 band RGB uint8 atau 4 band RGBA (band 4 alpha), CRS geografis/proyeksi valid, geotransform
+        bukan identitas. Ditolak tanpa ditempel ke peta: tanpa CRS / hanya GCP / transform identitas (422 RASTER_NOT_GEOREFERENCED).
+        Batas ukuran: `limits.max_raster_bytes`, `limits.max_raster_pixels`, cakupan ≤ `limits.max_raster_footprint_km2`.
+        Berkas asli disimpan utuh (sha256), plus turunan tampilan RGBA ber-overview untuk tile. Proses sinkron: raster ratusan
+        MB dapat memakan beberapa menit.'
+      operationId: upload_raster
+      parameters:
+      - name: survey_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Survey Id
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_raster'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RasterUploadResult'
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '413':
+          description: Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE, RASTER_TOO_LARGE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '415':
+          description: Format tidak didukung (UNSUPPORTED_MEDIA_TYPE, UNSUPPORTED_RASTER)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    get:
+      tags:
+      - rasters
+      summary: Daftar raster impor survei
+      operationId: list_rasters
+      parameters:
+      - name: survey_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Survey Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RasterPage'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/rasters/{raster_id}:
+    get:
+      tags:
+      - rasters
+      summary: Get Raster
+      operationId: get_raster
+      parameters:
+      - name: raster_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Raster Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RasterAsset'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - rasters
+      summary: Ubah nama/keterangan sumber. If-Match opsional. Georeferensi tidak dapat diubah lewat API.
+      operationId: update_raster
+      parameters:
+      - name: raster_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Raster Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RasterUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RasterAsset'
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    delete:
+      tags:
+      - rasters
+      summary: Hapus raster, berkasnya, run, dan semua deteksi petanya
+      operationId: delete_raster
+      parameters:
+      - name: raster_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Raster Id
+      responses:
+        '204':
+          description: Successful Response
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/rasters/{raster_id}/content:
+    get:
+      tags:
+      - rasters
+      summary: GeoTIFF asli apa adanya (sha256 = raster.sha256)
+      operationId: raster_content
+      parameters:
+      - name: raster_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Raster Id
+      responses:
+        '200':
+          description: GeoTIFF asli
+          content:
+            image/tiff: {}
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/rasters/{raster_id}/preview.png:
+    get:
+      tags:
+      - rasters
+      summary: Preview PNG di ruang piksel raster (TIDAK diproyeksi ulang; untuk peta gunakan tile)
+      operationId: raster_preview
+      parameters:
+      - name: raster_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Raster Id
+      - name: max_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 2048
+          minimum: 64
+          default: 1024
+          title: Max Size
+      responses:
+        '200':
+          description: PNG
+          content:
+            image/png: {}
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/rasters/{raster_id}/tilejson.json:
+    get:
+      tags:
+      - rasters
+      summary: TileJSON 3.0.0 (URL tile relatif terhadap origin API)
+      operationId: raster_tilejson
+      parameters:
+      - name: raster_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Raster Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TileJson'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/rasters/{raster_id}/tiles/{z}/{x}/{y}.png:
+    get:
+      tags:
+      - rasters
+      summary: 'Tile XYZ Web Mercator (EPSG:3857), PNG RGBA 256 px. Di luar raster: transparan.'
+      operationId: raster_tile
+      parameters:
+      - name: raster_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Raster Id
+      - name: z
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 24
+          minimum: 0
+          title: Z
+      - name: x
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 0
+          title: X
+      - name: y
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 0
+          title: Y
+      responses:
+        '200':
+          description: PNG
+          content:
+            image/png: {}
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/rasters/{raster_id}/analyze:
+    post:
+      tags:
+      - rasters
+      summary: Jalankan model aktif pada raster per jendela (sinkron) → kandidat peta pending berkoordinat WGS84
+      description: Jendela `tile_size` px ber-overlap `overlap_px`, opsional resize `scale`. Posisi dikembalikan ke piksel
+        raster asal, lalu transform raster + CRS → WGS84 (pyproj always_xy, [lon, lat]). Duplikat antarjendela dihapus (NMS
+        per kind, IoU/IoS; lihat parameters.dedup). Kandidat selalu pending. Batas waktu total `limits.raster_analysis_timeout_s`
+        → 504 INFERENCE_TIMEOUT.
+      operationId: analyze_raster
+      parameters:
+      - name: raster_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Raster Id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/RasterAnalyzeRequest'
+              - type: 'null'
+              title: Body
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RasterAnalysisResult'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Kesalahan server (INTERNAL_ERROR, INFERENCE_FAILED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: Inferensi melewati batas waktu (INFERENCE_TIMEOUT)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/rasters/{raster_id}/analysis-runs:
+    get:
+      tags:
+      - rasters
+      summary: Riwayat analisis raster (terbaru dulu)
+      operationId: list_raster_runs
+      parameters:
+      - name: raster_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Raster Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RasterAnalysisRunPage'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/rasters/{raster_id}/detections:
+    get:
+      tags:
+      - rasters
+      summary: Kandidat/temuan peta raster (urutan dibuat). Hitungan hanya untuk raster ini.
+      operationId: list_detections
+      parameters:
+      - name: raster_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Raster Id
+      - name: review_status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - pending
+            - accepted
+            - rejected
+            type: string
+          - type: 'null'
+          title: Review Status
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 5000
+          minimum: 1
+          default: 1000
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MapDetectionPage'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/rasters/{raster_id}/detections.geojson:
+    get:
+      tags:
+      - rasters
+      summary: Ekspor kandidat/temuan peta raster sebagai GeoJSON (poligon kotak WGS84)
+      operationId: detections_geojson
+      parameters:
+      - name: raster_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Raster Id
+      - name: review_status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - pending
+            - accepted
+            - rejected
+            type: string
+          - type: 'null'
+          title: Review Status
+      responses:
+        '200':
+          description: FeatureCollection WGS84
+          content:
+            application/json:
+              schema: {}
+            application/geo+json: {}
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/map-detections/{detection_id}:
+    patch:
+      tags:
+      - rasters
+      summary: Review kandidat peta (terima/tolak/koreksi kind/catatan). If-Match WAJIB.
+      operationId: update_detection
+      parameters:
+      - name: detection_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Detection Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MapDetectionUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MapDetection'
+        '400':
+          description: Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY,
+            RASTER_NOT_GEOREFERENCED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '428':
+          description: If-Match wajib (PRECONDITION_REQUIRED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
 components:
   schemas:
     AnalysisResult:
@@ -1441,6 +2429,30 @@ components:
         ke
 
         titik. `x`/`y` dikirim bersama dan hanya untuk titik (untuk bbox, pusat dihitung server — jangan kirim x/y).'
+    Body_import_fields:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+        name_prefix:
+          type: string
+          title: Name Prefix
+          default: Lahan impor
+        boundary_source:
+          type: string
+          enum:
+          - manual_drawing
+          - geojson_import
+          - gnss_survey
+          - digitized_from_raster
+          - other
+          title: Boundary Source
+          default: geojson_import
+      type: object
+      required:
+      - file
+      title: Body_import_fields
     Body_import_starter_backup:
       properties:
         file:
@@ -1461,6 +2473,26 @@ components:
       required:
       - file
       title: Body_upload_photo
+    Body_upload_raster:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+        name:
+          type: string
+          maxLength: 150
+          title: Name
+          default: ''
+        source_description:
+          type: string
+          maxLength: 500
+          title: Source Description
+          default: ''
+      type: object
+      required:
+      - file
+      title: Body_upload_raster
     Capabilities:
       properties:
         flight_control:
@@ -1477,11 +2509,36 @@ components:
           type: boolean
           const: false
           title: Georeferencing
+          description: Foto biasa (Photo) TIDAK digeoreferensikan; koordinat penandanya 0–1 gambar. Peta berkoordinat hanya
+            lewat raster GeoTIFF impor (georeferenced_raster_import).
           default: false
         orthomosaic:
           type: boolean
           const: false
           title: Orthomosaic
+          description: Sama dengan orthomosaic_generation (nama lama).
+          default: false
+        field_boundaries:
+          type: boolean
+          title: Field Boundaries
+          description: CRUD batas lahan GeoJSON WGS84 + luas/keliling geodesik.
+          default: false
+        georeferenced_raster_import:
+          type: boolean
+          title: Georeferenced Raster Import
+          description: Impor GeoTIFF RGB yang SUDAH bergeoreferensi + tile/preview. Bukan fotogrametri.
+          default: false
+        map_ai_detections:
+          type: boolean
+          title: Map Ai Detections
+          description: Analisis raster impor per jendela → kandidat berkoordinat WGS84. Tetap butuh model aktif (lihat model.state)
+            — simulasi menghasilkan kandidat SIMULASI.
+          default: false
+        orthomosaic_generation:
+          type: boolean
+          const: false
+          title: Orthomosaic Generation
+          description: Pembuatan orthomosaic dari foto K919 (ODM/NodeODM) BELUM ada; tahap berikutnya.
           default: false
       type: object
       title: Capabilities
@@ -1592,6 +2649,12 @@ components:
           - INFERENCE_TIMEOUT
           - INVALID_BACKUP
           - INTERNAL_ERROR
+          - INVALID_GEOMETRY
+          - INVALID_RASTER
+          - UNSUPPORTED_RASTER
+          - RASTER_NOT_GEOREFERENCED
+          - RASTER_TOO_LARGE
+          - MAPPING_UNAVAILABLE
           title: Code
         message:
           type: string
@@ -1618,6 +2681,272 @@ components:
       required:
       - error
       title: ErrorEnvelope
+    FarmField:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        notes:
+          type: string
+          title: Notes
+        boundary_source:
+          type: string
+          enum:
+          - manual_drawing
+          - geojson_import
+          - gnss_survey
+          - digitized_from_raster
+          - other
+          title: Boundary Source
+        source_note:
+          type: string
+          title: Source Note
+        geometry:
+          $ref: '#/components/schemas/GeoJsonPolygonal'
+          description: Disimpan persis seperti dikirim (setelah lolos validasi).
+        measures:
+          $ref: '#/components/schemas/FieldMeasures'
+        bbox:
+          items:
+            type: number
+          type: array
+          title: Bbox
+          description: '[min_lon, min_lat, max_lon, max_lat]'
+        label_point:
+          items:
+            type: number
+          type: array
+          maxItems: 2
+          minItems: 2
+          title: Label Point
+          description: Titik di dalam poligon untuk label peta (bukan sentroid).
+        vertex_count:
+          type: integer
+          title: Vertex Count
+        polygon_count:
+          type: integer
+          title: Polygon Count
+        hole_count:
+          type: integer
+          title: Hole Count
+        survey_ids:
+          items:
+            type: string
+          type: array
+          title: Survey Ids
+          description: Survei yang ditautkan ke lahan ini.
+        revision:
+          type: integer
+          title: Revision
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - name
+      - notes
+      - boundary_source
+      - source_note
+      - geometry
+      - measures
+      - bbox
+      - label_point
+      - vertex_count
+      - polygon_count
+      - hole_count
+      - survey_ids
+      - revision
+      - created_at
+      - updated_at
+      title: FarmField
+      description: Lahan + batasnya (keluaran). Dinamai FarmField agar tidak bentrok dengan pydantic.Field.
+    FieldCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Name
+        notes:
+          type: string
+          maxLength: 2000
+          title: Notes
+          default: ''
+        boundary_source:
+          type: string
+          enum:
+          - manual_drawing
+          - geojson_import
+          - gnss_survey
+          - digitized_from_raster
+          - other
+          title: Boundary Source
+          description: 'Asal batas: manual_drawing (digambar di aplikasi), geojson_import, gnss_survey (diukur GPS/GNSS di
+            lapangan), digitized_from_raster (digambar di atas raster impor), other.'
+        source_note:
+          type: string
+          maxLength: 500
+          title: Source Note
+          description: Keterangan sumber, mis. alat ukur / berkas asal.
+          default: ''
+        geometry:
+          additionalProperties: true
+          type: object
+          title: Geometry
+          description: GeoJSON Polygon atau MultiPolygon, WGS84 [lon, lat], ring tertutup, tanpa altitude. Geometri tidak
+            valid ditolak 422 INVALID_GEOMETRY (tidak diperbaiki otomatis).
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - boundary_source
+      - geometry
+      title: FieldCreate
+    FieldImportResult:
+      properties:
+        fields:
+          items:
+            $ref: '#/components/schemas/FarmField'
+          type: array
+          title: Fields
+        warnings:
+          items:
+            $ref: '#/components/schemas/Warning'
+          type: array
+          title: Warnings
+      type: object
+      required:
+      - fields
+      title: FieldImportResult
+    FieldMeasures:
+      properties:
+        area_m2:
+          type: number
+          title: Area M2
+          description: Luas geodesik pada elipsoid WGS84 (pyproj.Geod, Karney); lubang dikurangkan.
+        area_ha:
+          type: number
+          title: Area Ha
+        perimeter_m:
+          type: number
+          title: Perimeter M
+          description: Total panjang semua ring (batas luar + lubang), geodesik.
+        exterior_perimeter_m:
+          type: number
+          title: Exterior Perimeter M
+          description: Panjang batas luar saja.
+        method:
+          type: string
+          const: geodesic_wgs84
+          title: Method
+          default: geodesic_wgs84
+      type: object
+      required:
+      - area_m2
+      - area_ha
+      - perimeter_m
+      - exterior_perimeter_m
+      title: FieldMeasures
+    FieldPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/FarmField'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+      type: object
+      required:
+      - items
+      - total
+      - limit
+      - offset
+      title: FieldPage
+    FieldSummary:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        boundary_source:
+          type: string
+          enum:
+          - manual_drawing
+          - geojson_import
+          - gnss_survey
+          - digitized_from_raster
+          - other
+          title: Boundary Source
+        measures:
+          $ref: '#/components/schemas/FieldMeasures'
+      type: object
+      required:
+      - id
+      - name
+      - boundary_source
+      - measures
+      title: FieldSummary
+    FieldUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 100
+            minLength: 1
+          - type: 'null'
+          title: Name
+        notes:
+          anyOf:
+          - type: string
+            maxLength: 2000
+          - type: 'null'
+          title: Notes
+        boundary_source:
+          anyOf:
+          - type: string
+            enum:
+            - manual_drawing
+            - geojson_import
+            - gnss_survey
+            - digitized_from_raster
+            - other
+          - type: 'null'
+          title: Boundary Source
+        source_note:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Source Note
+        geometry:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Geometry
+          description: Ganti seluruh geometri; ukuran dihitung ulang.
+      additionalProperties: false
+      type: object
+      title: FieldUpdate
     Finding:
       properties:
         annotation_id:
@@ -1669,6 +2998,47 @@ components:
       - y
       - note
       title: Finding
+    GeoJsonPolygon:
+      properties:
+        type:
+          type: string
+          const: Polygon
+          title: Type
+        coordinates:
+          items:
+            items:
+              items:
+                type: number
+              type: array
+              maxItems: 2
+              minItems: 2
+              description: '[longitude, latitude] WGS84'
+            type: array
+          type: array
+          title: Coordinates
+      type: object
+      required:
+      - type
+      - coordinates
+      title: GeoJsonPolygon
+    GeoJsonPolygonal:
+      properties:
+        type:
+          type: string
+          enum:
+          - Polygon
+          - MultiPolygon
+          title: Type
+        coordinates:
+          items: {}
+          type: array
+          title: Coordinates
+          description: Koordinat GeoJSON [lon, lat] WGS84; ring tertutup.
+      type: object
+      required:
+      - type
+      - coordinates
+      title: GeoJsonPolygonal
     HTTPValidationError:
       properties:
         detail:
@@ -1735,6 +3105,24 @@ components:
         inference_timeout_s:
           type: number
           title: Inference Timeout S
+        max_raster_bytes:
+          type: integer
+          title: Max Raster Bytes
+        max_raster_pixels:
+          type: integer
+          title: Max Raster Pixels
+        max_raster_footprint_km2:
+          type: number
+          title: Max Raster Footprint Km2
+        max_field_vertices:
+          type: integer
+          title: Max Field Vertices
+        max_field_import_bytes:
+          type: integer
+          title: Max Field Import Bytes
+        raster_analysis_timeout_s:
+          type: number
+          title: Raster Analysis Timeout S
       type: object
       required:
       - max_upload_bytes
@@ -1744,7 +3132,173 @@ components:
       - max_detection_payload_bytes
       - max_backup_bytes
       - inference_timeout_s
+      - max_raster_bytes
+      - max_raster_pixels
+      - max_raster_footprint_km2
+      - max_field_vertices
+      - max_field_import_bytes
+      - raster_analysis_timeout_s
       title: Limits
+    MapDetection:
+      properties:
+        id:
+          type: string
+          title: Id
+        raster_id:
+          type: string
+          title: Raster Id
+        analysis_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Analysis Run Id
+        kind:
+          type: string
+          enum:
+          - plant
+          - check
+          - gap
+          title: Kind
+        source:
+          type: string
+          const: model
+          title: Source
+        review_status:
+          type: string
+          enum:
+          - pending
+          - accepted
+          - rejected
+          title: Review Status
+        confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Confidence
+          description: Skor model, bukan akurasi survei. null untuk simulasi.
+        model_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Label
+        note:
+          type: string
+          title: Note
+        pixel_bbox:
+          items:
+            type: number
+          type: array
+          title: Pixel Bbox
+          description: '[left, top, width, height] dalam piksel raster ASLI (bukan 0–1).'
+        center:
+          items:
+            type: number
+          type: array
+          maxItems: 2
+          minItems: 2
+          title: Center
+          description: Pusat kotak, [lon, lat] WGS84.
+        center_native:
+          items:
+            type: number
+          type: array
+          title: Center Native
+          description: Pusat kotak [x, y] dalam CRS raster.
+        geometry:
+          $ref: '#/components/schemas/GeoJsonPolygon'
+          description: 4 sudut kotak dalam WGS84.
+        inside_field:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Inside Field
+          description: Pusat di dalam batas lahan survei; null = survei tanpa lahan.
+        revision:
+          type: integer
+          title: Revision
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - raster_id
+      - analysis_run_id
+      - kind
+      - source
+      - review_status
+      - confidence
+      - model_label
+      - note
+      - pixel_bbox
+      - center
+      - center_native
+      - geometry
+      - inside_field
+      - revision
+      - created_at
+      - updated_at
+      title: MapDetection
+    MapDetectionPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/MapDetection'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+        counts:
+          $ref: '#/components/schemas/RasterDetectionCounts'
+      type: object
+      required:
+      - items
+      - total
+      - limit
+      - offset
+      - counts
+      title: MapDetectionPage
+    MapDetectionUpdate:
+      properties:
+        review_status:
+          anyOf:
+          - type: string
+            enum:
+            - pending
+            - accepted
+            - rejected
+          - type: 'null'
+          title: Review Status
+        kind:
+          anyOf:
+          - type: string
+            enum:
+            - plant
+            - check
+            - gap
+          - type: 'null'
+          title: Kind
+        note:
+          anyOf:
+          - type: string
+            maxLength: 2000
+          - type: 'null'
+          title: Note
+      additionalProperties: false
+      type: object
+      title: MapDetectionUpdate
     ModelStatus:
       properties:
         state:
@@ -2024,6 +3578,490 @@ components:
       - photo
       - warnings
       title: PhotoUploadResult
+    RasterAnalysisResult:
+      properties:
+        run:
+          $ref: '#/components/schemas/RasterAnalysisRun'
+        candidate_count:
+          type: integer
+          title: Candidate Count
+        replaced_detection_count:
+          type: integer
+          title: Replaced Detection Count
+        detections_url:
+          type: string
+          title: Detections Url
+        detections_geojson_url:
+          type: string
+          title: Detections Geojson Url
+        notice:
+          type: string
+          title: Notice
+      type: object
+      required:
+      - run
+      - candidate_count
+      - replaced_detection_count
+      - detections_url
+      - detections_geojson_url
+      - notice
+      title: RasterAnalysisResult
+    RasterAnalysisRun:
+      properties:
+        id:
+          type: string
+          title: Id
+        raster_id:
+          type: string
+          title: Raster Id
+        model_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Id
+        model_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Version
+        adapter:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Adapter
+        target:
+          anyOf:
+          - type: string
+            enum:
+            - plant
+            - tree_crown
+            - simulation
+          - type: 'null'
+          title: Target
+        input_sha256:
+          type: string
+          title: Input Sha256
+        status:
+          type: string
+          enum:
+          - running
+          - succeeded
+          - failed
+          title: Status
+        candidate_count:
+          type: integer
+          title: Candidate Count
+        parameters:
+          additionalProperties: true
+          type: object
+          title: Parameters
+          description: tile_size, overlap_px, scale, window_count, raw_detections, dropped_edge, dropped_masked, dedup method/threshold.
+        started_at:
+          type: string
+          format: date-time
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+        error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Code
+      type: object
+      required:
+      - id
+      - raster_id
+      - model_id
+      - model_version
+      - adapter
+      - target
+      - input_sha256
+      - status
+      - candidate_count
+      - parameters
+      - started_at
+      - finished_at
+      - error_code
+      title: RasterAnalysisRun
+    RasterAnalysisRunPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/RasterAnalysisRun'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+      type: object
+      required:
+      - items
+      - total
+      - limit
+      - offset
+      title: RasterAnalysisRunPage
+    RasterAnalyzeRequest:
+      properties:
+        on_existing:
+          type: string
+          enum:
+          - reject
+          - replace_pending
+          - append
+          title: On Existing
+          description: Sama dengan analisis foto.
+          default: reject
+        tile_size:
+          type: integer
+          maximum: 4096.0
+          minimum: 256.0
+          title: Tile Size
+          description: Ukuran jendela (piksel raster asli).
+          default: 1024
+        overlap_px:
+          type: integer
+          maximum: 2048.0
+          minimum: 0.0
+          title: Overlap Px
+          description: Overlap antarjendela; harus ≥ ukuran objek terbesar dan < tile_size.
+          default: 128
+        scale:
+          type: number
+          maximum: 4.0
+          minimum: 0.1
+          title: Scale
+          description: Faktor resize jendela sebelum ke model (mis. 0.5).
+          default: 1.0
+        iou_threshold:
+          type: number
+          maximum: 1.0
+          exclusiveMinimum: 0.0
+          title: Iou Threshold
+          default: 0.5
+        ios_threshold:
+          type: number
+          maximum: 1.0
+          exclusiveMinimum: 0.0
+          title: Ios Threshold
+          description: Intersection / area kotak terkecil untuk dedup.
+          default: 0.8
+      additionalProperties: false
+      type: object
+      title: RasterAnalyzeRequest
+    RasterAsset:
+      properties:
+        id:
+          type: string
+          title: Id
+        survey_id:
+          type: string
+          title: Survey Id
+        name:
+          type: string
+          title: Name
+        original_name:
+          type: string
+          title: Original Name
+        product_type:
+          type: string
+          const: imported_georeferenced_raster
+          title: Product Type
+          description: GeoTIFF bergeoreferensi yang diimpor pengguna. BUKAN orthomosaic yang dibuat/diverifikasi WALLACEA;
+            georeferensi diambil apa adanya dari berkas.
+        is_verified_orthomosaic:
+          type: boolean
+          const: false
+          title: Is Verified Orthomosaic
+          description: 'Selalu false di revisi 5: sumber/proses raster tidak diverifikasi aplikasi.'
+          default: false
+        source_description:
+          type: string
+          title: Source Description
+          description: Keterangan asal dari pengguna (klaim, tidak diverifikasi).
+        size_bytes:
+          type: integer
+          title: Size Bytes
+        sha256:
+          type: string
+          title: Sha256
+          description: sha256 berkas asli (= GET content).
+        width:
+          type: integer
+          title: Width
+        height:
+          type: integer
+          title: Height
+        band_count:
+          type: integer
+          title: Band Count
+        crs:
+          $ref: '#/components/schemas/RasterCrs'
+        transform:
+          items:
+            type: number
+          type: array
+          title: Transform
+          description: 'Affine [a, b, c, d, e, f]: x = a·col + b·row + c, y = d·col + e·row + f; (col,row)=(0,0) sudut kiri-atas
+            piksel pertama.'
+        bounds_native:
+          items:
+            type: number
+          type: array
+          title: Bounds Native
+          description: '[left, bottom, right, top] dalam CRS raster'
+        bounds_wgs84:
+          items:
+            type: number
+          type: array
+          title: Bounds Wgs84
+          description: '[west, south, east, north]'
+        footprint:
+          $ref: '#/components/schemas/GeoJsonPolygon'
+          description: Batas raster (tepi didensifikasi) dalam WGS84.
+        footprint_area_m2:
+          type: number
+          title: Footprint Area M2
+        approx_gsd_m:
+          type: number
+          title: Approx Gsd M
+          description: Perkiraan ukuran piksel di tanah (m) di pusat raster.
+        nodata:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Nodata
+        has_alpha:
+          type: boolean
+          title: Has Alpha
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+          description: colorinterp, mask_flags, compression, is_rotated, warnings.
+        processing:
+          additionalProperties: true
+          type: object
+          title: Processing
+          description: 'Pipeline impor: turunan tampilan, overview, versi rasterio/GDAL.'
+        warnings:
+          items:
+            type: string
+          type: array
+          title: Warnings
+        content_url:
+          type: string
+          title: Content Url
+        preview_url:
+          type: string
+          title: Preview Url
+        tilejson_url:
+          type: string
+          title: Tilejson Url
+        tile_url_template:
+          type: string
+          title: Tile Url Template
+          description: XYZ EPSG:3857, PNG 256 px, area di luar raster transparan.
+        minzoom:
+          type: integer
+          title: Minzoom
+        maxzoom:
+          type: integer
+          title: Maxzoom
+        detection_counts:
+          $ref: '#/components/schemas/RasterDetectionCounts'
+        revision:
+          type: integer
+          title: Revision
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - survey_id
+      - name
+      - original_name
+      - product_type
+      - source_description
+      - size_bytes
+      - sha256
+      - width
+      - height
+      - band_count
+      - crs
+      - transform
+      - bounds_native
+      - bounds_wgs84
+      - footprint
+      - footprint_area_m2
+      - approx_gsd_m
+      - nodata
+      - has_alpha
+      - metadata
+      - processing
+      - warnings
+      - content_url
+      - preview_url
+      - tilejson_url
+      - tile_url_template
+      - minzoom
+      - maxzoom
+      - detection_counts
+      - revision
+      - created_at
+      - updated_at
+      title: RasterAsset
+    RasterCrs:
+      properties:
+        epsg:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Epsg
+          description: Kode EPSG bila dikenali; null untuk CRS kustom (lihat wkt).
+        name:
+          type: string
+          title: Name
+        wkt:
+          type: string
+          title: Wkt
+        is_geographic:
+          type: boolean
+          title: Is Geographic
+      type: object
+      required:
+      - epsg
+      - name
+      - wkt
+      - is_geographic
+      title: RasterCrs
+    RasterDetectionCounts:
+      properties:
+        plant_accepted:
+          type: integer
+          title: Plant Accepted
+          description: Kandidat kind=plant berstatus accepted pada raster INI.
+        plant_accepted_inside_field:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Plant Accepted Inside Field
+          description: Dari plant_accepted, yang pusatnya di dalam batas lahan survei. null = survei tanpa lahan.
+        pending_review:
+          type: integer
+          title: Pending Review
+        rejected:
+          type: integer
+          title: Rejected
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - plant_accepted
+      - plant_accepted_inside_field
+      - pending_review
+      - rejected
+      - total
+      title: RasterDetectionCounts
+    RasterPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/RasterAsset'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+      type: object
+      required:
+      - items
+      - total
+      - limit
+      - offset
+      title: RasterPage
+    RasterReportRow:
+      properties:
+        raster_id:
+          type: string
+          title: Raster Id
+        name:
+          type: string
+          title: Name
+        product_type:
+          type: string
+          const: imported_georeferenced_raster
+          title: Product Type
+        approx_gsd_m:
+          type: number
+          title: Approx Gsd M
+        footprint_area_m2:
+          type: number
+          title: Footprint Area M2
+        counts:
+          $ref: '#/components/schemas/RasterDetectionCounts'
+      type: object
+      required:
+      - raster_id
+      - name
+      - product_type
+      - approx_gsd_m
+      - footprint_area_m2
+      - counts
+      title: RasterReportRow
+    RasterUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 150
+            minLength: 1
+          - type: 'null'
+          title: Name
+        source_description:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Source Description
+      additionalProperties: false
+      type: object
+      title: RasterUpdate
+    RasterUploadResult:
+      properties:
+        raster:
+          $ref: '#/components/schemas/RasterAsset'
+        warnings:
+          items:
+            $ref: '#/components/schemas/Warning'
+          type: array
+          title: Warnings
+      type: object
+      required:
+      - raster
+      title: RasterUploadResult
     ReportTotals:
       properties:
         photo_count:
@@ -2200,6 +4238,12 @@ components:
         photo_count:
           type: integer
           title: Photo Count
+        field_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Field Id
+          description: 'Revisi 5: lahan yang disurvei; null = belum ditautkan.'
         created_at:
           type: string
           format: date-time
@@ -2249,6 +4293,12 @@ components:
           maxLength: 2000
           title: Notes
           default: ''
+        field_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Field Id
+          description: 'Revisi 5: lahan (GET /fields) yang disurvei. Opsional.'
       additionalProperties: false
       type: object
       required:
@@ -2256,6 +4306,28 @@ components:
       - crop_type
       - survey_date
       title: SurveyCreate
+    SurveyMapping:
+      properties:
+        field:
+          anyOf:
+          - $ref: '#/components/schemas/FieldSummary'
+          - type: 'null'
+        rasters:
+          items:
+            $ref: '#/components/schemas/RasterReportRow'
+          type: array
+          title: Rasters
+        counts_are_unique_plants:
+          type: boolean
+          const: false
+          title: Counts Are Unique Plants
+          description: Hitungan per raster TIDAK dijumlahkan antar raster/penerbangan sebagai tanaman unik.
+          default: false
+      type: object
+      required:
+      - field
+      - rasters
+      title: SurveyMapping
     SurveyPage:
       properties:
         items:
@@ -2304,6 +4376,11 @@ components:
             type: string
           type: array
           title: Disclaimers
+        mapping:
+          anyOf:
+          - $ref: '#/components/schemas/SurveyMapping'
+          - type: 'null'
+          description: 'Revisi 5: ringkasan lahan & raster. null = survei tanpa lahan dan tanpa raster.'
       type: object
       required:
       - survey
@@ -2347,9 +4424,65 @@ components:
             maxLength: 2000
           - type: 'null'
           title: Notes
+        field_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Field Id
+          description: 'Revisi 5: null = lepaskan tautan lahan.'
       additionalProperties: false
       type: object
       title: SurveyUpdate
+    TileJson:
+      properties:
+        tilejson:
+          type: string
+          const: 3.0.0
+          title: Tilejson
+          default: 3.0.0
+        name:
+          type: string
+          title: Name
+        tiles:
+          items:
+            type: string
+          type: array
+          title: Tiles
+        minzoom:
+          type: integer
+          title: Minzoom
+        maxzoom:
+          type: integer
+          title: Maxzoom
+        bounds:
+          items:
+            type: number
+          type: array
+          title: Bounds
+        center:
+          items:
+            type: number
+          type: array
+          title: Center
+          description: '[lon, lat, zoom]'
+        attribution:
+          type: string
+          title: Attribution
+        scheme:
+          type: string
+          const: xyz
+          title: Scheme
+          default: xyz
+      type: object
+      required:
+      - name
+      - tiles
+      - minzoom
+      - maxzoom
+      - bounds
+      - center
+      - attribution
+      title: TileJson
     ValidationError:
       properties:
         loc:

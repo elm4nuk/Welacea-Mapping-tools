@@ -1,0 +1,33 @@
+{
+  "name": "Petak contoh OSBS",
+  "boundary_source": "digitized_from_raster",
+  "source_note": "Digambar di atas raster NEON OSBS_029 (contoh, bukan lahan WALLACEA)",
+  "notes": "",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          -81.99006,
+          29.69236
+        ],
+        [
+          -81.98972,
+          29.69236
+        ],
+        [
+          -81.98972,
+          29.69264
+        ],
+        [
+          -81.99006,
+          29.69264
+        ],
+        [
+          -81.99006,
+          29.69236
+        ]
+      ]
+    ]
+  }
+}

@@ -5,6 +5,63 @@ Pemilik: Claude (backend). Setiap perubahan kontrak: naikkan `CONTRACT_REVISION`
 dengan kompatibilitas dan fixture yang berubah, commit, lalu sampaikan SHA ke frontend.
 Usulan perubahan dari frontend: `docs/requests/codex-*.md`.
 
+## Revisi 5 — 2026-10-20 (`info.version` 1.5.0) — mapping: batas lahan, raster GeoTIFF impor, AI ke peta
+
+**Kompatibel mundur (aditif).** Endpoint lama tidak berubah makna. `Photo`, `Annotation`, `AnalysisRun`: koordinat
+penanda foto tetap 0–1 gambar, bukan GPS. Semua koordinat pertukaran baru: **WGS84, urutan [longitude, latitude]**.
+
+### Berubah pada skema yang ada
+
+| Skema | Perubahan |
+|---|---|
+| `Capabilities` | + `field_boundaries`, `georeferenced_raster_import`, `map_ai_detections` (bool: paket geospasial terpasang di server), + `orthomosaic_generation: false`. `georeferencing` (foto biasa) dan `orthomosaic` **tetap false**. |
+| `Limits` | + `max_raster_bytes` (1 GiB), `max_raster_pixels` (400 MP), `max_raster_footprint_km2` (2500), `max_field_vertices` (20 000), `max_field_import_bytes` (5 MB), `raster_analysis_timeout_s` (1800) |
+| `Survey`, `SurveyCreate`, `SurveyUpdate` | + `field_id` (nullable). `SurveyUpdate.field_id: null` = lepaskan tautan. `field_id` tak dikenal → 422 |
+| `SurveyReport` | + `mapping: SurveyMapping \| null` (null bila survei tanpa lahan & raster). `disclaimers`: teks "Foto biasa bukan orthomosaic…" diperbarui; butir baru **kondisional**: luas lahan (sumber batas), raster impor (georeferensi tidak diverifikasi), per-raster bukan tanaman unik, simulasi pada raster |
+| `ErrorCode` | + `INVALID_GEOMETRY` (422), `INVALID_RASTER` (400), `UNSUPPORTED_RASTER` (415), `RASTER_NOT_GEOREFERENCED` (422, `details.reason`: `no_crs`, `gcp_only`, `identity_transform`, `degenerate_transform`, `invalid_crs`, `unsupported_crs_kind`, `projection_failed`, `bounds_out_of_range`, `invalid_footprint`, `footprint_too_large`), `RASTER_TOO_LARGE` (413), `MAPPING_UNAVAILABLE` (503) |
+
+### Endpoint baru
+
+| Endpoint | Fungsi |
+|---|---|
+| `GET/POST /fields`, `GET/PATCH/DELETE /fields/{id}` | Lahan. POST/PATCH menerima GeoJSON Polygon/MultiPolygon; server menghitung `measures` (geodesik WGS84). PATCH/DELETE `If-Match` opsional (pola survei). DELETE → `survey.field_id` menjadi null |
+| `POST /fields/import` (multipart `file`, `name_prefix`, `boundary_source`) | FeatureCollection/Feature/Geometry → lahan; semua-atau-tidak; CRS non-WGS84 ditolak |
+| `GET /fields/{id}/geojson`, `GET /fields-export.geojson` | Ekspor `application/geo+json`; geometri persis seperti tersimpan |
+| `POST /surveys/{id}/rasters` (multipart `file`, `name`, `source_description`) | Impor GeoTIFF RGB/RGBA uint8 bergeoreferensi → `RasterUploadResult` (+ warning `DUPLICATE_IN_SURVEY`) |
+| `GET /surveys/{id}/rasters`, `GET/PATCH/DELETE /rasters/{id}` | Daftar/detail/ubah nama & keterangan sumber/hapus |
+| `GET /rasters/{id}/content` | GeoTIFF asli (sha256 sama) |
+| `GET /rasters/{id}/preview.png?max_size=` | PNG di ruang piksel raster (tidak diproyeksi) |
+| `GET /rasters/{id}/tilejson.json`, `GET /rasters/{id}/tiles/{z}/{x}/{y}.png` | Tile XYZ EPSG:3857, PNG RGBA 256 px, di luar raster transparan. URL tile relatif terhadap origin API |
+| `POST /rasters/{id}/analyze` (`RasterAnalyzeRequest`) | Model aktif per jendela → kandidat peta pending (`RasterAnalysisResult`) |
+| `GET /rasters/{id}/analysis-runs` | `RasterAnalysisRunPage` |
+| `GET /rasters/{id}/detections?review_status=&limit=&offset=` | `MapDetectionPage` (limit ≤ 5000) + `counts` raster ini |
+| `GET /rasters/{id}/detections.geojson` | FeatureCollection poligon kotak WGS84 |
+| `PATCH /map-detections/{id}` | Review; **If-Match wajib** (pola annotation) |
+
+### Skema baru
+
+`FieldCreate`, `FieldUpdate`, `FarmField` (+ `FieldMeasures`, `GeoJsonPolygonal`), `FieldPage`, `FieldImportResult`,
+`RasterAsset` (+ `RasterCrs`, `GeoJsonPolygon`, `RasterDetectionCounts`), `RasterPage`, `RasterUploadResult`,
+`RasterUpdate`, `TileJson`, `RasterAnalyzeRequest`, `RasterAnalysisRun`, `RasterAnalysisRunPage`,
+`RasterAnalysisResult`, `MapDetection`, `MapDetectionPage`, `MapDetectionUpdate`, `SurveyMapping`, `FieldSummary`,
+`RasterReportRow`.
+
+Catatan semantik:
+- `RasterAsset.product_type = "imported_georeferenced_raster"`, `is_verified_orthomosaic = false`: impor GeoTIFF
+  **bukan** fotogrametri. `source_description` = klaim pengguna.
+- `MapDetection.pixel_bbox` dalam piksel raster ASLI (bukan 0–1); `center`/`geometry` WGS84; `inside_field` = pusat
+  di dalam batas lahan survei (null bila survei tanpa lahan).
+- `RasterDetectionCounts.plant_accepted` per raster; `SurveyMapping.counts_are_unique_plants = false`.
+- `RasterAnalysisRun.target` sama dengan health saat run dibuat (`plant`/`tree_crown`/`simulation`).
+
+Fixture baru: `field-create.request.json`, `field.json`, `field-page.json`, `field.geojson`, `error.invalid-geometry.json`,
+`survey-with-field.json`, `raster-upload.response.json`, `raster-page.json`, `raster-tilejson.json`,
+`raster-analyze.request.json`, `raster-analyze.response.json` (detector **test double**), `map-detection-page.json`,
+`map-detection-update.request.json`, `map-detection-accepted.json`, `map-detections.geojson`,
+`report-with-mapping.json`, `error.raster-not-georeferenced.json`, `health.mapping.json`. Raster fixture =
+GeoTIFF NEON asli `samples/georeferenced/OSBS_029.tif` (CC BY 4.0, bukan K919). Fixture lain mendapat `field_id`,
+`capabilities`/`limits` baru, `mapping: null`, atau hanya berubah ID/timestamp.
+
 ## Revisi 4 — 2026-10-20 (`info.version` 1.4.0) — diagnostik model + mode simulasi development
 
 **Kompatibel mundur (aditif).** Tidak ada field yang dihapus atau diubah tipenya; `ModelStatus.state` tetap

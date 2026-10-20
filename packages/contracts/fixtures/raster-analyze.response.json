@@ -1,0 +1,45 @@
+{
+  "run": {
+    "id": "8729325eeeff427299c6efdef5869b0a",
+    "raster_id": "2146878723f34687be2cd71de5af1031",
+    "model_id": "contract-test-double",
+    "model_version": "sha256:0000000000000000",
+    "adapter": null,
+    "target": null,
+    "input_sha256": "8521dbb5e8063d37d61895867dfcca7476491d1345103dc1b3fd96f71b186353",
+    "status": "succeeded",
+    "candidate_count": 2,
+    "parameters": {
+      "on_existing": "reject",
+      "tile_size": 1024,
+      "overlap_px": 128,
+      "scale": 1.0,
+      "iou_threshold": 0.5,
+      "ios_threshold": 0.8,
+      "window_count": 1,
+      "windows_skipped_masked": 0,
+      "raw_detections": 2,
+      "dropped_edge": 0,
+      "dropped_masked": 0,
+      "after_edge_and_mask": 2,
+      "after_dedup": 2,
+      "dedup": {
+        "method": "greedy_nms_per_kind",
+        "iou_threshold": 0.5,
+        "ios_threshold": 0.8,
+        "edge_rule": "drop_boxes_touching_inner_window_edges"
+      },
+      "model_parameters": {
+        "adapter": "test-double"
+      }
+    },
+    "started_at": "2026-10-20T14:26:57.724307Z",
+    "finished_at": "2026-10-20T14:26:57.739205Z",
+    "error_code": null
+  },
+  "candidate_count": 2,
+  "replaced_detection_count": 0,
+  "detections_url": "/api/v1/rasters/2146878723f34687be2cd71de5af1031/detections",
+  "detections_geojson_url": "/api/v1/rasters/2146878723f34687be2cd71de5af1031/detections.geojson",
+  "notice": "Kandidat peta berstatus pending dan belum masuk hitungan. Posisi geografis berasal dari georeferensi berkas GeoTIFF impor (tidak diverifikasi WALLACEA). Hitungan per raster tidak boleh dijumlahkan antar raster/penerbangan sebagai tanaman unik."
+}

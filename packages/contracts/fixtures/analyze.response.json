@@ -1,7 +1,7 @@
 {
   "run": {
-    "id": "84764a57def24e18b5a413f4f1435f50",
-    "photo_id": "4c00961661c548bc91ac42a7e9a3834c",
+    "id": "c11880432b0646cd8a2db913062323c0",
+    "photo_id": "fe5bddb8ed1f44e0bb9f500af007e5c0",
     "run_type": "inference",
     "model_id": "contract-test-double",
     "model_version": "sha256:0000000000000000",
@@ -12,16 +12,16 @@
       "on_existing": "reject",
       "adapter": "test-double"
     },
-    "started_at": "2026-10-20T04:06:46.555251Z",
-    "finished_at": "2026-10-20T04:06:46.560641Z",
+    "started_at": "2026-10-20T14:26:57.216586Z",
+    "finished_at": "2026-10-20T14:26:57.222282Z",
     "error_code": null,
     "target": null
   },
   "candidates": [
     {
-      "id": "b4fb17a431434bc5b512b242850df017",
-      "photo_id": "4c00961661c548bc91ac42a7e9a3834c",
-      "analysis_run_id": "84764a57def24e18b5a413f4f1435f50",
+      "id": "b1ac35a97b14498e84c521859099f83b",
+      "photo_id": "fe5bddb8ed1f44e0bb9f500af007e5c0",
+      "analysis_run_id": "c11880432b0646cd8a2db913062323c0",
       "kind": "plant",
       "geometry_type": "bbox",
       "x": 0.2,
@@ -38,13 +38,13 @@
       "model_label": "tanaman",
       "note": "",
       "revision": 1,
-      "created_at": "2026-10-20T04:06:46.560641Z",
-      "updated_at": "2026-10-20T04:06:46.560641Z"
+      "created_at": "2026-10-20T14:26:57.221283Z",
+      "updated_at": "2026-10-20T14:26:57.221283Z"
     },
     {
-      "id": "5fb46aced8a44afc89220b2cce756ff0",
-      "photo_id": "4c00961661c548bc91ac42a7e9a3834c",
-      "analysis_run_id": "84764a57def24e18b5a413f4f1435f50",
+      "id": "eba4c12aa0454657ba7eef0bab6c7fb2",
+      "photo_id": "fe5bddb8ed1f44e0bb9f500af007e5c0",
+      "analysis_run_id": "c11880432b0646cd8a2db913062323c0",
       "kind": "gap",
       "geometry_type": "bbox",
       "x": 0.6749999999999999,
@@ -61,8 +61,8 @@
       "model_label": "titik_kosong",
       "note": "",
       "revision": 1,
-      "created_at": "2026-10-20T04:06:46.560641Z",
-      "updated_at": "2026-10-20T04:06:46.560641Z"
+      "created_at": "2026-10-20T14:26:57.221283Z",
+      "updated_at": "2026-10-20T14:26:57.221283Z"
     }
   ],
   "replaced_annotation_ids": [],

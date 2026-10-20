@@ -1,7 +1,7 @@
 {
   "photo": {
-    "id": "8d0388ed15d84d7986c5503069f6a456",
-    "survey_id": "564cef02471a4b33bb00c6a0726b6284",
+    "id": "71e1981cd19f4a398adcc7aabb535319",
+    "survey_id": "57e1e187f7984b3e9989feed32b4da87",
     "original_name": "DJI_0001.JPG",
     "width": 90,
     "height": 160,
@@ -13,10 +13,10 @@
     "captured_at": "2026-10-18T07:45:10",
     "georef_status": "none",
     "revision": 1,
-    "created_at": "2026-10-20T04:06:46.088315Z",
-    "content_url": "/api/v1/photos/8d0388ed15d84d7986c5503069f6a456/content",
-    "display_url": "/api/v1/photos/8d0388ed15d84d7986c5503069f6a456/display",
-    "thumbnail_url": "/api/v1/photos/8d0388ed15d84d7986c5503069f6a456/thumbnail",
+    "created_at": "2026-10-20T14:26:56.639904Z",
+    "content_url": "/api/v1/photos/71e1981cd19f4a398adcc7aabb535319/content",
+    "display_url": "/api/v1/photos/71e1981cd19f4a398adcc7aabb535319/display",
+    "thumbnail_url": "/api/v1/photos/71e1981cd19f4a398adcc7aabb535319/thumbnail",
     "duplicate_photo_ids": [],
     "counts": {
       "plant_accepted": 0,

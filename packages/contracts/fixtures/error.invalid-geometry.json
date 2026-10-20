@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "INVALID_GEOMETRY",
+    "message": "Geometri tidak valid: Self-intersection[106.805 -6.595]. Perbaiki di sumber (mis. QGIS: Periksa Validitas); API tidak memperbaikinya otomatis.",
+    "details": {
+      "reason": "Self-intersection[106.805 -6.595]"
+    },
+    "request_id": "fd9bd242ac0242c5b08fa8fe6320d461"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "survey": {
-    "id": "564cef02471a4b33bb00c6a0726b6284",
+    "id": "57e1e187f7984b3e9989feed32b4da87",
     "name": "Kebun Jagung Blok A",
     "crop_type": "Jagung",
     "location_label": "Desa Contoh, petak 2",
@@ -9,19 +9,20 @@
     "is_demo": false,
     "revision": 1,
     "photo_count": 2,
-    "created_at": "2026-10-20T04:06:46.057261Z",
-    "updated_at": "2026-10-20T04:06:46.057261Z"
+    "field_id": null,
+    "created_at": "2026-10-20T14:26:56.611874Z",
+    "updated_at": "2026-10-20T14:26:56.611874Z"
   },
-  "generated_at": "2026-10-20T04:06:46.222950Z",
+  "generated_at": "2026-10-20T14:26:56.774845Z",
   "photos": [
     {
-      "photo_id": "8d0388ed15d84d7986c5503069f6a456",
+      "photo_id": "71e1981cd19f4a398adcc7aabb535319",
       "original_name": "DJI_0001.JPG",
       "width": 90,
       "height": 160,
       "captured_at": "2026-10-18T07:45:10",
       "duplicate_photo_ids": [
-        "49d4c084bbb14487b4222257e905b59b"
+        "488b988d4e12492ab7a9b42a18e275b9"
       ],
       "counts": {
         "plant_accepted": 0,
@@ -34,13 +35,13 @@
       }
     },
     {
-      "photo_id": "49d4c084bbb14487b4222257e905b59b",
+      "photo_id": "488b988d4e12492ab7a9b42a18e275b9",
       "original_name": "DJI_0001 (1).JPG",
       "width": 90,
       "height": 160,
       "captured_at": "2026-10-18T07:45:10",
       "duplicate_photo_ids": [
-        "8d0388ed15d84d7986c5503069f6a456"
+        "71e1981cd19f4a398adcc7aabb535319"
       ],
       "counts": {
         "plant_accepted": 0,
@@ -63,8 +64,8 @@
   },
   "findings": [
     {
-      "annotation_id": "609d0fb7df4b422e84d3a87d87641095",
-      "photo_id": "8d0388ed15d84d7986c5503069f6a456",
+      "annotation_id": "ac5e598feeba40dc85beb117190ec2c2",
+      "photo_id": "71e1981cd19f4a398adcc7aabb535319",
       "photo_name": "DJI_0001.JPG",
       "kind": "gap",
       "review_status": "accepted",
@@ -74,8 +75,8 @@
       "note": "Ternyata titik kosong."
     },
     {
-      "annotation_id": "1c25c3a5b78b447cb92d92d3cf276531",
-      "photo_id": "8d0388ed15d84d7986c5503069f6a456",
+      "annotation_id": "296641ae0ba24108a6ff0770366d6397",
+      "photo_id": "71e1981cd19f4a398adcc7aabb535319",
       "photo_name": "DJI_0001.JPG",
       "kind": "check",
       "review_status": "accepted",
@@ -88,9 +89,10 @@
   "disclaimers": [
     "Hitungan tanaman = penanda kind=plant berstatus accepted per foto. Kandidat model pending/rejected tidak dihitung.",
     "Hitungan antar foto yang bertumpang tindih tidak boleh dijumlahkan sebagai jumlah tanaman unik lahan.",
-    "Posisi penanda adalah koordinat relatif dalam gambar (0–1), bukan lintang/bujur GPS.",
-    "Foto biasa bukan orthomosaic; tidak ada luas lahan yang dihitung.",
+    "Posisi penanda foto adalah koordinat relatif dalam gambar (0–1), bukan lintang/bujur GPS. EXIF GPS foto = posisi kamera, bukan posisi tanaman.",
+    "Foto biasa bukan orthomosaic; luas lahan tidak dihitung dari foto.",
     "Titik kosong dan titik periksa memerlukan pemeriksaan lapangan; ini bukan diagnosis penyakit.",
     "Confidence adalah keluaran model, bukan akurasi survei."
-  ]
+  ],
+  "mapping": null
 }

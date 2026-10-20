@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "RASTER_NOT_GEOREFERENCED",
+    "message": "Raster tidak punya CRS. Berkas tanpa georeferensi tidak ditempelkan ke peta; unggah sebagai foto biasa atau georeferensikan dulu di aplikasi GIS.",
+    "details": {
+      "reason": "no_crs",
+      "has_gcps": false
+    },
+    "request_id": "2412f5472b5440dd917b80074c3ff24f"
+  }
+}

@@ -1,7 +1,7 @@
 {
   "run": {
-    "id": "4ad7d04a90d7491c92d1055f2d47a371",
-    "photo_id": "1eb54fab654d47d48a1d457503661f6a",
+    "id": "e8927b09c3f140079f7a5b7ddbbdfea1",
+    "photo_id": "d4f1eac2a8bf410fb0b82241cd2c9dd0",
     "run_type": "inference",
     "model_id": "simulation-not-ai",
     "model_version": "simulation-v1",
@@ -16,16 +16,16 @@
       "seed": "58ed4248a42622f5",
       "not_ai": true
     },
-    "started_at": "2026-10-20T04:06:46.465955Z",
-    "finished_at": "2026-10-20T04:06:46.471487Z",
+    "started_at": "2026-10-20T14:26:57.120919Z",
+    "finished_at": "2026-10-20T14:26:57.125956Z",
     "error_code": null,
     "target": "simulation"
   },
   "candidates": [
     {
-      "id": "7752c088415b4c22b575c5852a343f37",
-      "photo_id": "1eb54fab654d47d48a1d457503661f6a",
-      "analysis_run_id": "4ad7d04a90d7491c92d1055f2d47a371",
+      "id": "4695212ff8ff4eca842ddd1f8c79765f",
+      "photo_id": "d4f1eac2a8bf410fb0b82241cd2c9dd0",
+      "analysis_run_id": "e8927b09c3f140079f7a5b7ddbbdfea1",
       "kind": "plant",
       "geometry_type": "bbox",
       "x": 0.9091525,
@@ -42,13 +42,13 @@
       "model_label": "SIMULASI — BUKAN AI",
       "note": "",
       "revision": 1,
-      "created_at": "2026-10-20T04:06:46.471487Z",
-      "updated_at": "2026-10-20T04:06:46.471487Z"
+      "created_at": "2026-10-20T14:26:57.125956Z",
+      "updated_at": "2026-10-20T14:26:57.125956Z"
     },
     {
-      "id": "98d89747de9847f98b40c9ad29c27cb4",
-      "photo_id": "1eb54fab654d47d48a1d457503661f6a",
-      "analysis_run_id": "4ad7d04a90d7491c92d1055f2d47a371",
+      "id": "4036d914a40d483f83fbfbcb452a92ef",
+      "photo_id": "d4f1eac2a8bf410fb0b82241cd2c9dd0",
+      "analysis_run_id": "e8927b09c3f140079f7a5b7ddbbdfea1",
       "kind": "plant",
       "geometry_type": "bbox",
       "x": 0.261766,
@@ -65,13 +65,13 @@
       "model_label": "SIMULASI — BUKAN AI",
       "note": "",
       "revision": 1,
-      "created_at": "2026-10-20T04:06:46.471487Z",
-      "updated_at": "2026-10-20T04:06:46.471487Z"
+      "created_at": "2026-10-20T14:26:57.125956Z",
+      "updated_at": "2026-10-20T14:26:57.125956Z"
     },
     {
-      "id": "380be353a8f6421ab9ce96593471f6a4",
-      "photo_id": "1eb54fab654d47d48a1d457503661f6a",
-      "analysis_run_id": "4ad7d04a90d7491c92d1055f2d47a371",
+      "id": "e00236282a674e5c850975b18c5c5769",
+      "photo_id": "d4f1eac2a8bf410fb0b82241cd2c9dd0",
+      "analysis_run_id": "e8927b09c3f140079f7a5b7ddbbdfea1",
       "kind": "plant",
       "geometry_type": "bbox",
       "x": 0.938418,
@@ -88,13 +88,13 @@
       "model_label": "SIMULASI — BUKAN AI",
       "note": "",
       "revision": 1,
-      "created_at": "2026-10-20T04:06:46.471487Z",
-      "updated_at": "2026-10-20T04:06:46.471487Z"
+      "created_at": "2026-10-20T14:26:57.125956Z",
+      "updated_at": "2026-10-20T14:26:57.125956Z"
     },
     {
-      "id": "27a33951cfe04377a7bdafd71d6631c7",
-      "photo_id": "1eb54fab654d47d48a1d457503661f6a",
-      "analysis_run_id": "4ad7d04a90d7491c92d1055f2d47a371",
+      "id": "65060cbc84114e2f9ef3d64f89d84d63",
+      "photo_id": "d4f1eac2a8bf410fb0b82241cd2c9dd0",
+      "analysis_run_id": "e8927b09c3f140079f7a5b7ddbbdfea1",
       "kind": "plant",
       "geometry_type": "bbox",
       "x": 0.22861550000000003,
@@ -111,8 +111,8 @@
       "model_label": "SIMULASI — BUKAN AI",
       "note": "",
       "revision": 1,
-      "created_at": "2026-10-20T04:06:46.471487Z",
-      "updated_at": "2026-10-20T04:06:46.471487Z"
+      "created_at": "2026-10-20T14:26:57.125956Z",
+      "updated_at": "2026-10-20T14:26:57.125956Z"
     }
   ],
   "replaced_annotation_ids": [],
