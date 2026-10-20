@@ -67,6 +67,13 @@ Setelah Claude memberi kontrak committed, frontend masih harus menghubungkan:
   `tablet.png`, dan `mobile.png`. Desktop/tablet memperlihatkan boundary tetap terlihat
   pada fallback ketika tile gagal; mobile memverifikasi toolbar wrap dan kanvas tanpa
   panel permanen.
+- Regresi Playwright workspace existing dijalankan terhadap snapshot API Claude
+  revision 4 yang committed, pada DB QA terpisah: run pertama **15/18 lulus** dan tiga
+  kegagalan identik hanya karena selector `/Laporan/` menjadi ambigu setelah navigasi
+  baru. Selector dipersempit ke nav `Ruang kerja survei`; ketiga skenario gagal tadi
+  kemudian **3/3 lulus** pada desktop/tablet/mobile. Alurnya mencakup demo, multi-upload,
+  EXIF, anotasi manual, undo/redo, save/reload, konflik, API offline/retry, ekspor,
+  laporan, backup, edit/delete survei, dan isolasi foto.
 - Tes API nyata untuk persistence/raster/geographic findings **belum dapat dijalankan**
   karena kontrak/commit Claude belum tersedia. Tes regresi API existing tidak diklaim
   dijalankan ulang pada delivery pemetaan ini; hasil delivery frontend sebelumnya ada
