@@ -1,4 +1,90 @@
-# Codex frontend handoff — 20 Oktober 2026
+# Codex frontend handoff — workspace pemetaan, 20 Oktober 2026
+
+## Delivery pemetaan
+
+- Branch/worktree: `agent/codex-mapping` / `D:\coding\wallacea-worktrees\codex-mapping`.
+- Base frontend: `1cb6d5183eebb458c4e341981503e0d70a164537`.
+- Commit implementasi shell peta: `472fe7563ba18b4866f8255eeab396a07ae82aed`.
+- Sumber kontrak terakhir yang sudah committed dan dibaca: Claude
+  `1ecda6c4eef476aaed84a212623c9ade9e696846`, OpenAPI revision 4.
+- Pada saat handoff ini ditulis, perubahan geospasial Claude masih belum committed.
+  Jangan mengintegrasikan file backend yang masih dirty; ambil SHA `CONTRACT_READY`
+  baru dari Claude lebih dahulu.
+- Tidak ada push, merge `main`, deploy, perubahan backend/OpenAPI, model, atau dataset.
+
+### Yang sudah tersedia
+
+- Navigasi survei eksplisit **Peta lahan / Foto & AI / Laporan**. Editor foto,
+  persistence anotasi, transformasi koordinat normalized, dan laporan existing tidak
+  diubah.
+- Workspace MapLibre dominan dengan panel layer/detail yang dapat diringkas pada
+  desktop dan Sheet pada tablet/HP.
+- Terra Draw Polygon/select untuk menggambar dan mengedit draf; impor menerima tepat
+  satu Polygon/MultiPolygon WGS84 dengan urutan longitude, latitude. GeoJSON invalid,
+  range koordinat, ring terbuka, dan jumlah feature ditolak dengan pesan Indonesia.
+- Turf menampilkan luas/keliling sebagai **Preview Turf**, bukan angka tersimpan.
+  Ekspor GeoJSON mempertahankan geometry dan menambahkan nama/sumber draf.
+- Basemap OpenStreetMap dikonfigurasi dengan atribusi terlihat dan label jelas bahwa
+  ia membutuhkan internet serta bukan citra satelit. Bila tile gagal, boundary lokal
+  tetap terlihat pada fallback netral.
+- Draft map ikut proteksi navigasi dan `beforeunload`; hapus draf memakai konfirmasi.
+- MapLibre/Terra Draw/Turf dimuat lewat lazy chunk sehingga editor foto tidak menarik
+  bundle GIS ketika workspace peta belum dibuka.
+
+### Batas kontrak yang sengaja tidak dipalsukan
+
+Revision 4 belum memiliki boundary CRUD, raster GeoTIFF, tile/bounds/CRS, atau kandidat
+AI geografis. Karena itu tombol **Simpan** dan **Unggah GeoTIFF** tetap disabled dengan
+alasan yang terlihat; draf diberi label lokal dan dinyatakan hilang saat reload. Tidak
+ada endpoint buatan, persistence palsu, proyeksi foto JPG/PNG, polygon otomatis, atau
+hasil AI geografis. Kebutuhan lengkap tercatat di
+`docs/requests/codex-mapping-contract.md` sebagai CR-FE-005.
+
+Setelah Claude memberi kontrak committed, frontend masih harus menghubungkan:
+
+1. boundary query/mutation + `If-Match`, backend metrics authoritative, conflict/reload;
+2. upload/status/tile GeoTIFF, opacity, bounds, footprint, metadata CRS;
+3. geographic findings, detail raster/run, filter pending/accepted/rejected, dan
+   accepted-only summary;
+4. capability/limit discovery granular, lalu tes API nyata untuk save/reload, edit,
+   cancel, conflict, delete, raster placement, dan review kandidat.
+
+### Verifikasi aktual pemetaan
+
+- `pnpm install --frozen-lockfile`: lulus; lockfile supply-chain check lulus.
+- Type generation dari OpenAPI committed Claude revision 4: lulus dan menghasilkan
+  tidak ada diff pada `apps/web/src/api/schema.d.ts`.
+- `pnpm typecheck:web`: lulus.
+- `pnpm --filter @wallacea/web test`: **26/26 lulus** dalam 5 file.
+- `pnpm build:web`: lulus; warning chunk MapLibre/editor >500 kB tetap tercatat.
+- `pnpm peers check`: lulus, tidak ada masalah peer dependency.
+- `git diff --check`: lulus.
+- Focused Playwright mapping: **6/6 lulus** pada Chromium 1440×900, 820×1180,
+  dan 390×844. Skenario menguji impor boundary QA sintetis, preview, UI responsif,
+  Sheet, API capability tidak tersedia, tombol save disabled, GeoJSON invalid, dan
+  tile OSM yang sengaja digagalkan. Ini tes UI/kontrak lokal, bukan integrasi backend.
+- Screenshot viewport yang diperiksa: `docs/handoff/screenshots/mapping/desktop.png`,
+  `tablet.png`, dan `mobile.png`. Desktop/tablet memperlihatkan boundary tetap terlihat
+  pada fallback ketika tile gagal; mobile memverifikasi toolbar wrap dan kanvas tanpa
+  panel permanen.
+- Tes API nyata untuk persistence/raster/geographic findings **belum dapat dijalankan**
+  karena kontrak/commit Claude belum tersedia. Tes regresi API existing tidak diklaim
+  dijalankan ulang pada delivery pemetaan ini; hasil delivery frontend sebelumnya ada
+  di bagian historis di bawah.
+
+### Urutan integrasi yang aman
+
+1. Minta SHA final Claude yang menyatakan `CONTRACT_READY` untuk mapping, lalu integrasikan
+   commit backend/migrasi/OpenAPI itu ke `integration/wallacea-mvp`.
+2. Regenerasi tipe dari snapshot tersebut dan selesaikan adapter API di branch Codex;
+   jangan memakai nama endpoint dari CR-FE-005 sebagai fakta kontrak.
+3. Cherry-pick `472fe75`, lalu commit integrasi API lanjutan dan commit handoff terbaru.
+4. Jalankan export/check kontrak, migrasi DB sementara, seluruh pytest backend, typecheck,
+   Vitest, build, peer check, dan Playwright API nyata pada tiga viewport.
+
+---
+
+## Handoff frontend AI sebelumnya
 
 ## Delivery
 

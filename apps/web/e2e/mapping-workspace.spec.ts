@@ -65,7 +65,8 @@ test('boundary import remains honest and responsive', async ({ page }, testInfo)
     await expect(page.getByText('Draf lokal', { exact: true }).first()).toBeVisible();
   }
 
-  await page.screenshot({ path: path.resolve('..', '..', 'docs', 'handoff', 'screenshots', 'mapping', `${testInfo.project.name}.png`), fullPage: true });
+  await page.getByTestId('land-map').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.resolve('..', '..', 'docs', 'handoff', 'screenshots', 'mapping', `${testInfo.project.name}.png`) });
 });
 
 test('invalid latitude-longitude GeoJSON is rejected clearly', async ({ page }) => {
