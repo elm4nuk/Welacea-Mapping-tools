@@ -14,7 +14,8 @@ import './editor.css';
 export type EditorPhoto = { key: string; name: string; image: HTMLImageElement; isIllustration: boolean };
 type Props = { photo: EditorPhoto; findings: Finding[]; onChange: (findings: Finding[]) => void; onUndo: () => void; onRedo: () => void;
   canUndo: boolean; canRedo: boolean; persistenceLabel?: string; integrated?: boolean;
-  modelByRunId?: Record<string, { id?: string; version?: string }> };
+  modelTarget?: 'plant' | 'tree_crown' | null;
+  modelByRunId?: Record<string, { id?: string; version?: string; target?: 'plant' | 'tree_crown' | null }> };
 type ReviewFilter = 'all' | 'pending' | 'accepted' | 'rejected';
 const labels: Record<Kind, string> = { plant: 'Tanaman', inspect: 'Perlu diperiksa', gap: 'Dugaan titik kosong' };
 const colors: Record<Kind, string> = { plant: '#145b40', inspect: '#9b5700', gap: '#7c4265' };
@@ -50,6 +51,9 @@ function PhotoEditorCanvas(props: Props) {
   const summary = counts(findings);
   const active = findings.find(finding => finding.id === selected);
   const visibleFindings = findings.filter(finding => reviewFilter === 'all' || finding.review === reviewFilter);
+  const targetIsTreeCrown = props.modelTarget === 'tree_crown';
+  const runIsTreeCrown = (run?: { id?: string; target?: 'plant' | 'tree_crown' | null }) =>
+    run?.target === 'tree_crown' || modelPresentation(run?.id).isDeepForest;
 
   useEffect(() => {
     const element = host.current;
@@ -90,13 +94,13 @@ function PhotoEditorCanvas(props: Props) {
       <ul className="finding-list">{visibleFindings.map(finding => {
         const index = findings.indexOf(finding);
         const model = finding.analysisRunId ? props.modelByRunId?.[finding.analysisRunId] : undefined;
-        const status = findingStatus(finding, modelPresentation(model?.id).isDeepForest);
+        const status = findingStatus(finding, runIsTreeCrown(model));
         return <li key={finding.id} data-review={finding.review}><button aria-pressed={finding.id === selected} onClick={() => setSelected(finding.id)}>
           <span className="finding-list__status" aria-hidden="true">{finding.review === 'accepted' ? <Check /> : finding.review === 'rejected' ? <X /> : <Crosshair />}</span>
           <span><b>{index + 1}. {status.confirmed || labels[finding.kind]}</b><small>{status.source} · {status.review}</small></span>
         </button></li>;
       })}</ul>
-      {active && <div className="finding-form" key={active.id}><div className="finding-form__heading"><div><span className="eyebrow">Temuan dipilih</span><h3>{labels[active.kind]}</h3></div>
+      {active && <div className="finding-form" key={active.id}><div className="finding-form__heading"><div><span className="eyebrow">Temuan dipilih</span><h3>{active.kind === 'plant' && active.source === 'model' && runIsTreeCrown(active.analysisRunId ? props.modelByRunId?.[active.analysisRunId] : undefined) ? 'Tajuk pohon' : labels[active.kind]}</h3></div>
         <Badge tone={active.review === 'accepted' ? 'success' : active.review === 'rejected' ? 'danger' : 'warning'}>
           {active.review === 'accepted' ? 'Dikonfirmasi' : active.review === 'rejected' ? 'Ditolak' : 'Belum ditinjau'}</Badge></div>
         <label htmlFor={`${formId}-${suffix}-kind`}>Kategori<select id={`${formId}-${suffix}-kind`} value={active.kind} onChange={event => edit({ kind: event.target.value as Kind })}>
@@ -111,8 +115,9 @@ function PhotoEditorCanvas(props: Props) {
           const runModel = active.analysisRunId ? props.modelByRunId?.[active.analysisRunId] : undefined;
           const metadata = [runModel?.id, runModel?.version].filter(Boolean).join(' / ');
           const presentation = modelPresentation(runModel?.id);
+          const targetLabel = runIsTreeCrown(runModel) ? 'Kandidat tajuk pohon' : presentation.candidate;
           return <>{metadata && <p>Model dari API: {metadata}.</p>}{active.modelLabel && <p>Label model: {active.modelLabel}.</p>}
-            {presentation.disclaimer && <p className="editor-notice">{presentation.disclaimer}</p>}</>;
+            <p>Target dari API: {targetLabel}.</p>{presentation.disclaimer && <p className="editor-notice">{presentation.disclaimer}</p>}</>;
         })()}
         <details className="advanced-settings"><summary>Pengaturan lanjutan</summary><form key={JSON.stringify(active.point) + JSON.stringify(active.box)} onSubmit={event => {
           event.preventDefault(); const data = new FormData(event.currentTarget); const point = { x: Number(data.get('x')), y: Number(data.get('y')) };
@@ -135,7 +140,7 @@ function PhotoEditorCanvas(props: Props) {
   }
 
   return <section className="wallacea-editor" aria-label="Editor anotasi foto">
-    <div className="editor-summary" aria-live="polite"><div><b>{summary.plants}</b><span>Tanaman terkonfirmasi</span></div>
+    <div className="editor-summary" aria-live="polite"><div><b>{summary.plants}</b><span>{targetIsTreeCrown ? 'Tajuk pohon terkonfirmasi' : 'Tanaman terkonfirmasi'}</span></div>
       <div data-priority={summary.pending > 0}><b>{summary.pending}</b><span>Belum ditinjau</span></div>
       <p>{summary.inspections} pemeriksaan · {summary.gaps} dugaan kosong</p>
       <Button variant="ghost" size="sm" onClick={downloadCsv}><Download />CSV foto</Button></div>
@@ -185,7 +190,7 @@ function PhotoEditorCanvas(props: Props) {
               return <Group key={finding.id}>{finding.box ? <Rect {...common} x={finding.box.x * size.width} y={finding.box.y * size.height} width={finding.box.width * size.width} height={finding.box.height * size.height} />
                 : <Circle {...common} x={finding.point.x * size.width} y={finding.point.y * size.height} radius={7 / view.scale} fill="#ffffffbb" />}
                 <Text x={finding.point.x * size.width + 10 / view.scale} y={finding.point.y * size.height - 15 / view.scale}
-                  text={`${index + 1} ${finding.kind === 'plant' ? 'T' : finding.kind === 'inspect' ? 'P' : 'K'} ${finding.source === 'manual' ? 'MAN' : finding.review === 'pending' ? 'KAND' : finding.review === 'accepted' ? 'OK' : 'TOLAK'}`}
+                  text={findings.length > 30 && view.scale < 2.5 ? `${index + 1}` : `${index + 1} ${finding.kind === 'plant' ? 'T' : finding.kind === 'inspect' ? 'P' : 'K'} ${finding.source === 'manual' ? 'MAN' : finding.review === 'pending' ? 'KAND' : finding.review === 'accepted' ? 'OK' : 'TOLAK'}`}
                   fill="#ffffff" stroke="#163e30" strokeWidth={0.4 / view.scale} fontStyle="bold" fontSize={14 / view.scale} listening={false} /></Group>; })}
             {draft && <Rect x={draft.x * size.width} y={draft.y * size.height} width={draft.width * size.width} height={draft.height * size.height} stroke="#145b40" strokeWidth={2 / view.scale} listening={false} />}
           </Group></Layer>

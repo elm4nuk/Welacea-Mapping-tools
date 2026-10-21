@@ -1,10 +1,11 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CloudOff, UploadCloud } from 'lucide-react';
+import { CloudOff, Images, UploadCloud } from 'lucide-react';
 import { api, uploadPhoto } from './api/client';
-import type { Photo, Survey } from './api/client';
+import type { Photo, SamplePhoto, Survey } from './api/client';
 import { AppSidebar } from './components/AppSidebar';
 import { PhotoFilmstrip, UploadControl } from './components/PhotoFilmstrip';
+import { SamplePhotoSheet } from './components/SamplePhotoSheet';
 import { SurveyForm } from './components/SurveyForm';
 import { WorkflowSteps } from './components/WorkflowSteps';
 import { WorkspaceHeader } from './components/WorkspaceHeader';
@@ -42,6 +43,7 @@ function Workspace() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [mobilePhotosOpen, setMobilePhotosOpen] = useState(false);
   const [utilitiesOpen, setUtilitiesOpen] = useState(false);
+  const [samplesOpen, setSamplesOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation>();
   const dirtyRef = useRef(false);
   const importRef = useRef<HTMLInputElement>(null);
@@ -105,13 +107,14 @@ function Workspace() {
     await action(async () => { const demo = await api.createDemoSurvey(); await surveys.refetch(); resetWorkspace(demo.id);
       setMessage('Contoh ilustrasi dibuat sebagai data baca-saja. Ini bukan foto drone dan bukan hasil analisis AI.'); });
   }
-  async function upload(files: FileList | null) {
-    if (!files || !survey || !health.data || busy) return;
+  async function processUploads(files: File[]) {
+    if (!survey || !health.data) return 0;
     const target = survey.id;
-    const batch = Array.from(files).map(file => ({ file, id: crypto.randomUUID() }));
+    const batch = files.map(file => ({ file, id: crypto.randomUUID() }));
     setUploads(batch.map(({ file, id }) => ({ id, name: file.name, progress: 0, state: 'Menunggu' })));
     const update = (id: string, patch: Partial<Upload>) => setUploads(rows => rows.map(row => row.id === id ? { ...row, ...patch } : row));
-    setBusy(true); setError(''); controller.current = new AbortController();
+    let stored = 0;
+    controller.current = new AbortController();
     for (const { file, id } of batch) {
       if (controller.current.signal.aborted) break;
       if (file.size > health.data.limits.max_upload_bytes) { update(id, { state: 'Ditolak: ukuran melebihi batas API.', error: true }); continue; }
@@ -121,11 +124,30 @@ function Workspace() {
         const result = await uploadPhoto(target, file, progress => update(id, { progress,
           state: progress === 100 ? 'Memvalidasi di server...' : 'Mengunggah' }), controller.current.signal);
         update(id, { progress: 100, state: 'Tersimpan. ' + result.warnings.map(warning => warning.message).join(' ') });
+        stored += 1;
       } catch (reason) { update(id, { state: reason instanceof Error ? reason.message : String(reason), error: true }); }
     }
     await Promise.all([cache.invalidateQueries({ queryKey: ['photos', target] }), cache.invalidateQueries({ queryKey: ['surveys'] }),
       cache.invalidateQueries({ queryKey: ['report', target] })]);
-    setBusy(false);
+    return stored;
+  }
+  async function upload(files: FileList | null) {
+    if (!files || !survey || !health.data || busy) return;
+    setBusy(true); setError('');
+    try { await processUploads(Array.from(files)); } finally { setBusy(false); }
+  }
+  async function useSample(sample: SamplePhoto) {
+    if (!survey || !health.data || busy) return;
+    setBusy(true); setError(''); setMessage('');
+    try {
+      const file = await api.sampleFile(sample);
+      const stored = await processUploads([file]);
+      if (stored) {
+        setSamplesOpen(false);
+        setMessage('Foto contoh berlisensi diunggah melalui validasi biasa. Belum ada hasil model; gunakan Analisis foto untuk menjalankan inferensi nyata.');
+      }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+    finally { setBusy(false); }
   }
   async function importBackup(file: File) {
     await action(async () => {
@@ -176,8 +198,9 @@ function Workspace() {
           {page === 'report' ? <Report surveyId={survey.id} /> : <section className="survey-workspace">
             <div className="upload-panel no-print"><div><span className="eyebrow">Tahap 1</span><h2>Foto survei</h2>
               <p>Unggah foto asli setelah drone mendarat. Foto tidak dianggap sebagai peta atau posisi GPS tanaman.</p></div>
-              <UploadControl disabled={busy || survey.is_demo || !health.data} maxMb={health.data ? Math.round(health.data.limits.max_upload_bytes / 1024 / 1024) : undefined}
-                onFiles={files => void upload(files)} /></div>
+              <div className="upload-actions"><UploadControl disabled={busy || survey.is_demo || !health.data} maxMb={health.data ? Math.round(health.data.limits.max_upload_bytes / 1024 / 1024) : undefined}
+                onFiles={files => void upload(files)} />
+                <Button variant="outline" disabled={busy || survey.is_demo || !health.data} onClick={() => { setError(''); setSamplesOpen(true); }}><Images />Foto contoh berlisensi</Button></div></div>
             {uploads.length > 0 && <div className="upload-queue no-print">{uploads.map(row => <div key={row.id}><span><b>{row.name}</b><small className={row.error ? 'text-danger' : ''}>{row.state}</small></span>
               <progress aria-label={`Progres unggah ${row.name}`} max="100" value={row.progress} /></div>)}</div>}
             {photos.isError && <p role="alert" className="banner banner--error">{photos.error.message} <Button onClick={() => void photos.refetch()}>Coba lagi</Button></p>}
@@ -208,6 +231,7 @@ function Workspace() {
           onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void importBackup(file); }} />
         <hr /><p>Data tersimpan pada API lokal. Draf anotasi tetap lokal sampai tombol Simpan digunakan.</p></div>
     </SheetContent></Sheet>
+    <SamplePhotoSheet open={samplesOpen} busy={busy} error={error} onOpenChange={setSamplesOpen} onUse={sample => void useSample(sample)} />
     <AlertDialog open={Boolean(confirmation)} onOpenChange={open => { if (!open) setConfirmation(undefined); }}>
       <AlertDialogContent><AlertDialogTitle>{confirmation?.title}</AlertDialogTitle><AlertDialogDescription>{confirmation?.description}</AlertDialogDescription>
         <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction destructive={confirmation?.destructive}

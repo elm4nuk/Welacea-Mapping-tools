@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 const api = process.env.WALLACEA_E2E_API_URL ?? 'http://127.0.0.1:18090';
-const sample = process.env.WALLACEA_ML_SAMPLE!;
+const realModel = process.env.WALLACEA_E2E_REAL_MODEL === '1' || Boolean(process.env.WALLACEA_ML_SAMPLE);
 
-test.skip(!sample, 'Set WALLACEA_ML_SAMPLE and run against an API with a loaded model.');
+test.skip(!realModel, 'Set WALLACEA_E2E_REAL_MODEL=1 and run against a revision-3 API with a loaded model.');
 
-test('redesigned UI completes real DeepForest review and reload', async ({ page, request }) => {
+test('redesigned UI completes real DeepForest review and reload', async ({ page, request }, info) => {
   test.setTimeout(120_000);
   const name = `QA ML UI ${Date.now()}`;
   let id = '';
@@ -22,7 +22,13 @@ test('redesigned UI completes real DeepForest review and reload', async ({ page,
     id = surveys.items.find((item: { name: string }) => item.name === name).id;
     if (await navigation.isVisible()) await navigation.click();
     await page.locator('.survey-item:visible').filter({ hasText: name }).click();
-    await page.getByLabel('Pilih foto untuk diunggah').setInputFiles(sample);
+    await page.getByRole('button', { name: 'Foto contoh berlisensi', exact: true }).click();
+    const sampleCard = page.locator('.sample-card').filter({ hasText: 'Hutan OSBS' });
+    await expect(sampleCard).toContainText('CC BY 4.0');
+    await expect(sampleCard).toContainText('bukan drone, bukan K919 MAX');
+    await page.screenshot({ path: info.outputPath('licensed-sample-catalog.png'), fullPage: true });
+    await sampleCard.getByRole('button', { name: 'Gunakan foto ini', exact: true }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Belum ada hasil model' })).toBeVisible();
     await expect(page.locator('.filmstrip-card')).toHaveCount(1);
     await page.locator('.filmstrip-card__select').click();
     await expect(page.getByText('Kandidat tajuk pohon (DeepForest pretrained)', { exact: false }).first()).toBeVisible();
@@ -31,17 +37,18 @@ test('redesigned UI completes real DeepForest review and reload', async ({ page,
     await expect(page.locator('.finding-list li').first()).toBeVisible({ timeout: 60_000 });
     const total = await page.locator('.finding-list li').count();
     expect(total).toBeGreaterThan(2);
+    await page.screenshot({ path: info.outputPath('real-model-review.png'), fullPage: true });
     await page.locator('.finding-list button').first().click();
     await page.getByRole('button', { name: 'Terima', exact: true }).click();
     await page.locator('.finding-list button').nth(1).click();
     await page.getByRole('button', { name: 'Tolak', exact: true }).click();
     await page.getByRole('button', { name: 'Simpan perubahan', exact: true }).click();
-    await expect(page.locator('.editor-summary')).toContainText('1Tanaman terkonfirmasi');
+    await expect(page.locator('.editor-summary')).toContainText('1Tajuk pohon terkonfirmasi');
     await page.reload();
     if (await navigation.isVisible()) await navigation.click();
     await page.locator('.survey-item:visible').filter({ hasText: name }).click();
     await page.locator('.filmstrip-card:visible .filmstrip-card__select').click();
-    await expect(page.locator('.editor-summary')).toContainText('1Tanaman terkonfirmasi');
+    await expect(page.locator('.editor-summary')).toContainText('1Tajuk pohon terkonfirmasi');
     const annotations = await (await request.get(`${api}/api/v1/photos/${(await (await request.get(`${api}/api/v1/surveys/${id}/photos`)).json()).items[0].id}/annotations`)).json();
     expect(annotations.items.filter((item: { review_status: string }) => item.review_status === 'accepted')).toHaveLength(1);
     expect(annotations.items.filter((item: { review_status: string }) => item.review_status === 'rejected')).toHaveLength(1);

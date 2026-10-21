@@ -134,6 +134,7 @@ p { color: var(--muted); line-height: 1.55; }
 .survey-workspace { min-width: 0; }
 .upload-panel { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
 .upload-panel h2 { margin: 3px 0; }.upload-panel p { margin: 0; font-size: 13px; }
+.upload-actions { display: flex; align-items: stretch; gap: 9px; }
 .upload-control { position: relative; display: flex; grid-template-columns: auto 1fr; align-items: center; gap: 10px; min-width: 210px; padding: 10px 14px; border: 1px dashed var(--ring); border-radius: var(--radius-md); background: var(--primary-soft); color: var(--primary); cursor: pointer; }
 .upload-control svg { width: 22px; }.upload-control b, .upload-control small { display: block; }.upload-control small { margin-top: 2px; font-size: 11px; font-weight: 400; }
 .upload-control input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
@@ -158,6 +159,20 @@ p { color: var(--muted); line-height: 1.55; }
 .photo-sheet .filmstrip { border: 0; padding: 0; }.photo-sheet .filmstrip__header { display: none; }.photo-sheet .filmstrip__track { display: grid; overflow: visible; }
 .photo-sheet .filmstrip-card { width: 100%; flex-basis: auto; }
 .utility-panel { margin-top: 18px; }.utility-panel hr { margin: 24px 0; border: 0; border-top: 1px solid var(--border); }
+.sample-sheet { width: min(96vw, 560px); }
+.sample-list { display: grid; gap: 12px; margin-top: 16px; }
+.sample-empty { margin-top: 22px; padding: 18px; border: 1px dashed var(--border-strong); border-radius: var(--radius-md); text-align: center; }
+.sample-card { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
+.sample-card p { margin: 0; font-size: 13px; }.sample-card__heading { display: flex; align-items: flex-start; gap: 11px; }
+.sample-card__heading h3 { margin: 0 0 3px; }.sample-card__heading p { font-size: 12px; }
+.sample-card__icon { display: grid; place-items: center; width: 38px; min-width: 38px; height: 38px; border-radius: 9px; background: var(--primary-soft); color: var(--primary); }
+.sample-card__icon svg { width: 19px; }.sample-card dl { display: grid; gap: 8px; margin: 0; }
+.sample-card dl > div { display: grid; grid-template-columns: 62px minmax(0,1fr); gap: 8px; font-size: 12px; }
+.sample-card dt { color: var(--muted); }.sample-card dd { margin: 0; overflow-wrap: anywhere; }
+.sample-card a { display: inline; color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+.sample-card a svg { display: inline; width: 13px; height: 13px; margin-left: 4px; vertical-align: -2px; }
+.sample-card__attribution { display: flex; align-items: flex-start; gap: 7px; padding: 9px; border-radius: var(--radius-sm); background: var(--primary-soft); color: var(--foreground) !important; }
+.sample-card__attribution svg { width: 16px; min-width: 16px; margin-top: 2px; color: var(--primary); }
 
 .report { padding: clamp(20px, 3vw, 34px); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
 .report-actions { display: flex; justify-content: flex-end; gap: 8px; }.report-header { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
@@ -174,12 +189,12 @@ p { color: var(--muted); line-height: 1.55; }
   .mobile-sidebar .ui-button { width: 100%; justify-content: flex-start; color: inherit; }.mobile-sidebar .ui-button--default { background: #e5f1e8; color: #123e2f; }
   .mobile-menu-trigger { display: inline-flex; flex: 0 0 auto; }.app-main { padding: 16px; }.workspace-header { align-items: flex-start; gap: 10px; }
   .workspace-header__status { margin-left: auto; }.workspace-header__status .ui-badge { display: none; }.workspace-header__status .ui-badge:first-child { display: inline-flex; }.filmstrip__track { display: none; }.filmstrip__header { margin: 0; }.filmstrip__mobile-trigger { display: inline-flex; }
-  .upload-panel { align-items: flex-start; }.dashboard-empty { min-height: calc(100dvh - 120px); }
+  .upload-panel { align-items: flex-start; }.upload-actions { flex-direction: column; }.dashboard-empty { min-height: calc(100dvh - 120px); }
 }
 @media (max-width: 640px) {
   .app-main { padding: 12px; }.workspace-header { display: grid; grid-template-columns: auto minmax(0,1fr) auto; min-height: 54px; margin-bottom: 12px; }.workspace-header__title { overflow: hidden; }.workspace-header h1 { overflow: hidden; font-size: 22px; text-overflow: ellipsis; white-space: nowrap; }.workspace-header p, .workspace-header .eyebrow { display: none; }.workspace-header__status { gap: 3px; }.workspace-header__status .ui-badge:first-child { padding-inline: 7px; font-size: 10px; }
   .workflow-steps { margin-bottom: 12px; }.workflow-steps li:not(:last-child)::after { top: 16px; left: calc(50% + 18px); right: calc(-50% + 18px); }.workflow-steps button { display: grid; justify-items: center; gap: 4px; padding: 2px; text-align: center; font-size: 11px; }
-  .workflow-steps__icon { width: 28px; min-width: 28px; height: 28px; }.workflow-steps small { display: none; }.upload-panel { display: grid; }.upload-control { width: 100%; }.upload-queue > div { grid-template-columns: 1fr; gap: 4px; }
+  .workflow-steps__icon { width: 28px; min-width: 28px; height: 28px; }.workflow-steps small { display: none; }.upload-panel { display: grid; }.upload-actions, .upload-control, .upload-actions .ui-button { width: 100%; }.upload-queue > div { grid-template-columns: 1fr; gap: 4px; }
   .dashboard-empty { grid-template-columns: 1fr; align-content: center; min-height: calc(100dvh - 90px); padding: 24px; }.dashboard-empty h2 { font-size: 36px; }
   .dashboard-empty__principles { display: none; }.survey-form fieldset { grid-template-columns: 1fr; }.ui-dialog__footer { flex-direction: column-reverse; }.ui-dialog__footer .ui-button { width: 100%; }
   .report-findings thead { display: none; }.report-findings tr, .report-findings td { display: block; }.report-findings tr { padding: 10px 0; border-bottom: 1px solid var(--border); }.report-findings td { padding: 3px 0; border: 0; }

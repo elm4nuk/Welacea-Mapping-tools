@@ -163,7 +163,7 @@ export function EditorSession({ photo, survey, model, apiConnected, inferenceTim
   if (query.isPending || (!initialized.current && !query.isError)) return <p role="status">Memuat anotasi...</p>;
   if (query.isError) return <div role="alert">{query.error.message}<Button onClick={() => void query.refetch()}>Coba lagi</Button></div>;
   const modelByRunId = Object.fromEntries((runs.data?.items ?? []).map(run => [run.id, {
-    id: run.model_id ?? undefined, version: run.model_version ?? undefined,
+    id: run.model_id ?? undefined, version: run.model_version ?? undefined, target: run.target,
   }]));
   const deepForest = [model?.model_id, ...(runs.data?.items ?? []).map(run => run.model_id)]
     .some(modelId => modelPresentation(modelId).isDeepForest);
@@ -197,7 +197,7 @@ export function EditorSession({ photo, survey, model, apiConnected, inferenceTim
     {image && <fieldset disabled={busy || survey.is_demo} className="editor-fieldset">
       <div style={busy || survey.is_demo ? { pointerEvents: 'none' } : undefined}>
         <PhotoEditor photo={{ key: photo.id, name: photo.original_name, image, isIllustration: survey.is_demo }}
-          findings={findings} onChange={change} modelByRunId={modelByRunId}
+          findings={findings} onChange={change} modelTarget={model?.target} modelByRunId={modelByRunId}
           onUndo={() => { dispatch({ type: 'undo', photoKey: photo.id }); setDirty(true); }}
           onRedo={() => { dispatch({ type: 'redo', photoKey: photo.id }); setDirty(true); }}
           canUndo={Boolean(h?.past.length)}
