@@ -14,8 +14,8 @@ import './editor.css';
 export type EditorPhoto = { key: string; name: string; image: HTMLImageElement; isIllustration: boolean };
 type Props = { photo: EditorPhoto; findings: Finding[]; onChange: (findings: Finding[]) => void; onUndo: () => void; onRedo: () => void;
   canUndo: boolean; canRedo: boolean; persistenceLabel?: string; integrated?: boolean;
-  modelTarget?: 'plant' | 'tree_crown' | null;
-  modelByRunId?: Record<string, { id?: string; version?: string; simulation?: boolean; target?: 'plant' | 'tree_crown' | null }> };
+  modelTarget?: 'plant' | 'tree_crown' | 'simulation' | null;
+  modelByRunId?: Record<string, { id?: string; version?: string; simulation?: boolean; target?: 'plant' | 'tree_crown' | 'simulation' | null }> };
 type ReviewFilter = 'all' | 'pending' | 'accepted' | 'rejected';
 const labels: Record<Kind, string> = { plant: 'Tanaman', inspect: 'Perlu diperiksa', gap: 'Dugaan titik kosong' };
 const colors: Record<Kind, string> = { plant: '#145b40', inspect: '#9b5700', gap: '#7c4265' };
@@ -55,7 +55,7 @@ function PhotoEditorCanvas(props: Props) {
   const active = findings.find(finding => finding.id === selected);
   const visibleFindings = findings.filter(finding => reviewFilter === 'all' || finding.review === reviewFilter);
   const targetIsTreeCrown = props.modelTarget === 'tree_crown';
-  const runIsTreeCrown = (run?: { id?: string; target?: 'plant' | 'tree_crown' | null }) =>
+  const runIsTreeCrown = (run?: { id?: string; target?: 'plant' | 'tree_crown' | 'simulation' | null }) =>
     run?.target === 'tree_crown' || modelPresentation(run?.id).isDeepForest;
 
   useEffect(() => {
