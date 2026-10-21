@@ -6,6 +6,7 @@ export type Annotation = Schema['Annotation'];
 export type FarmField = Schema['FarmField'];
 export type RasterAsset = Schema['RasterAsset'];
 export type MapDetection = Schema['MapDetection'];
+export type SamplePhoto = Schema['SamplePhoto'];
 const base = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
 export function apiUrl(path: string) { return base + path; }
 export class ApiError extends Error {
@@ -39,6 +40,7 @@ const json = (method: string, body?: unknown, revision?: number): RequestInit =>
 const root = '/api/v1';
 export const api = {
   health: (signal?: AbortSignal) => request<Schema['Health']>(root + '/health', { signal }),
+  samples: (signal?: AbortSignal) => request<Schema['SamplePage']>(root + '/samples', { signal }),
   surveys: (offset = 0, signal?: AbortSignal) => request<Schema['SurveyPage']>(root + `/surveys?limit=200&offset=${offset}`, { signal }),
   createSurvey: (body: Schema['SurveyCreate']) => request<Survey>(root + '/surveys', json('POST', body)),
   createDemoSurvey: () => request<Survey>(root + '/demo/surveys', json('POST')),
@@ -73,6 +75,17 @@ export const api = {
   mapDetections: (id: string, signal?: AbortSignal) => request<Schema['MapDetectionPage']>(root + `/rasters/${id}/detections?limit=5000&offset=0`, { signal }),
   updateMapDetection: (detection: MapDetection, body: Schema['MapDetectionUpdate']) =>
     request<MapDetection>(root + '/map-detections/' + detection.id, json('PATCH', body, detection.revision)),
+  sampleFile: async (sample: SamplePhoto, signal?: AbortSignal) => {
+    let response: Response;
+    try { response = await fetch(apiUrl(sample.file_url), { signal }); }
+    catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') throw e;
+      throw new ApiError('NETWORK_ERROR', 'Foto contoh gagal diunduh dari API.', 0);
+    }
+    if (!response.ok) throw await errorResponse(response);
+    const blob = await response.blob();
+    return new File([blob], sample.filename, { type: sample.media_type, lastModified: Date.now() });
+  },
 };
 /** XHR exposes measured transfer progress; completion is only shown after API success. */
 export function uploadPhoto(survey: string, file: File, progress: (percent: number) => void, signal?: AbortSignal) {

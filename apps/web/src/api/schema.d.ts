@@ -215,7 +215,7 @@ export interface paths {
         put?: never;
         /**
          * Jalankan detector pada SATU foto (sinkron). Tanpa model → 503 MODEL_NOT_CONFIGURED.
-         * @description Sinkron: request menunggu sampai inferensi selesai atau melewati `limits.inference_timeout_s` (default 120 s) → 504 INFERENCE_TIMEOUT. Latensi bergantung CPU/GPU dan resolusi; tidak ada progres persentase. Tidak ada run yang dibuat bila model belum dikonfigurasi. Run yang terputus karena server restart ditandai failed (error_code=INTERRUPTED) saat startup.
+         * @description Sinkron: request menunggu sampai inferensi selesai atau melewati `limits.inference_timeout_s` (default 120 s) → 504 INFERENCE_TIMEOUT. Latensi bergantung CPU/GPU dan resolusi; tidak ada progres persentase. Tidak ada run yang dibuat bila model belum dikonfigurasi. Run yang terputus karena server restart ditandai failed (error_code=INTERRUPTED) saat startup. Revisi 4: 503 MODEL_NOT_CONFIGURED/MODEL_UNAVAILABLE membawa `details.diagnostic_code` (= health.model.diagnostic_code, mis. MODEL_FILE_NOT_FOUND, DEPENDENCY_MISSING, LABEL_MAP_MISMATCH). Dengan WALLACEA_DETECTOR=simulation, run.target=simulation, model_id=simulation-not-ai dan `notice` menyatakan SIMULASI — BUKAN AI.
          */
         post: operations["analyze_photo"];
         delete?: never;
@@ -312,6 +312,330 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Katalog foto contoh berlisensi (sumber & lisensi) untuk demo unggah
+         * @description Read-only. Berkas diambil lewat `file_url` lalu diunggah dengan endpoint upload biasa. Bukan foto K919 dan bukan hasil inferensi. Katalog kosong bila folder samples tidak ada.
+         */
+        get: operations["list_samples"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/samples/{sample_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Unduh berkas foto contoh (byte asli, sha256 = katalog) */
+        get: operations["sample_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Daftar lahan (terbaru dulu) */
+        get: operations["list_fields"];
+        put?: never;
+        /** Buat lahan dari GeoJSON Polygon/MultiPolygon WGS84. Luas & keliling dihitung server. */
+        post: operations["create_field"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fields/{field_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Field */
+        get: operations["get_field"];
+        put?: never;
+        post?: never;
+        /** Hapus lahan. Survei yang tertaut tetap ada (field_id menjadi null). */
+        delete: operations["delete_field"];
+        options?: never;
+        head?: never;
+        /** Ubah lahan. If-Match opsional; bila dikirim harus = revision. Geometri baru diukur ulang. */
+        patch: operations["update_field"];
+        trace?: never;
+    };
+    "/api/v1/fields/{field_id}/geojson": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ekspor satu lahan sebagai GeoJSON Feature (geometri persis seperti tersimpan) */
+        get: operations["export_field"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fields-export.geojson": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ekspor semua lahan sebagai GeoJSON FeatureCollection */
+        get: operations["export_fields"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fields/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Impor lahan dari berkas GeoJSON (FeatureCollection/Feature/Polygon/MultiPolygon). Semua-atau-tidak.
+         * @description Setiap Feature menjadi satu lahan. Nama dari properties.name (atau `name_prefix` + nomor). Bila satu geometri tidak valid, tidak ada yang disimpan dan error menyebut feature-nya. CRS harus WGS84 lon/lat: GeoJSON dengan member `crs` non-WGS84 ditolak.
+         */
+        post: operations["import_fields"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/surveys/{survey_id}/rasters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Daftar raster impor survei */
+        get: operations["list_rasters"];
+        put?: never;
+        /**
+         * Impor SATU GeoTIFF RGB bergeoreferensi (multipart `file`). Bukan pembuatan orthomosaic.
+         * @description Diterima: GTiff, 3 band RGB uint8 atau 4 band RGBA (band 4 alpha), CRS geografis/proyeksi valid, geotransform bukan identitas. Ditolak tanpa ditempel ke peta: tanpa CRS / hanya GCP / transform identitas (422 RASTER_NOT_GEOREFERENCED). Batas ukuran: `limits.max_raster_bytes`, `limits.max_raster_pixels`, cakupan ≤ `limits.max_raster_footprint_km2`. Berkas asli disimpan utuh (sha256), plus turunan tampilan RGBA ber-overview untuk tile. Proses sinkron: raster ratusan MB dapat memakan beberapa menit.
+         */
+        post: operations["upload_raster"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rasters/{raster_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Raster */
+        get: operations["get_raster"];
+        put?: never;
+        post?: never;
+        /** Hapus raster, berkasnya, run, dan semua deteksi petanya */
+        delete: operations["delete_raster"];
+        options?: never;
+        head?: never;
+        /** Ubah nama/keterangan sumber. If-Match opsional. Georeferensi tidak dapat diubah lewat API. */
+        patch: operations["update_raster"];
+        trace?: never;
+    };
+    "/api/v1/rasters/{raster_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GeoTIFF asli apa adanya (sha256 = raster.sha256) */
+        get: operations["raster_content"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rasters/{raster_id}/preview.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview PNG di ruang piksel raster (TIDAK diproyeksi ulang; untuk peta gunakan tile) */
+        get: operations["raster_preview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rasters/{raster_id}/tilejson.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** TileJSON 3.0.0 (URL tile relatif terhadap origin API) */
+        get: operations["raster_tilejson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rasters/{raster_id}/tiles/{z}/{x}/{y}.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tile XYZ Web Mercator (EPSG:3857), PNG RGBA 256 px. Di luar raster: transparan. */
+        get: operations["raster_tile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rasters/{raster_id}/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Jalankan model aktif pada raster per jendela (sinkron) → kandidat peta pending berkoordinat WGS84
+         * @description Jendela `tile_size` px ber-overlap `overlap_px`, opsional resize `scale`. Posisi dikembalikan ke piksel raster asal, lalu transform raster + CRS → WGS84 (pyproj always_xy, [lon, lat]). Duplikat antarjendela dihapus (NMS per kind, IoU/IoS; lihat parameters.dedup). Kandidat selalu pending. Batas waktu total `limits.raster_analysis_timeout_s` → 504 INFERENCE_TIMEOUT.
+         */
+        post: operations["analyze_raster"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rasters/{raster_id}/analysis-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Riwayat analisis raster (terbaru dulu) */
+        get: operations["list_raster_runs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rasters/{raster_id}/detections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Kandidat/temuan peta raster (urutan dibuat). Hitungan hanya untuk raster ini. */
+        get: operations["list_detections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rasters/{raster_id}/detections.geojson": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ekspor kandidat/temuan peta raster sebagai GeoJSON (poligon kotak WGS84) */
+        get: operations["detections_geojson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/map-detections/{detection_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Review kandidat peta (terima/tolak/koreksi kind/catatan). If-Match WAJIB. */
+        patch: operations["update_detection"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -366,6 +690,11 @@ export interface components {
             finished_at: string | null;
             /** Error Code */
             error_code: string | null;
+            /**
+             * Target
+             * @description Arti bbox kandidat run ini: plant = tanaman (model tim), tree_crown = tajuk pohon (DeepForest pretrained), simulation = SIMULASI BUKAN AI (revisi 4). null = tidak diketahui (mis. impor, run lama) → pakai istilah generik.
+             */
+            target?: ("plant" | "tree_crown" | "simulation") | null;
         };
         /** AnalysisRunPage */
         AnalysisRunPage: {
@@ -521,22 +850,60 @@ export interface components {
             /** Photo Revision */
             photo_revision: number;
         };
-        /** AnnotationUpdate */
+        /**
+         * AnnotationUpdate
+         * @description Kirim HANYA field yang berubah. Field yang dikirim tidak boleh null, kecuali `bbox: null` saat berubah ke
+         *     titik. `x`/`y` dikirim bersama dan hanya untuk titik (untuk bbox, pusat dihitung server — jangan kirim x/y).
+         */
         AnnotationUpdate: {
-            /** Kind */
-            kind?: ("plant" | "check" | "gap") | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind?: "plant" | "check" | "gap";
             /** Note */
-            note?: string | null;
-            /** Review Status */
-            review_status?: ("pending" | "accepted" | "rejected") | null;
-            /** Geometry Type */
-            geometry_type?: ("point" | "bbox") | null;
-            /** X */
-            x?: number | null;
-            /** Y */
-            y?: number | null;
-            /** Bbox */
+            note?: string;
+            /**
+             * Review Status
+             * @enum {string}
+             */
+            review_status?: "pending" | "accepted" | "rejected";
+            /**
+             * Geometry Type
+             * @enum {string}
+             */
+            geometry_type?: "point" | "bbox";
+            /**
+             * X
+             * @description Hanya untuk titik; wajib bersama y.
+             */
+            x?: number;
+            /**
+             * Y
+             * @description Hanya untuk titik; wajib bersama x.
+             */
+            y?: number;
+            /**
+             * Bbox
+             * @description [left, top, width, height] 0–1; null = ubah ke titik.
+             */
             bbox?: number[] | null;
+        };
+        /** Body_import_fields */
+        Body_import_fields: {
+            /** File */
+            file: string;
+            /**
+             * Name Prefix
+             * @default Lahan impor
+             */
+            name_prefix: string;
+            /**
+             * Boundary Source
+             * @default geojson_import
+             * @enum {string}
+             */
+            boundary_source: "manual_drawing" | "geojson_import" | "gnss_survey" | "digitized_from_raster" | "other";
         };
         /** Body_import_starter_backup */
         Body_import_starter_backup: {
@@ -547,6 +914,21 @@ export interface components {
         Body_upload_photo: {
             /** File */
             file: string;
+        };
+        /** Body_upload_raster */
+        Body_upload_raster: {
+            /** File */
+            file: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Source Description
+             * @default
+             */
+            source_description: string;
         };
         /** Capabilities */
         Capabilities: {
@@ -564,16 +946,43 @@ export interface components {
             live_video: false;
             /**
              * Georeferencing
+             * @description Foto biasa (Photo) TIDAK digeoreferensikan; koordinat penandanya 0–1 gambar. Peta berkoordinat hanya lewat raster GeoTIFF impor (georeferenced_raster_import).
              * @default false
              * @constant
              */
             georeferencing: false;
             /**
              * Orthomosaic
+             * @description Sama dengan orthomosaic_generation (nama lama).
              * @default false
              * @constant
              */
             orthomosaic: false;
+            /**
+             * Field Boundaries
+             * @description CRUD batas lahan GeoJSON WGS84 + luas/keliling geodesik.
+             * @default false
+             */
+            field_boundaries: boolean;
+            /**
+             * Georeferenced Raster Import
+             * @description Impor GeoTIFF RGB yang SUDAH bergeoreferensi + tile/preview. Bukan fotogrametri.
+             * @default false
+             */
+            georeferenced_raster_import: boolean;
+            /**
+             * Map Ai Detections
+             * @description Analisis raster impor per jendela → kandidat berkoordinat WGS84. Tetap butuh model aktif (lihat model.state) — simulasi menghasilkan kandidat SIMULASI.
+             * @default false
+             */
+            map_ai_detections: boolean;
+            /**
+             * Orthomosaic Generation
+             * @description Pembuatan orthomosaic dari foto K919 (ODM/NodeODM) BELUM ada; tahap berikutnya.
+             * @default false
+             * @constant
+             */
+            orthomosaic_generation: false;
         };
         /**
          * DetectionImportRequest
@@ -626,7 +1035,7 @@ export interface components {
              * Code
              * @enum {string}
              */
-            code: "BAD_REQUEST" | "VALIDATION_ERROR" | "NOT_FOUND" | "METHOD_NOT_ALLOWED" | "HTTP_ERROR" | "PRECONDITION_REQUIRED" | "REVISION_CONFLICT" | "PAYLOAD_TOO_LARGE" | "UNSUPPORTED_MEDIA_TYPE" | "INVALID_IMAGE" | "IMAGE_TOO_LARGE" | "ANNOTATION_LIMIT_EXCEEDED" | "DEMO_SURVEY_READONLY" | "DETECTION_MISMATCH" | "ANALYSIS_EXISTS" | "ANALYSIS_IN_PROGRESS" | "MODEL_NOT_CONFIGURED" | "MODEL_UNAVAILABLE" | "INFERENCE_FAILED" | "INFERENCE_TIMEOUT" | "INVALID_BACKUP" | "INTERNAL_ERROR";
+            code: "BAD_REQUEST" | "VALIDATION_ERROR" | "NOT_FOUND" | "METHOD_NOT_ALLOWED" | "HTTP_ERROR" | "PRECONDITION_REQUIRED" | "REVISION_CONFLICT" | "PAYLOAD_TOO_LARGE" | "UNSUPPORTED_MEDIA_TYPE" | "INVALID_IMAGE" | "IMAGE_TOO_LARGE" | "ANNOTATION_LIMIT_EXCEEDED" | "DEMO_SURVEY_READONLY" | "DETECTION_MISMATCH" | "ANALYSIS_EXISTS" | "ANALYSIS_IN_PROGRESS" | "MODEL_NOT_CONFIGURED" | "MODEL_UNAVAILABLE" | "INFERENCE_FAILED" | "INFERENCE_TIMEOUT" | "INVALID_BACKUP" | "INTERNAL_ERROR" | "INVALID_GEOMETRY" | "INVALID_RASTER" | "UNSUPPORTED_RASTER" | "RASTER_NOT_GEOREFERENCED" | "RASTER_TOO_LARGE" | "MAPPING_UNAVAILABLE";
             /**
              * Message
              * @description Pesan untuk pengguna (Bahasa Indonesia).
@@ -642,6 +1051,165 @@ export interface components {
         /** ErrorEnvelope */
         ErrorEnvelope: {
             error: components["schemas"]["ErrorDetail"];
+        };
+        /**
+         * FarmField
+         * @description Lahan + batasnya (keluaran). Dinamai FarmField agar tidak bentrok dengan pydantic.Field.
+         */
+        FarmField: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string;
+            /**
+             * Boundary Source
+             * @enum {string}
+             */
+            boundary_source: "manual_drawing" | "geojson_import" | "gnss_survey" | "digitized_from_raster" | "other";
+            /** Source Note */
+            source_note: string;
+            /** @description Disimpan persis seperti dikirim (setelah lolos validasi). */
+            geometry: components["schemas"]["GeoJsonPolygonal"];
+            measures: components["schemas"]["FieldMeasures"];
+            /**
+             * Bbox
+             * @description [min_lon, min_lat, max_lon, max_lat]
+             */
+            bbox: number[];
+            /**
+             * Label Point
+             * @description Titik di dalam poligon untuk label peta (bukan sentroid).
+             */
+            label_point: number[];
+            /** Vertex Count */
+            vertex_count: number;
+            /** Polygon Count */
+            polygon_count: number;
+            /** Hole Count */
+            hole_count: number;
+            /**
+             * Survey Ids
+             * @description Survei yang ditautkan ke lahan ini.
+             */
+            survey_ids: string[];
+            /** Revision */
+            revision: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** FieldCreate */
+        FieldCreate: {
+            /** Name */
+            name: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /**
+             * Boundary Source
+             * @description Asal batas: manual_drawing (digambar di aplikasi), geojson_import, gnss_survey (diukur GPS/GNSS di lapangan), digitized_from_raster (digambar di atas raster impor), other.
+             * @enum {string}
+             */
+            boundary_source: "manual_drawing" | "geojson_import" | "gnss_survey" | "digitized_from_raster" | "other";
+            /**
+             * Source Note
+             * @description Keterangan sumber, mis. alat ukur / berkas asal.
+             * @default
+             */
+            source_note: string;
+            /**
+             * Geometry
+             * @description GeoJSON Polygon atau MultiPolygon, WGS84 [lon, lat], ring tertutup, tanpa altitude. Geometri tidak valid ditolak 422 INVALID_GEOMETRY (tidak diperbaiki otomatis).
+             */
+            geometry: {
+                [key: string]: unknown;
+            };
+        };
+        /** FieldImportResult */
+        FieldImportResult: {
+            /** Fields */
+            fields: components["schemas"]["FarmField"][];
+            /** Warnings */
+            warnings?: components["schemas"]["Warning"][];
+        };
+        /** FieldMeasures */
+        FieldMeasures: {
+            /**
+             * Area M2
+             * @description Luas geodesik pada elipsoid WGS84 (pyproj.Geod, Karney); lubang dikurangkan.
+             */
+            area_m2: number;
+            /** Area Ha */
+            area_ha: number;
+            /**
+             * Perimeter M
+             * @description Total panjang semua ring (batas luar + lubang), geodesik.
+             */
+            perimeter_m: number;
+            /**
+             * Exterior Perimeter M
+             * @description Panjang batas luar saja.
+             */
+            exterior_perimeter_m: number;
+            /**
+             * Method
+             * @default geodesic_wgs84
+             * @constant
+             */
+            method: "geodesic_wgs84";
+        };
+        /** FieldPage */
+        FieldPage: {
+            /** Items */
+            items: components["schemas"]["FarmField"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** FieldSummary */
+        FieldSummary: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Boundary Source
+             * @enum {string}
+             */
+            boundary_source: "manual_drawing" | "geojson_import" | "gnss_survey" | "digitized_from_raster" | "other";
+            measures: components["schemas"]["FieldMeasures"];
+        };
+        /** FieldUpdate */
+        FieldUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Boundary Source */
+            boundary_source?: ("manual_drawing" | "geojson_import" | "gnss_survey" | "digitized_from_raster" | "other") | null;
+            /** Source Note */
+            source_note?: string | null;
+            /**
+             * Geometry
+             * @description Ganti seluruh geometri; ukuran dihitung ulang.
+             */
+            geometry?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** Finding */
         Finding: {
@@ -672,6 +1240,29 @@ export interface components {
             y: number;
             /** Note */
             note: string;
+        };
+        /** GeoJsonPolygon */
+        GeoJsonPolygon: {
+            /**
+             * Type
+             * @constant
+             */
+            type: "Polygon";
+            /** Coordinates */
+            coordinates: number[][][];
+        };
+        /** GeoJsonPolygonal */
+        GeoJsonPolygonal: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "Polygon" | "MultiPolygon";
+            /**
+             * Coordinates
+             * @description Koordinat GeoJSON [lon, lat] WGS84; ring tertutup.
+             */
+            coordinates: unknown[];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -714,6 +1305,106 @@ export interface components {
             max_backup_bytes: number;
             /** Inference Timeout S */
             inference_timeout_s: number;
+            /** Max Raster Bytes */
+            max_raster_bytes: number;
+            /** Max Raster Pixels */
+            max_raster_pixels: number;
+            /** Max Raster Footprint Km2 */
+            max_raster_footprint_km2: number;
+            /** Max Field Vertices */
+            max_field_vertices: number;
+            /** Max Field Import Bytes */
+            max_field_import_bytes: number;
+            /** Raster Analysis Timeout S */
+            raster_analysis_timeout_s: number;
+        };
+        /** MapDetection */
+        MapDetection: {
+            /** Id */
+            id: string;
+            /** Raster Id */
+            raster_id: string;
+            /** Analysis Run Id */
+            analysis_run_id: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "plant" | "check" | "gap";
+            /**
+             * Source
+             * @constant
+             */
+            source: "model";
+            /**
+             * Review Status
+             * @enum {string}
+             */
+            review_status: "pending" | "accepted" | "rejected";
+            /**
+             * Confidence
+             * @description Skor model, bukan akurasi survei. null untuk simulasi.
+             */
+            confidence: number | null;
+            /** Model Label */
+            model_label: string | null;
+            /** Note */
+            note: string;
+            /**
+             * Pixel Bbox
+             * @description [left, top, width, height] dalam piksel raster ASLI (bukan 0–1).
+             */
+            pixel_bbox: number[];
+            /**
+             * Center
+             * @description Pusat kotak, [lon, lat] WGS84.
+             */
+            center: number[];
+            /**
+             * Center Native
+             * @description Pusat kotak [x, y] dalam CRS raster.
+             */
+            center_native: number[];
+            /** @description 4 sudut kotak dalam WGS84. */
+            geometry: components["schemas"]["GeoJsonPolygon"];
+            /**
+             * Inside Field
+             * @description Pusat di dalam batas lahan survei; null = survei tanpa lahan.
+             */
+            inside_field: boolean | null;
+            /** Revision */
+            revision: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** MapDetectionPage */
+        MapDetectionPage: {
+            /** Items */
+            items: components["schemas"]["MapDetection"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            counts: components["schemas"]["RasterDetectionCounts"];
+        };
+        /** MapDetectionUpdate */
+        MapDetectionUpdate: {
+            /** Review Status */
+            review_status?: ("pending" | "accepted" | "rejected") | null;
+            /** Kind */
+            kind?: ("plant" | "check" | "gap") | null;
+            /** Note */
+            note?: string | null;
         };
         /** ModelStatus */
         ModelStatus: {
@@ -737,6 +1428,43 @@ export interface components {
             model_version?: string | null;
             /** Message */
             message: string;
+            /**
+             * Adapter
+             * @description Jenis detector aktif. null bila mode manual / konfigurasi salah. Revisi 4: `simulation`.
+             */
+            adapter?: ("ultralytics" | "deepforest" | "simulation") | null;
+            /**
+             * Target
+             * @description Objek yang dideteksi model. tree_crown = tajuk pohon (DeepForest pretrained), BUKAN semua tanaman. simulation (revisi 4) = kotak buatan, BUKAN AI. Kandidat tetap disimpan sebagai kind=plant (lihat Annotation.model_label).
+             */
+            target?: ("plant" | "tree_crown" | "simulation") | null;
+            /**
+             * Target Label
+             * @description Teks siap tampil, mis. 'Kandidat tajuk pohon (DeepForest pretrained)'.
+             */
+            target_label?: string | null;
+            /**
+             * Device
+             * @description cpu | cuda | auto. Inferensi CPU dapat memakan puluhan detik per foto besar.
+             */
+            device?: string | null;
+            /**
+             * Limitations
+             * @description Keterbatasan model yang perlu ditampilkan ke pengguna.
+             */
+            limitations?: string[];
+            /**
+             * Mode
+             * @description manual: tanpa model (penandaan manual saja); model: detector model sungguhan (state menjelaskan siap/tidak); simulation: WALLACEA_DETECTOR=simulation — kandidat SIMULASI, BUKAN AI. UI wajib menampilkan target_label/message bila mode=simulation.
+             * @default model
+             * @enum {string}
+             */
+            mode: "manual" | "model" | "simulation";
+            /**
+             * Diagnostic Code
+             * @description Alasan status yang bisa dibaca mesin (mis. MODEL_FILE_NOT_FOUND, DEPENDENCY_MISSING, LABEL_MAP_MISMATCH, SIMULATION_ACTIVE). null = model siap tanpa catatan. Teks untuk pengguna tetap di `message`.
+             */
+            diagnostic_code?: ("MODEL_PATH_NOT_SET" | "DETECTOR_CONFIG_INVALID" | "MODEL_FILE_NOT_FOUND" | "MODEL_FILE_NOT_PT" | "MODEL_FILES_INCOMPLETE" | "DEPENDENCY_MISSING" | "LABEL_MAP_INVALID" | "LABEL_MAP_MISMATCH" | "NOT_DETECTION_MODEL" | "MODEL_LOAD_FAILED" | "GENERIC_COCO_MODEL" | "SIMULATION_ACTIVE") | null;
         };
         /** Photo */
         Photo: {
@@ -853,6 +1581,299 @@ export interface components {
             /** Warnings */
             warnings: components["schemas"]["Warning"][];
         };
+        /** RasterAnalysisResult */
+        RasterAnalysisResult: {
+            run: components["schemas"]["RasterAnalysisRun"];
+            /** Candidate Count */
+            candidate_count: number;
+            /** Replaced Detection Count */
+            replaced_detection_count: number;
+            /** Detections Url */
+            detections_url: string;
+            /** Detections Geojson Url */
+            detections_geojson_url: string;
+            /** Notice */
+            notice: string;
+        };
+        /** RasterAnalysisRun */
+        RasterAnalysisRun: {
+            /** Id */
+            id: string;
+            /** Raster Id */
+            raster_id: string;
+            /** Model Id */
+            model_id: string | null;
+            /** Model Version */
+            model_version: string | null;
+            /** Adapter */
+            adapter: string | null;
+            /** Target */
+            target: ("plant" | "tree_crown" | "simulation") | null;
+            /** Input Sha256 */
+            input_sha256: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "running" | "succeeded" | "failed";
+            /** Candidate Count */
+            candidate_count: number;
+            /**
+             * Parameters
+             * @description tile_size, overlap_px, scale, window_count, raw_detections, dropped_edge, dropped_masked, dedup method/threshold.
+             */
+            parameters: {
+                [key: string]: unknown;
+            };
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Finished At */
+            finished_at: string | null;
+            /** Error Code */
+            error_code: string | null;
+        };
+        /** RasterAnalysisRunPage */
+        RasterAnalysisRunPage: {
+            /** Items */
+            items: components["schemas"]["RasterAnalysisRun"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** RasterAnalyzeRequest */
+        RasterAnalyzeRequest: {
+            /**
+             * On Existing
+             * @description Sama dengan analisis foto.
+             * @default reject
+             * @enum {string}
+             */
+            on_existing: "reject" | "replace_pending" | "append";
+            /**
+             * Tile Size
+             * @description Ukuran jendela (piksel raster asli).
+             * @default 1024
+             */
+            tile_size: number;
+            /**
+             * Overlap Px
+             * @description Overlap antarjendela; harus ≥ ukuran objek terbesar dan < tile_size.
+             * @default 128
+             */
+            overlap_px: number;
+            /**
+             * Scale
+             * @description Faktor resize jendela sebelum ke model (mis. 0.5).
+             * @default 1
+             */
+            scale: number;
+            /**
+             * Iou Threshold
+             * @default 0.5
+             */
+            iou_threshold: number;
+            /**
+             * Ios Threshold
+             * @description Intersection / area kotak terkecil untuk dedup.
+             * @default 0.8
+             */
+            ios_threshold: number;
+        };
+        /** RasterAsset */
+        RasterAsset: {
+            /** Id */
+            id: string;
+            /** Survey Id */
+            survey_id: string;
+            /** Name */
+            name: string;
+            /** Original Name */
+            original_name: string;
+            /**
+             * Product Type
+             * @description GeoTIFF bergeoreferensi yang diimpor pengguna. BUKAN orthomosaic yang dibuat/diverifikasi WALLACEA; georeferensi diambil apa adanya dari berkas.
+             * @constant
+             */
+            product_type: "imported_georeferenced_raster";
+            /**
+             * Is Verified Orthomosaic
+             * @description Selalu false di revisi 5: sumber/proses raster tidak diverifikasi aplikasi.
+             * @default false
+             * @constant
+             */
+            is_verified_orthomosaic: false;
+            /**
+             * Source Description
+             * @description Keterangan asal dari pengguna (klaim, tidak diverifikasi).
+             */
+            source_description: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * Sha256
+             * @description sha256 berkas asli (= GET content).
+             */
+            sha256: string;
+            /** Width */
+            width: number;
+            /** Height */
+            height: number;
+            /** Band Count */
+            band_count: number;
+            crs: components["schemas"]["RasterCrs"];
+            /**
+             * Transform
+             * @description Affine [a, b, c, d, e, f]: x = a·col + b·row + c, y = d·col + e·row + f; (col,row)=(0,0) sudut kiri-atas piksel pertama.
+             */
+            transform: number[];
+            /**
+             * Bounds Native
+             * @description [left, bottom, right, top] dalam CRS raster
+             */
+            bounds_native: number[];
+            /**
+             * Bounds Wgs84
+             * @description [west, south, east, north]
+             */
+            bounds_wgs84: number[];
+            /** @description Batas raster (tepi didensifikasi) dalam WGS84. */
+            footprint: components["schemas"]["GeoJsonPolygon"];
+            /** Footprint Area M2 */
+            footprint_area_m2: number;
+            /**
+             * Approx Gsd M
+             * @description Perkiraan ukuran piksel di tanah (m) di pusat raster.
+             */
+            approx_gsd_m: number;
+            /** Nodata */
+            nodata: number | null;
+            /** Has Alpha */
+            has_alpha: boolean;
+            /**
+             * Metadata
+             * @description colorinterp, mask_flags, compression, is_rotated, warnings.
+             */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /**
+             * Processing
+             * @description Pipeline impor: turunan tampilan, overview, versi rasterio/GDAL.
+             */
+            processing: {
+                [key: string]: unknown;
+            };
+            /** Warnings */
+            warnings: string[];
+            /** Content Url */
+            content_url: string;
+            /** Preview Url */
+            preview_url: string;
+            /** Tilejson Url */
+            tilejson_url: string;
+            /**
+             * Tile Url Template
+             * @description XYZ EPSG:3857, PNG 256 px, area di luar raster transparan.
+             */
+            tile_url_template: string;
+            /** Minzoom */
+            minzoom: number;
+            /** Maxzoom */
+            maxzoom: number;
+            detection_counts: components["schemas"]["RasterDetectionCounts"];
+            /** Revision */
+            revision: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** RasterCrs */
+        RasterCrs: {
+            /**
+             * Epsg
+             * @description Kode EPSG bila dikenali; null untuk CRS kustom (lihat wkt).
+             */
+            epsg: number | null;
+            /** Name */
+            name: string;
+            /** Wkt */
+            wkt: string;
+            /** Is Geographic */
+            is_geographic: boolean;
+        };
+        /** RasterDetectionCounts */
+        RasterDetectionCounts: {
+            /**
+             * Plant Accepted
+             * @description Kandidat kind=plant berstatus accepted pada raster INI.
+             */
+            plant_accepted: number;
+            /**
+             * Plant Accepted Inside Field
+             * @description Dari plant_accepted, yang pusatnya di dalam batas lahan survei. null = survei tanpa lahan.
+             */
+            plant_accepted_inside_field: number | null;
+            /** Pending Review */
+            pending_review: number;
+            /** Rejected */
+            rejected: number;
+            /** Total */
+            total: number;
+        };
+        /** RasterPage */
+        RasterPage: {
+            /** Items */
+            items: components["schemas"]["RasterAsset"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** RasterReportRow */
+        RasterReportRow: {
+            /** Raster Id */
+            raster_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Product Type
+             * @constant
+             */
+            product_type: "imported_georeferenced_raster";
+            /** Approx Gsd M */
+            approx_gsd_m: number;
+            /** Footprint Area M2 */
+            footprint_area_m2: number;
+            counts: components["schemas"]["RasterDetectionCounts"];
+        };
+        /** RasterUpdate */
+        RasterUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Source Description */
+            source_description?: string | null;
+        };
+        /** RasterUploadResult */
+        RasterUploadResult: {
+            raster: components["schemas"]["RasterAsset"];
+            /** Warnings */
+            warnings?: components["schemas"]["Warning"][];
+        };
         /** ReportTotals */
         ReportTotals: {
             /** Photo Count */
@@ -874,6 +1895,58 @@ export interface components {
              * @constant
              */
             counts_are_unique_plants: false;
+        };
+        /** SamplePage */
+        SamplePage: {
+            /** Items */
+            items: components["schemas"]["SamplePhoto"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * SamplePhoto
+         * @description Foto contoh berlisensi untuk demo. Diunduh lewat `file_url`, lalu diunggah lewat endpoint upload BIASA.
+         *     Bukan hasil inferensi; anotasi manusia (bila ada) hanya untuk evaluasi di notebook.
+         */
+        SamplePhoto: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /**
+             * File Url
+             * @description Relatif terhadap base API, mis. /api/v1/samples/neon-osbs-029/file
+             */
+            file_url: string;
+            /** Filename */
+            filename: string;
+            /** Media Type */
+            media_type: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Sha256 */
+            sha256: string;
+            /** Width */
+            width: number;
+            /** Height */
+            height: number;
+            /** Source Name */
+            source_name: string;
+            /** Source Url */
+            source_url: string;
+            /** License Name */
+            license_name: string;
+            /** License Url */
+            license_url: string;
+            /** Attribution */
+            attribution: string;
+            /**
+             * Imagery
+             * @description Jenis citra & keterbatasan (mis. pesawat ±10 cm/px, bukan K919).
+             */
+            imagery: string;
+            /** Has Human Annotations */
+            has_human_annotations: boolean;
         };
         /** StarterBackupImportResult */
         StarterBackupImportResult: {
@@ -913,6 +1986,11 @@ export interface components {
             /** Photo Count */
             photo_count: number;
             /**
+             * Field Id
+             * @description Revisi 5: lahan yang disurvei; null = belum ditautkan.
+             */
+            field_id?: string | null;
+            /**
              * Created At
              * Format: date-time
              */
@@ -945,6 +2023,24 @@ export interface components {
              * @default
              */
             notes: string;
+            /**
+             * Field Id
+             * @description Revisi 5: lahan (GET /fields) yang disurvei. Opsional.
+             */
+            field_id?: string | null;
+        };
+        /** SurveyMapping */
+        SurveyMapping: {
+            field: components["schemas"]["FieldSummary"] | null;
+            /** Rasters */
+            rasters: components["schemas"]["RasterReportRow"][];
+            /**
+             * Counts Are Unique Plants
+             * @description Hitungan per raster TIDAK dijumlahkan antar raster/penerbangan sebagai tanaman unik.
+             * @default false
+             * @constant
+             */
+            counts_are_unique_plants: false;
         };
         /** SurveyPage */
         SurveyPage: {
@@ -972,6 +2068,8 @@ export interface components {
             findings: components["schemas"]["Finding"][];
             /** Disclaimers */
             disclaimers: string[];
+            /** @description Revisi 5: ringkasan lahan & raster. null = survei tanpa lahan dan tanpa raster. */
+            mapping?: components["schemas"]["SurveyMapping"] | null;
         };
         /** SurveyUpdate */
         SurveyUpdate: {
@@ -985,6 +2083,43 @@ export interface components {
             survey_date?: string | null;
             /** Notes */
             notes?: string | null;
+            /**
+             * Field Id
+             * @description Revisi 5: null = lepaskan tautan lahan.
+             */
+            field_id?: string | null;
+        };
+        /** TileJson */
+        TileJson: {
+            /**
+             * Tilejson
+             * @default 3.0.0
+             * @constant
+             */
+            tilejson: "3.0.0";
+            /** Name */
+            name: string;
+            /** Tiles */
+            tiles: string[];
+            /** Minzoom */
+            minzoom: number;
+            /** Maxzoom */
+            maxzoom: number;
+            /** Bounds */
+            bounds: number[];
+            /**
+             * Center
+             * @description [lon, lat, zoom]
+             */
+            center: number[];
+            /** Attribution */
+            attribution: string;
+            /**
+             * Scheme
+             * @default xyz
+             * @constant
+             */
+            scheme: "xyz";
         };
         /** ValidationError */
         ValidationError: {
@@ -1096,7 +2231,7 @@ export interface operations {
                     "application/json": components["schemas"]["Survey"];
                 };
             };
-            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED) */
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1165,7 +2300,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP) */
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1227,7 +2362,7 @@ export interface operations {
                     "application/json": components["schemas"]["Survey"];
                 };
             };
-            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP) */
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1254,7 +2389,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED) */
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1352,7 +2487,7 @@ export interface operations {
                     "application/json": components["schemas"]["PhotoUploadResult"];
                 };
             };
-            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP) */
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1379,7 +2514,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE) */
+            /** @description Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE, RASTER_TOO_LARGE) */
             413: {
                 headers: {
                     [name: string]: unknown;
@@ -1388,7 +2523,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Format tidak didukung (UNSUPPORTED_MEDIA_TYPE) */
+            /** @description Format tidak didukung (UNSUPPORTED_MEDIA_TYPE, UNSUPPORTED_RASTER) */
             415: {
                 headers: {
                     [name: string]: unknown;
@@ -1466,7 +2601,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP) */
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1704,7 +2839,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED) */
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1733,7 +2868,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP) */
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1804,7 +2939,7 @@ export interface operations {
                     "application/json": components["schemas"]["Annotation"];
                 };
             };
-            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP) */
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1831,7 +2966,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED) */
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1893,7 +3028,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED) */
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1911,7 +3046,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Model tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE) */
+            /** @description Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE) */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -1973,7 +3108,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE) */
+            /** @description Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE, RASTER_TOO_LARGE) */
             413: {
                 headers: {
                     [name: string]: unknown;
@@ -1982,7 +3117,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED) */
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2138,7 +3273,7 @@ export interface operations {
                     "application/json": components["schemas"]["StarterBackupImportResult"];
                 };
             };
-            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP) */
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2147,7 +3282,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE) */
+            /** @description Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE, RASTER_TOO_LARGE) */
             413: {
                 headers: {
                     [name: string]: unknown;
@@ -2156,7 +3291,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Format tidak didukung (UNSUPPORTED_MEDIA_TYPE) */
+            /** @description Format tidak didukung (UNSUPPORTED_MEDIA_TYPE, UNSUPPORTED_RASTER) */
             415: {
                 headers: {
                     [name: string]: unknown;
@@ -2172,6 +3307,1194 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_samples: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SamplePage"];
+                };
+            };
+        };
+    };
+    sample_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sample_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Byte foto contoh */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": unknown;
+                    "image/jpeg": unknown;
+                    "image/webp": unknown;
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_fields: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_field: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FieldCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FarmField"];
+                };
+            };
+            /** @description Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE, RASTER_TOO_LARGE) */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_field: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                field_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FarmField"];
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_field: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                field_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_field: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                field_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FieldUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FarmField"];
+                };
+            };
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    export_field: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                field_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description GeoJSON (RFC 7946), WGS84 [lon, lat] */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "application/geo+json": unknown;
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_fields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description GeoJSON (RFC 7946), WGS84 [lon, lat] */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "application/geo+json": unknown;
+                };
+            };
+        };
+    };
+    import_fields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_fields"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldImportResult"];
+                };
+            };
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE, RASTER_TOO_LARGE) */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_rasters: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                survey_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RasterPage"];
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_raster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                survey_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_raster"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RasterUploadResult"];
+                };
+            };
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Terlalu besar (PAYLOAD_TOO_LARGE, IMAGE_TOO_LARGE, RASTER_TOO_LARGE) */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Format tidak didukung (UNSUPPORTED_MEDIA_TYPE, UNSUPPORTED_RASTER) */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_raster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                raster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RasterAsset"];
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_raster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                raster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_raster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                raster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RasterUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RasterAsset"];
+                };
+            };
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    raster_content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                raster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description GeoTIFF asli */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/tiff": unknown;
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    raster_preview: {
+        parameters: {
+            query?: {
+                max_size?: number;
+            };
+            header?: never;
+            path: {
+                raster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PNG */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": unknown;
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    raster_tilejson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                raster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TileJson"];
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    raster_tile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                raster_id: string;
+                z: number;
+                x: number;
+                y: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PNG */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": unknown;
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    analyze_raster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                raster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RasterAnalyzeRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RasterAnalysisResult"];
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Kesalahan server (INTERNAL_ERROR, INFERENCE_FAILED) */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Model/paket tidak tersedia (MODEL_NOT_CONFIGURED, MODEL_UNAVAILABLE, MAPPING_UNAVAILABLE) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Inferensi melewati batas waktu (INFERENCE_TIMEOUT) */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_raster_runs: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                raster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RasterAnalysisRunPage"];
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_detections: {
+        parameters: {
+            query?: {
+                review_status?: ("pending" | "accepted" | "rejected") | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                raster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapDetectionPage"];
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detections_geojson: {
+        parameters: {
+            query?: {
+                review_status?: ("pending" | "accepted" | "rejected") | null;
+            };
+            header?: never;
+            path: {
+                raster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description FeatureCollection WGS84 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "application/geo+json": unknown;
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_detection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                detection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MapDetectionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapDetection"];
+                };
+            };
+            /** @description Permintaan/berkas tidak valid (BAD_REQUEST, INVALID_IMAGE, INVALID_BACKUP, INVALID_RASTER) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Tidak ditemukan (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Konflik (REVISION_CONFLICT, ANALYSIS_EXISTS, ANALYSIS_IN_PROGRESS, DEMO_SURVEY_READONLY) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validasi gagal (VALIDATION_ERROR, DETECTION_MISMATCH, ANNOTATION_LIMIT_EXCEEDED, INVALID_GEOMETRY, RASTER_NOT_GEOREFERENCED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description If-Match wajib (PRECONDITION_REQUIRED) */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
