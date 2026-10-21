@@ -1,0 +1,1 @@
+{"nodes": [{"id": "apps_api_requirements_lock_api_runtime", "label": "Pinned Python API runtime", "file_type": "concept", "source_file": "apps/api/requirements.lock.txt", "source_location": "requirements.lock.txt", "source_url": null, "captured_at": null, "author": null, "contributor": null}], "edges": [], "hyperedges": []}
