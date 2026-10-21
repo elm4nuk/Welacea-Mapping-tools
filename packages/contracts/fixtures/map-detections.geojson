@@ -1,0 +1,118 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "9efe182b584d49e18dc0d524a4e98951",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.98984963853536,
+              29.692504154025478
+            ],
+            [
+              -81.98978762824362,
+              29.69250461738642
+            ],
+            [
+              -81.98978709756194,
+              29.69245047530809
+            ],
+            [
+              -81.98984910782045,
+              29.692450011948164
+            ],
+            [
+              -81.98984963853536,
+              29.692504154025478
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "raster_id": "2146878723f34687be2cd71de5af1031",
+        "analysis_run_id": "8729325eeeff427299c6efdef5869b0a",
+        "kind": "gap",
+        "source": "model",
+        "review_status": "accepted",
+        "confidence": 0.42,
+        "model_label": "titik_kosong",
+        "note": "",
+        "pixel_bbox": [
+          240.0,
+          200.0,
+          60.0,
+          60.0
+        ],
+        "center": [
+          -81.98981836804035,
+          29.692477314670704
+        ],
+        "inside_field": true,
+        "revision": 2
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "a738bdc6fe7448a9a6cf9a4412a47173",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.99005775503963,
+              29.69264698814102
+            ],
+            [
+              -81.98997507453859,
+              29.692647606081735
+            ],
+            [
+              -81.98997418989734,
+              29.692557369291354
+            ],
+            [
+              -81.99005687032452,
+              29.692556751352893
+            ],
+            [
+              -81.99005775503963,
+              29.69264698814102
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "raster_id": "2146878723f34687be2cd71de5af1031",
+        "analysis_run_id": "8729325eeeff427299c6efdef5869b0a",
+        "kind": "plant",
+        "source": "model",
+        "review_status": "pending",
+        "confidence": 0.91,
+        "model_label": "tanaman",
+        "note": "",
+        "pixel_bbox": [
+          40.0,
+          40.0,
+          80.0,
+          100.0
+        ],
+        "center": [
+          -81.99001597244984,
+          29.69260217872336
+        ],
+        "inside_field": true,
+        "revision": 1
+      }
+    }
+  ],
+  "properties": {
+    "raster_id": "2146878723f34687be2cd71de5af1031",
+    "raster_name": "OSBS_029.tif",
+    "product_type": "imported_georeferenced_raster",
+    "counts_are_unique_plants": false,
+    "crs": "EPSG:4326 (lon, lat)"
+  }
+}

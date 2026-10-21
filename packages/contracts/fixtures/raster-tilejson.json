@@ -1,0 +1,22 @@
+{
+  "tilejson": "3.0.0",
+  "name": "OSBS_029.tif",
+  "tiles": [
+    "/api/v1/rasters/2146878723f34687be2cd71de5af1031/tiles/{z}/{x}/{y}.png"
+  ],
+  "minzoom": 18,
+  "maxzoom": 21,
+  "bounds": [
+    -81.99009944919113,
+    29.69232182671223,
+    -81.98968250900552,
+    29.69268586318692
+  ],
+  "center": [
+    -81.98989097909833,
+    29.692503844949577,
+    19.0
+  ],
+  "attribution": "Raster impor: OSBS_029.tif — NEON AOP RGB mosaic via DeepForest 2.1.0 sample (CC BY 4.0) (georeferensi dari berkas, tidak diverifikasi)",
+  "scheme": "xyz"
+}

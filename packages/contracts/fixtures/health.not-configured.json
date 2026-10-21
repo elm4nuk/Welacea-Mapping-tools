@@ -1,20 +1,31 @@
 {
   "status": "ok",
   "api_version": "1",
-  "contract_revision": 1,
+  "contract_revision": 5,
   "database": "ok",
   "model": {
     "state": "not_configured",
     "available": false,
     "model_id": null,
     "model_version": null,
-    "message": "Model tanaman belum dikonfigurasi. Atur WALLACEA_MODEL_PATH ke bobot lokal hasil pelatihan tim."
+    "message": "Model tanaman belum dikonfigurasi (mode manual). Penandaan manual tetap berjalan. Untuk analisis otomatis, jalankan API lewat scripts\\run-with-model.ps1 dengan bobot YOLO hasil pelatihan (berkas best.pt) — lihat apps/api/README.md.",
+    "adapter": null,
+    "target": null,
+    "target_label": null,
+    "device": null,
+    "limitations": [],
+    "mode": "manual",
+    "diagnostic_code": "MODEL_PATH_NOT_SET"
   },
   "capabilities": {
     "flight_control": false,
     "live_video": false,
     "georeferencing": false,
-    "orthomosaic": false
+    "orthomosaic": false,
+    "field_boundaries": true,
+    "georeferenced_raster_import": true,
+    "map_ai_detections": true,
+    "orthomosaic_generation": false
   },
   "limits": {
     "max_upload_bytes": 20971520,
@@ -27,6 +38,12 @@
     "max_annotations_per_photo": 3000,
     "max_detection_payload_bytes": 5242880,
     "max_backup_bytes": 104857600,
-    "inference_timeout_s": 120.0
+    "inference_timeout_s": 120.0,
+    "max_raster_bytes": 1073741824,
+    "max_raster_pixels": 400000000,
+    "max_raster_footprint_km2": 2500.0,
+    "max_field_vertices": 20000,
+    "max_field_import_bytes": 5242880,
+    "raster_analysis_timeout_s": 1800.0
   }
 }

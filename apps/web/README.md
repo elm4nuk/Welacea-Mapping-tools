@@ -1,7 +1,9 @@
 # WALLACEA web
 
-React frontend for API v1, contract revision 1 / OpenAPI 1.1.0. No mock service
-is enabled by default. The application needs the real FastAPI service.
+React frontend for API v1. Generated types consume the additive contract revision
+4 from Claude's latest backend handoff while remaining compatible with revisions
+1–3. No
+mock service is enabled by default. The application needs the real FastAPI service.
 
 ## Run
 
@@ -23,8 +25,13 @@ Vite preview does not provide the development API proxy.
 
 ## Editing and storage
 
+- The primary flow is **Buat survei → Unggah foto → Analisis & review → Laporan**.
+  Desktop uses a collapsible survey sidebar and persistent review panel. Tablet
+  and mobile use Sheets for navigation, photo selection, and candidate review.
 - Choose a survey, upload files, select a photo, then annotate with points or
-  boxes. Canvas tools and normalized coordinate forms are both available.
+  boxes. The compact toolbar keeps select/pan, point/box, zoom/fit, and undo/redo
+  visible. Normalized coordinate forms remain keyboard-accessible under
+  **Pengaturan lanjutan**.
 - The editor loads display_url, whose dimensions already incorporate EXIF.
   Photo coordinates are not GPS. Bounding boxes use normalized top-left/size.
 - Changes, undo and redo are local drafts until **Simpan anotasi** succeeds.
@@ -48,6 +55,48 @@ Vite preview does not provide the development API proxy.
   capabilities/data. No map package, invented coordinates, or photogrammetry
   claims are included.
 
+## Photo analysis and review
+
+- API connectivity and model readiness are separate statuses. Connectivity is
+  based on the real health query; model availability is read from its response.
+  The UI distinguishes **Mode manual**, **Model ditemukan**, **Model aktif**,
+  **Konfigurasi model bermasalah**, and the permanent **SIMULASI — BUKAN AI**
+  warning. It only shows model ID/version when supplied by the API.
+- **Cara mengaktifkan AI** explains that `best.pt` is a file, gives the expected
+  server-side location and PowerShell setup/check/run commands, and warns that a
+  generic COCO model is not a trained drone-crop detector. The browser does not
+  accept model-weight uploads.
+- Analysis is synchronous. While the request is open the UI says that analysis
+  is running and does not invent a progress percentage. The button is guarded
+  against duplicate submission.
+- `MODEL_NOT_CONFIGURED`, `MODEL_UNAVAILABLE`, `INFERENCE_TIMEOUT`,
+  `INFERENCE_FAILED`, `ANALYSIS_IN_PROGRESS`, `ANALYSIS_EXISTS`, and connection
+  failures have distinct messages. Existing annotations remain in the editor.
+- On `ANALYSIS_EXISTS`, the user can either replace old pending candidates or
+  append a new result. Both choices preserve manual annotations and reviewed
+  model candidates according to the API contract.
+- Pending model output is labelled as a candidate and is excluded from plant
+  counts. Only accepted plant annotations are labelled and counted as confirmed
+  plants. Confidence is presented as a model score, not survey accuracy.
+- Each candidate retains its API-provided analysis-run link. The review panel
+  shows model ID/version and detector label only when supplied by the API.
+  Contract-revision-2 responses use `target_label`, `target`, `adapter`, `device`,
+  and `limitations` directly. Revision-1 responses retain conservative generic
+  wording.
+- Simulation candidates use the same pending-first review flow but retain a
+  visible simulation source. Contract revision 4 exposes this through model
+  `mode`, adapter/target `simulation`, and analysis-run target `simulation`.
+- Reports state counts per photo. Image coordinates are not GPS, and sums across
+  overlapping photos are not claimed as unique plants for the whole field.
+
+## Built-in illustration
+
+The empty dashboard and sidebar can call the real `POST /api/v1/demo/surveys`
+endpoint. This creates the backend-generated, read-only illustration and its
+manual example marks. The UI labels it as an illustration, not a drone photo and
+not ML inference. No licensed aerial sample was supplied, so the frontend does
+not offer a sample-photo picker or claim a source that is not in the contract.
+
 ## Browser checks with the real API
 
 Use a separate API port and data directory, not a user's database. For example,
@@ -67,6 +116,13 @@ In a third terminal:
     $env:WALLACEA_E2E_PYTHON = 'C:\absolute\path\to\api\.venv\Scripts\python.exe'
     pnpm --filter @wallacea/web test:e2e
 
+For an isolated run, Playwright can start and stop Vite itself while the dedicated
+API remains running:
+
+    $env:API_PROXY_TARGET = 'http://127.0.0.1:18080'
+    $env:WALLACEA_E2E_START_WEB = '1'
+    pnpm --filter @wallacea/web test:e2e
+
 The Python interpreter needs Pillow (already in the API lockfile). Override
 WALLACEA_E2E_WEB_URL and WALLACEA_E2E_API_URL for different ports. Defaults are
 http://127.0.0.1:5174 and http://127.0.0.1:18080. Both must address the same API
@@ -77,4 +133,4 @@ Tests generate synthetic PNG/WebP/JPEG images, including EXIF Orientation 6,
 under ignored test-results. Candidate review uses the real detections/import
 endpoint with clearly named synthetic test outputs. This tests contracts and
 workflow, not model inference, accuracy, real devices, or K919 photo quality.
-Chromium viewport projects: 1600x1000, 820x1180 and 390x844.
+Chromium viewport projects: 1440x900, 820x1180 and 390x844.

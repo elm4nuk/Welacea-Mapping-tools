@@ -1,0 +1,5 @@
+# Sawit v2 (Mendeley s23jvbpnr3.2) → SENSUS satu kelas.
+# PENGGABUNGAN KELAS (didokumentasikan): status Ganoderma dihapus; kedua kategori menjadi `plant`.
+# Model hasilnya menghitung tajuk sawit; TIDAK boleh dipakai untuk diagnosis penyakit.
+ganoderma_affected_palm: plant
+survey_negative_normal_palm: plant

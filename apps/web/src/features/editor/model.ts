@@ -13,6 +13,10 @@ export type Finding = {
   source: 'manual' | 'model';
   note: string;
   confidence?: number;
+  /** Present only when supplied by the API for a model candidate. */
+  analysisRunId?: string;
+  /** Detector label supplied by the API; never treated as a survey conclusion. */
+  modelLabel?: string;
 };
 export type Viewport = { x: number; y: number; scale: number };
 export type Size = { width: number; height: number };
@@ -104,6 +108,17 @@ export function counts(findings: Finding[]) {
     gaps: findings.filter(f => f.kind === 'gap' && f.review === 'accepted').length,
     pending: findings.filter(f => f.review === 'pending').length,
   };
+}
+
+export function findingStatus(finding: Finding, treeCrown = false, simulation = false) {
+  const source = finding.source === 'manual' ? 'Penanda manual'
+    : simulation ? 'Kandidat simulasi — bukan AI'
+      : finding.kind === 'plant' ? treeCrown ? 'Kandidat tajuk pohon' : 'Kandidat tanaman' : 'Kandidat model asli';
+  const review = finding.review === 'pending' ? 'Menunggu review'
+    : finding.review === 'accepted' ? 'Diterima' : 'Ditolak';
+  const confirmed = finding.kind === 'plant' && finding.review === 'accepted'
+    ? simulation ? 'Simulasi dikonfirmasi — bukan tanaman' : treeCrown ? 'Tajuk pohon terkonfirmasi' : 'Tanaman terkonfirmasi' : '';
+  return { source, review, confirmed };
 }
 
 /** Quote every field and neutralize spreadsheet formulas, including leading whitespace. */

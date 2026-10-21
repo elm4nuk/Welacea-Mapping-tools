@@ -4,7 +4,8 @@ export function toFinding(a: Annotation, logicalId = a.id): Finding {
   return { id: logicalId, photoKey: a.photo_id, kind: a.kind === 'check' ? 'inspect' : a.kind,
     point: a.bbox ? { x: a.bbox[0], y: a.bbox[1] } : { x: a.x, y: a.y },
     box: a.bbox ? { x: a.bbox[0], y: a.bbox[1], width: a.bbox[2], height: a.bbox[3] } : undefined,
-    source: a.source, review: a.review_status, note: a.note, confidence: a.confidence ?? undefined };
+    source: a.source, review: a.review_status, note: a.note, confidence: a.confidence ?? undefined,
+    analysisRunId: a.analysis_run_id ?? undefined, modelLabel: a.model_label ?? undefined };
 }
 export function annotationBody(f: Finding): Schema['AnnotationUpdate'] {
   return { kind: f.kind === 'inspect' ? 'check' : f.kind, note: f.note,

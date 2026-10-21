@@ -1,0 +1,20 @@
+# MatchPlant: dipakai sebagai uji EKSTERNAL (lintas dataset) untuk model jagung.
+# Grup = blok nomor DJI (dugaan penerbangan/blok berbeda; BELUM terverifikasi dari dokumentasi).
+# Gambar TIFF 48 MB/berkas. Sampel 1 gambar per blok (±145 MB):
+#   python -m wallacea_ml datasets sample matchplant "UAV images.zip" --pattern "image/DJI_0014_*" --pattern "image/DJI_0309_*" --pattern "image/DJI_0647_*" --max-mb 200
+name: matchplant
+crop_type: maize
+domain: public:matchplant
+label_map: {plant: 0}
+class_map: class_maps/matchplant.yaml
+empty_images_are_negative: false
+sources:
+  - annotations: "data/raw/matchplant/Annotation file/*.json"
+    images_dir: data/raw/matchplant/image
+    match_on: file_name                            # mis. DJI_0014_806.JPG.tif
+    field_id: matchplant_field
+    groups:                                        # glob berurutan → flight_id; tidak cocok = error
+      - {pattern: "DJI_00*", flight_id: blokA_DJI0014-0065}
+      - {pattern: "DJI_03*", flight_id: blokB_DJI0309-0364}
+      - {pattern: "DJI_06*", flight_id: blokC_DJI0647-0700}
+      - {pattern: "DJI_07*", flight_id: blokC_DJI0647-0700}

@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 from .. import models as m
 from .. import schemas as s
 from .. import services as svc
+from .. import mapping_services as ms
+from ..inference.simulation import MODEL_ID as SIMULATION_MODEL_ID
 from ..db import utcnow
 from ..deps import get_db
 from . import errors
@@ -21,12 +23,68 @@ router = APIRouter(tags=["reports"])
 DISCLAIMERS = [
     "Hitungan tanaman = penanda kind=plant berstatus accepted per foto. Kandidat model pending/rejected tidak dihitung.",
     "Hitungan antar foto yang bertumpang tindih tidak boleh dijumlahkan sebagai jumlah tanaman unik lahan.",
-    "Posisi penanda adalah koordinat relatif dalam gambar (0–1), bukan lintang/bujur GPS.",
-    "Foto biasa bukan orthomosaic; tidak ada luas lahan yang dihitung.",
+    "Posisi penanda foto adalah koordinat relatif dalam gambar (0–1), bukan lintang/bujur GPS. EXIF GPS foto = posisi "
+    "kamera, bukan posisi tanaman.",
+    "Foto biasa bukan orthomosaic; luas lahan tidak dihitung dari foto.",
     "Titik kosong dan titik periksa memerlukan pemeriksaan lapangan; ini bukan diagnosis penyakit.",
     "Confidence adalah keluaran model, bukan akurasi survei.",
 ]
 DEMO_DISCLAIMER = "DATA CONTOH: gambar ilustrasi dan penanda contoh, bukan foto drone dan bukan hasil AI."
+SIMULATION_DISCLAIMER = ("SIMULASI — BUKAN AI: survei ini memuat kandidat dari detector simulasi development "
+                         f"(model_id {SIMULATION_MODEL_ID}). Kandidat itu tidak berasal dari model; hitungan yang "
+                         "memakainya tidak boleh dipakai untuk keputusan lapangan.")
+
+
+def _has_simulation(db: Session, photo_ids: list[str]) -> bool:
+    if not photo_ids:
+        return False
+    return db.scalar(select(m.Annotation.id).join(m.AnalysisRun, m.Annotation.analysis_run_id == m.AnalysisRun.id)
+                     .where(m.Annotation.photo_id.in_(photo_ids), m.AnalysisRun.model_id == SIMULATION_MODEL_ID)
+                     .limit(1)) is not None
+
+
+SOURCE_LABELS = {"manual_drawing": "digambar manual", "geojson_import": "impor GeoJSON",
+                 "gnss_survey": "pengukuran GNSS/GPS lapangan", "digitized_from_raster": "digitasi di atas raster impor",
+                 "other": "sumber lain"}
+
+
+def build_mapping(db: Session, survey: m.Survey) -> s.SurveyMapping | None:
+    field = db.get(m.Field, survey.field_id) if survey.field_id else None
+    rasters = db.scalars(select(m.RasterAsset).where(m.RasterAsset.survey_id == survey.id)
+                         .order_by(m.RasterAsset.created_at, m.RasterAsset.id)).all()
+    if field is None and not rasters:
+        return None
+    containment = ms.FieldContainment(field) if field is not None else ms.FieldContainment(None)
+    return s.SurveyMapping(
+        field=s.FieldSummary(id=field.id, name=field.name, boundary_source=field.boundary_source,
+                             measures=ms.measures_out(field)) if field else None,
+        rasters=[s.RasterReportRow(raster_id=r.id, name=r.name, product_type=r.product_type,
+                                   approx_gsd_m=r.approx_gsd_m, footprint_area_m2=r.footprint_area_m2,
+                                   counts=ms.raster_counts(db, r, containment)) for r in rasters])
+
+
+def mapping_disclaimers(mapping: s.SurveyMapping | None) -> list[str]:
+    if mapping is None:
+        return []
+    out = []
+    if mapping.field is not None:
+        f = mapping.field
+        out.append(f"Luas lahan {f.measures.area_ha:,.4f} ha dihitung geodesik (WGS84) dari batas "
+                   f"{SOURCE_LABELS[f.boundary_source]}; akurasinya mengikuti sumber batas, bukan hasil ukur bersertifikat.")
+    if mapping.rasters:
+        out.append("Peta udara = GeoTIFF bergeoreferensi yang DIIMPOR pengguna. Georeferensi diambil apa adanya dari "
+                   "berkas dan tidak diverifikasi WALLACEA; bukan orthomosaic yang dibuat aplikasi.")
+        out.append("Hitungan kandidat peta berlaku per raster. Jangan menjumlahkan raster/penerbangan berbeda sebagai "
+                   "tanaman unik lahan.")
+    return out
+
+
+def _raster_simulation(db: Session, survey_id: str) -> bool:
+    return db.scalar(select(m.MapDetection.id).join(m.RasterAnalysisRun,
+                                                    m.MapDetection.analysis_run_id == m.RasterAnalysisRun.id)
+                     .join(m.RasterAsset, m.MapDetection.raster_id == m.RasterAsset.id)
+                     .where(m.RasterAsset.survey_id == survey_id, m.RasterAnalysisRun.target == "simulation")
+                     .limit(1)) is not None
 
 
 def build_report(db: Session, survey_id: str) -> s.SurveyReport:
@@ -42,6 +100,7 @@ def build_report(db: Session, survey_id: str) -> s.SurveyReport:
     rows = [s.PhotoReportRow(photo_id=p.id, original_name=p.original_name, width=p.width, height=p.height,
                              captured_at=p.captured_at, duplicate_photo_ids=dups.get(p.id, []),
                              counts=s.AnnotationCounts(**counts[p.id])) for p in photos]
+    mapping = build_mapping(db, survey)
     totals = s.ReportTotals(
         photo_count=len(photos),
         plant_accepted_sum_across_photos=sum(c["plant_accepted"] for c in counts.values()),
@@ -53,7 +112,10 @@ def build_report(db: Session, survey_id: str) -> s.SurveyReport:
         survey=svc.survey_out(survey, len(photos)), generated_at=utcnow(), photos=rows, totals=totals,
         findings=[s.Finding(annotation_id=a.id, photo_id=a.photo_id, photo_name=names[a.photo_id], kind=a.kind,
                             review_status=a.review_status, source=a.source, x=a.x, y=a.y, note=a.note) for a in findings],
-        disclaimers=([DEMO_DISCLAIMER] if survey.is_demo else []) + DISCLAIMERS,
+        disclaimers=([DEMO_DISCLAIMER] if survey.is_demo else [])
+        + ([SIMULATION_DISCLAIMER] if _has_simulation(db, list(names)) or _raster_simulation(db, survey_id) else [])
+        + DISCLAIMERS + mapping_disclaimers(mapping),
+        mapping=mapping,
     )
 
 

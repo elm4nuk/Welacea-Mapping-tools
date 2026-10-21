@@ -9,6 +9,7 @@
 __pycache__/
 *.py[cod]
 .venv/
+.venv-*/
 venv/
 .pytest_cache/
 .mypy_cache/
@@ -33,8 +34,6 @@ uploads/
 *.tflite
 *.safetensors
 datasets/
-apps/api/ml/runs/
-apps/api/ml/data/
 
 # --- Node ---
 node_modules/
@@ -51,3 +50,18 @@ test-results/
 Thumbs.db
 .idea/
 .vscode/
+
+# --- ML workspace (ml/) — data, bobot, hasil run tidak masuk Git ---
+ml/data/*
+!ml/data/README.md
+ml/artifacts/*
+!ml/artifacts/README.md
+ml/notebooks/.ipynb_checkpoints/
+.ipynb_checkpoints/
+
+# --- API: bobot lokal & hasil training scaffold apps/api/ml — tidak masuk Git ---
+apps/api/models/*
+!apps/api/models/README.md
+apps/api/ml/runs/
+apps/api/ml/data/
+apps/api/.env

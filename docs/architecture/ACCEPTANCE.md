@@ -26,7 +26,10 @@ Status dicatat jujur: **[otomatis]** = ada test yang dijalankan; **[manual]** = 
 | A17 | CSV: BOM UTF-8, satu baris per penanda, formula injection dinetralkan | [otomatis] |
 | A18 | CORS hanya origin terdaftar; server bind loopback | [otomatis] CORS; [manual] `netstat` saat `python -m app` |
 | A19 | Snapshot OpenAPI = skema yang di-generate; fixtures valid terhadap skema | [otomatis] `test_contract.py` |
-| A20 | Inferensi model tanaman nyata | **[belum]** — tidak ada bobot/dataset |
+| A20 | Inferensi model nyata lewat `/analyze` | **[otomatis + manual]** DeepForest pretrained pada 3 foto contoh NEON: `test_real_deepforest_inference_on_packaged_sample` (skip bila bobot belum diunduh) + E2E HTTP uvicorn (2026-10-19). Model jagung tim (YOLO11n) via API TestClient. **Foto K919: [belum]** |
+| A22 | Pemilihan detector lewat konfigurasi; bobot tidak diunduh saat request; model dimuat sekali | [otomatis] `test_deepforest_adapter.py` (+ uji manual dengan socket diblokir) |
+| A23 | Orientasi EXIF konsisten editor ↔ model (DeepForest) | [otomatis] modul palsu: bbox di frame terorientasi; [manual] model asli: JPEG diputar+EXIF 6 → 48/49 kotak IoU≥0.8 dengan PNG asli |
+| A21 | Workspace ML (`ml/`): konversi COCO eksplisit, orientasi EXIF sama dengan API, split per lahan/penerbangan/resmi menolak kebocoran, metrik P/R/AP/MAE hitungan benar, prediksi lewat adapter API, `train` menolak tanpa data | [otomatis] `ml/tests/` (fixture sintetis — menguji pipeline, bukan akurasi tanaman) |
 
 ## B. Frontend (pemilik: Codex) — ringkasan dari prompt Codex
 

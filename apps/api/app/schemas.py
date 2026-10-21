@@ -11,8 +11,10 @@ import math
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 from .errors import ERROR_CODES
+from .inference.base import DIAGNOSTIC_CODES
 
 Kind = Literal["plant", "check", "gap"]
 GeometryType = Literal["point", "bbox"]
@@ -23,6 +25,9 @@ RunStatus = Literal["running", "succeeded", "failed"]
 RunType = Literal["inference", "import"]
 OnExisting = Literal["reject", "replace_pending", "append"]
 ModelState = Literal["not_configured", "configured", "loaded", "error"]
+ModelMode = Literal["manual", "model", "simulation"]
+ModelDiagnosticCode = Literal[DIAGNOSTIC_CODES]  # type: ignore[valid-type]
+Target = Literal["plant", "tree_crown", "simulation"]
 ErrorCode = Literal[ERROR_CODES]  # type: ignore[valid-type]
 
 Unit = Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
@@ -78,13 +83,43 @@ class ModelStatus(BaseModel):
     model_id: str | None = None
     model_version: str | None = Field(None, description="Sidik jari bobot (sha256 terpotong) bila diketahui.")
     message: str
+    # Revisi 2 (aditif): apa yang sebenarnya dideteksi model, agar UI tidak menebak.
+    adapter: Literal["ultralytics", "deepforest", "simulation"] | None = Field(
+        None, description="Jenis detector aktif. null bila mode manual / konfigurasi salah. Revisi 4: `simulation`.")
+    target: Target | None = Field(
+        None, description="Objek yang dideteksi model. tree_crown = tajuk pohon (DeepForest pretrained), BUKAN semua "
+                          "tanaman. simulation (revisi 4) = kotak buatan, BUKAN AI. Kandidat tetap disimpan sebagai "
+                          "kind=plant (lihat Annotation.model_label).")
+    target_label: str | None = Field(None, description="Teks siap tampil, mis. 'Kandidat tajuk pohon (DeepForest pretrained)'.")
+    device: str | None = Field(None, description="cpu | cuda | auto. Inferensi CPU dapat memakan puluhan detik per foto besar.")
+    limitations: list[str] = Field(default_factory=list, description="Keterbatasan model yang perlu ditampilkan ke pengguna.")
+    # Revisi 4 (aditif): mode & diagnosis yang bisa dibaca mesin.
+    mode: ModelMode = Field(
+        "model", description="manual: tanpa model (penandaan manual saja); model: detector model sungguhan "
+                             "(state menjelaskan siap/tidak); simulation: WALLACEA_DETECTOR=simulation — kandidat "
+                             "SIMULASI, BUKAN AI. UI wajib menampilkan target_label/message bila mode=simulation.")
+    diagnostic_code: ModelDiagnosticCode | None = Field(
+        None, description="Alasan status yang bisa dibaca mesin (mis. MODEL_FILE_NOT_FOUND, DEPENDENCY_MISSING, "
+                          "LABEL_MAP_MISMATCH, SIMULATION_ACTIVE). null = model siap tanpa catatan. Teks untuk "
+                          "pengguna tetap di `message`.")
 
 
 class Capabilities(BaseModel):
     flight_control: Literal[False] = False
     live_video: Literal[False] = False
-    georeferencing: Literal[False] = False
-    orthomosaic: Literal[False] = False
+    georeferencing: Literal[False] = Field(
+        False, description="Foto biasa (Photo) TIDAK digeoreferensikan; koordinat penandanya 0–1 gambar. Peta "
+                           "berkoordinat hanya lewat raster GeoTIFF impor (georeferenced_raster_import).")
+    orthomosaic: Literal[False] = Field(False, description="Sama dengan orthomosaic_generation (nama lama).")
+    # Revisi 5 — mapping. true = fitur tersedia di server ini (paket geospasial terpasang), bukan jaminan akurasi.
+    field_boundaries: bool = Field(False, description="CRUD batas lahan GeoJSON WGS84 + luas/keliling geodesik.")
+    georeferenced_raster_import: bool = Field(
+        False, description="Impor GeoTIFF RGB yang SUDAH bergeoreferensi + tile/preview. Bukan fotogrametri.")
+    map_ai_detections: bool = Field(
+        False, description="Analisis raster impor per jendela → kandidat berkoordinat WGS84. Tetap butuh model "
+                           "aktif (lihat model.state) — simulasi menghasilkan kandidat SIMULASI.")
+    orthomosaic_generation: Literal[False] = Field(
+        False, description="Pembuatan orthomosaic dari foto K919 (ODM/NodeODM) BELUM ada; tahap berikutnya.")
 
 
 class Limits(BaseModel):
@@ -95,6 +130,13 @@ class Limits(BaseModel):
     max_detection_payload_bytes: int
     max_backup_bytes: int
     inference_timeout_s: float
+    # Revisi 5
+    max_raster_bytes: int
+    max_raster_pixels: int
+    max_raster_footprint_km2: float
+    max_field_vertices: int
+    max_field_import_bytes: int
+    raster_analysis_timeout_s: float
 
 
 class Health(BaseModel):
@@ -114,6 +156,7 @@ class SurveyCreate(StrictIn):
     location_label: str = Field("", max_length=150, description="Teks bebas, bukan koordinat.")
     survey_date: dt.date
     notes: str = Field("", max_length=2000)
+    field_id: str | None = Field(None, description="Revisi 5: lahan (GET /fields) yang disurvei. Opsional.")
 
 
 class SurveyUpdate(StrictIn):
@@ -122,6 +165,7 @@ class SurveyUpdate(StrictIn):
     location_label: str | None = Field(None, max_length=150)
     survey_date: dt.date | None = None
     notes: str | None = Field(None, max_length=2000)
+    field_id: str | None = Field(None, description="Revisi 5: null = lepaskan tautan lahan.")
 
     @model_validator(mode="after")
     def _not_empty(self):
@@ -143,6 +187,7 @@ class Survey(BaseModel):
     is_demo: bool = Field(description="True = data contoh/ilustrasi, bukan foto drone atau hasil AI.")
     revision: int
     photo_count: int
+    field_id: str | None = Field(None, description="Revisi 5: lahan yang disurvei; null = belum ditautkan.")
     created_at: dt.datetime
     updated_at: dt.datetime
 
@@ -231,13 +276,16 @@ class AnnotationCreate(StrictIn):
 
 
 class AnnotationUpdate(StrictIn):
-    kind: Kind | None = None
-    note: str | None = Field(None, max_length=1000)
-    review_status: ReviewStatus | None = None
-    geometry_type: GeometryType | None = None
-    x: Unit | None = None
-    y: Unit | None = None
-    bbox: BBox | None = None
+    """Kirim HANYA field yang berubah. Field yang dikirim tidak boleh null, kecuali `bbox: null` saat berubah ke
+    titik. `x`/`y` dikirim bersama dan hanya untuk titik (untuk bbox, pusat dihitung server — jangan kirim x/y)."""
+    # Revisi 3 (CR-FE-001): None hanya nilai "tidak dikirim"; skema tidak lagi mengiklankan null (runtime sama).
+    kind: Kind | SkipJsonSchema[None] = None
+    note: str | SkipJsonSchema[None] = Field(None, max_length=1000)
+    review_status: ReviewStatus | SkipJsonSchema[None] = None
+    geometry_type: GeometryType | SkipJsonSchema[None] = None
+    x: Unit | SkipJsonSchema[None] = Field(None, description="Hanya untuk titik; wajib bersama y.")
+    y: Unit | SkipJsonSchema[None] = Field(None, description="Hanya untuk titik; wajib bersama x.")
+    bbox: BBox | None = Field(None, description="[left, top, width, height] 0–1; null = ubah ke titik.")
 
     @field_validator("bbox")
     @classmethod
@@ -297,6 +345,11 @@ class AnalysisRun(BaseModel):
     started_at: dt.datetime
     finished_at: dt.datetime | None
     error_code: str | None
+    # Revisi 3 (CR-FE-003): semantik kandidat run ini, sama dengan health.model.target saat run dibuat.
+    target: Target | None = Field(
+        None, description="Arti bbox kandidat run ini: plant = tanaman (model tim), tree_crown = tajuk pohon "
+                          "(DeepForest pretrained), simulation = SIMULASI BUKAN AI (revisi 4). null = tidak diketahui "
+                          "(mis. impor, run lama) → pakai istilah generik.")
 
 
 class AnalysisRunPage(BaseModel):
@@ -385,6 +438,8 @@ class SurveyReport(BaseModel):
     totals: ReportTotals
     findings: list[Finding]
     disclaimers: list[str]
+    mapping: SurveyMapping | None = Field(
+        None, description="Revisi 5: ringkasan lahan & raster. null = survei tanpa lahan dan tanpa raster.")
 
 
 # ---------------------------------------------------------------- imports
@@ -393,3 +448,329 @@ class StarterBackupImportResult(BaseModel):
     photo_count: int
     annotation_count: int
     warnings: list[Warning]
+
+
+# ---------------------------------------------------------------- samples (revisi 3, CR-FE-002)
+class SamplePhoto(BaseModel):
+    """Foto contoh berlisensi untuk demo. Diunduh lewat `file_url`, lalu diunggah lewat endpoint upload BIASA.
+    Bukan hasil inferensi; anotasi manusia (bila ada) hanya untuk evaluasi di notebook."""
+    id: str
+    title: str
+    file_url: str = Field(description="Relatif terhadap base API, mis. /api/v1/samples/neon-osbs-029/file")
+    filename: str
+    media_type: str
+    size_bytes: int
+    sha256: str
+    width: int
+    height: int
+    source_name: str
+    source_url: str
+    license_name: str
+    license_url: str
+    attribution: str
+    imagery: str = Field(description="Jenis citra & keterbatasan (mis. pesawat ±10 cm/px, bukan K919).")
+    has_human_annotations: bool
+
+
+class SamplePage(BaseModel):
+    items: list[SamplePhoto]
+    total: int
+
+
+# ================================================================ mapping (revisi 5)
+# Semua koordinat pertukaran: WGS84 (EPSG:4326) dengan urutan [longitude, latitude] (RFC 7946).
+BoundarySource = Literal["manual_drawing", "geojson_import", "gnss_survey", "digitized_from_raster", "other"]
+LonLat = Annotated[list[float], Field(min_length=2, max_length=2, description="[longitude, latitude] WGS84")]
+
+
+class GeoJsonPolygonal(BaseModel):
+    type: Literal["Polygon", "MultiPolygon"]
+    coordinates: list[Any] = Field(description="Koordinat GeoJSON [lon, lat] WGS84; ring tertutup.")
+
+
+class GeoJsonPolygon(BaseModel):
+    type: Literal["Polygon"]
+    coordinates: list[list[LonLat]]
+
+
+class FieldCreate(StrictIn):
+    name: str = Field(min_length=1, max_length=100)
+    notes: str = Field("", max_length=2000)
+    boundary_source: BoundarySource = Field(
+        description="Asal batas: manual_drawing (digambar di aplikasi), geojson_import, gnss_survey (diukur GPS/GNSS "
+                    "di lapangan), digitized_from_raster (digambar di atas raster impor), other.")
+    source_note: str = Field("", max_length=500, description="Keterangan sumber, mis. alat ukur / berkas asal.")
+    geometry: dict[str, Any] = Field(
+        description="GeoJSON Polygon atau MultiPolygon, WGS84 [lon, lat], ring tertutup, tanpa altitude. Geometri "
+                    "tidak valid ditolak 422 INVALID_GEOMETRY (tidak diperbaiki otomatis).")
+
+
+class FieldUpdate(StrictIn):
+    name: str | None = Field(None, min_length=1, max_length=100)
+    notes: str | None = Field(None, max_length=2000)
+    boundary_source: BoundarySource | None = None
+    source_note: str | None = Field(None, max_length=500)
+    geometry: dict[str, Any] | None = Field(None, description="Ganti seluruh geometri; ukuran dihitung ulang.")
+
+    @model_validator(mode="after")
+    def _not_empty(self):
+        if not self.model_fields_set:
+            raise ValueError("Minimal satu field harus diubah")
+        for f in ("name", "boundary_source", "geometry", "notes", "source_note"):
+            if f in self.model_fields_set and getattr(self, f) is None:
+                raise ValueError(f"{f} tidak boleh null")
+        return self
+
+
+class FieldMeasures(BaseModel):
+    area_m2: float = Field(description="Luas geodesik pada elipsoid WGS84 (pyproj.Geod, Karney); lubang dikurangkan.")
+    area_ha: float
+    perimeter_m: float = Field(description="Total panjang semua ring (batas luar + lubang), geodesik.")
+    exterior_perimeter_m: float = Field(description="Panjang batas luar saja.")
+    method: Literal["geodesic_wgs84"] = "geodesic_wgs84"
+
+
+class FarmField(BaseModel):
+    """Lahan + batasnya (keluaran). Dinamai FarmField agar tidak bentrok dengan pydantic.Field."""
+
+    id: str
+    name: str
+    notes: str
+    boundary_source: BoundarySource
+    source_note: str
+    geometry: GeoJsonPolygonal = Field(description="Disimpan persis seperti dikirim (setelah lolos validasi).")
+    measures: FieldMeasures
+    bbox: list[float] = Field(description="[min_lon, min_lat, max_lon, max_lat]")
+    label_point: LonLat = Field(description="Titik di dalam poligon untuk label peta (bukan sentroid).")
+    vertex_count: int
+    polygon_count: int
+    hole_count: int
+    survey_ids: list[str] = Field(description="Survei yang ditautkan ke lahan ini.")
+    revision: int
+    created_at: dt.datetime
+    updated_at: dt.datetime
+
+
+class FieldPage(BaseModel):
+    items: list[FarmField]
+    total: int
+    limit: int
+    offset: int
+
+
+class FieldImportResult(BaseModel):
+    fields: list[FarmField]
+    warnings: list[Warning] = Field(default_factory=list)
+
+
+class RasterCrs(BaseModel):
+    epsg: int | None = Field(description="Kode EPSG bila dikenali; null untuk CRS kustom (lihat wkt).")
+    name: str
+    wkt: str
+    is_geographic: bool
+
+
+class RasterDetectionCounts(BaseModel):
+    plant_accepted: int = Field(description="Kandidat kind=plant berstatus accepted pada raster INI.")
+    plant_accepted_inside_field: int | None = Field(
+        description="Dari plant_accepted, yang pusatnya di dalam batas lahan survei. null = survei tanpa lahan.")
+    pending_review: int
+    rejected: int
+    total: int
+
+
+class RasterAsset(BaseModel):
+    id: str
+    survey_id: str
+    name: str
+    original_name: str
+    product_type: Literal["imported_georeferenced_raster"] = Field(
+        description="GeoTIFF bergeoreferensi yang diimpor pengguna. BUKAN orthomosaic yang dibuat/diverifikasi "
+                    "WALLACEA; georeferensi diambil apa adanya dari berkas.")
+    is_verified_orthomosaic: Literal[False] = Field(
+        False, description="Selalu false di revisi 5: sumber/proses raster tidak diverifikasi aplikasi.")
+    source_description: str = Field(description="Keterangan asal dari pengguna (klaim, tidak diverifikasi).")
+    size_bytes: int
+    sha256: str = Field(description="sha256 berkas asli (= GET content).")
+    width: int
+    height: int
+    band_count: int
+    crs: RasterCrs
+    transform: list[float] = Field(description="Affine [a, b, c, d, e, f]: x = a·col + b·row + c, y = d·col + e·row + "
+                                               "f; (col,row)=(0,0) sudut kiri-atas piksel pertama.")
+    bounds_native: list[float] = Field(description="[left, bottom, right, top] dalam CRS raster")
+    bounds_wgs84: list[float] = Field(description="[west, south, east, north]")
+    footprint: GeoJsonPolygon = Field(description="Batas raster (tepi didensifikasi) dalam WGS84.")
+    footprint_area_m2: float
+    approx_gsd_m: float = Field(description="Perkiraan ukuran piksel di tanah (m) di pusat raster.")
+    nodata: float | None
+    has_alpha: bool
+    metadata: dict[str, Any] = Field(description="colorinterp, mask_flags, compression, is_rotated, warnings.")
+    processing: dict[str, Any] = Field(description="Pipeline impor: turunan tampilan, overview, versi rasterio/GDAL.")
+    warnings: list[str]
+    content_url: str
+    preview_url: str
+    tilejson_url: str
+    tile_url_template: str = Field(description="XYZ EPSG:3857, PNG 256 px, area di luar raster transparan.")
+    minzoom: int
+    maxzoom: int
+    detection_counts: RasterDetectionCounts
+    revision: int
+    created_at: dt.datetime
+    updated_at: dt.datetime
+
+
+class RasterPage(BaseModel):
+    items: list[RasterAsset]
+    total: int
+    limit: int
+    offset: int
+
+
+class RasterUploadResult(BaseModel):
+    raster: RasterAsset
+    warnings: list[Warning] = Field(default_factory=list)
+
+
+class RasterUpdate(StrictIn):
+    name: str | None = Field(None, min_length=1, max_length=150)
+    source_description: str | None = Field(None, max_length=500)
+
+    @model_validator(mode="after")
+    def _not_empty(self):
+        if not self.model_fields_set:
+            raise ValueError("Minimal satu field harus diubah")
+        for f in self.model_fields_set:
+            if getattr(self, f) is None:
+                raise ValueError(f"{f} tidak boleh null")
+        return self
+
+
+class TileJson(BaseModel):
+    tilejson: Literal["3.0.0"] = "3.0.0"
+    name: str
+    tiles: list[str]
+    minzoom: int
+    maxzoom: int
+    bounds: list[float]
+    center: list[float] = Field(description="[lon, lat, zoom]")
+    attribution: str
+    scheme: Literal["xyz"] = "xyz"
+
+
+class RasterAnalyzeRequest(StrictIn):
+    on_existing: OnExisting = Field("reject", description="Sama dengan analisis foto.")
+    tile_size: int = Field(1024, ge=256, le=4096, description="Ukuran jendela (piksel raster asli).")
+    overlap_px: int = Field(128, ge=0, le=2048, description="Overlap antarjendela; harus ≥ ukuran objek terbesar "
+                                                            "dan < tile_size.")
+    scale: float = Field(1.0, ge=0.1, le=4.0, description="Faktor resize jendela sebelum ke model (mis. 0.5).")
+    iou_threshold: float = Field(0.5, gt=0, le=1)
+    ios_threshold: float = Field(0.8, gt=0, le=1, description="Intersection / area kotak terkecil untuk dedup.")
+
+    @model_validator(mode="after")
+    def _overlap(self):
+        if self.overlap_px >= self.tile_size:
+            raise ValueError("overlap_px harus < tile_size")
+        return self
+
+
+class RasterAnalysisRun(BaseModel):
+    id: str
+    raster_id: str
+    model_id: str | None
+    model_version: str | None
+    adapter: str | None
+    target: Target | None
+    input_sha256: str
+    status: RunStatus
+    candidate_count: int
+    parameters: dict[str, Any] = Field(description="tile_size, overlap_px, scale, window_count, raw_detections, "
+                                                   "dropped_edge, dropped_masked, dedup method/threshold.")
+    started_at: dt.datetime
+    finished_at: dt.datetime | None
+    error_code: str | None
+
+
+class RasterAnalysisRunPage(BaseModel):
+    items: list[RasterAnalysisRun]
+    total: int
+    limit: int
+    offset: int
+
+
+class RasterAnalysisResult(BaseModel):
+    run: RasterAnalysisRun
+    candidate_count: int
+    replaced_detection_count: int
+    detections_url: str
+    detections_geojson_url: str
+    notice: str
+
+
+class MapDetection(BaseModel):
+    id: str
+    raster_id: str
+    analysis_run_id: str | None
+    kind: Kind
+    source: Literal["model"]
+    review_status: ReviewStatus
+    confidence: float | None = Field(description="Skor model, bukan akurasi survei. null untuk simulasi.")
+    model_label: str | None
+    note: str
+    pixel_bbox: list[float] = Field(description="[left, top, width, height] dalam piksel raster ASLI (bukan 0–1).")
+    center: LonLat = Field(description="Pusat kotak, [lon, lat] WGS84.")
+    center_native: list[float] = Field(description="Pusat kotak [x, y] dalam CRS raster.")
+    geometry: GeoJsonPolygon = Field(description="4 sudut kotak dalam WGS84.")
+    inside_field: bool | None = Field(description="Pusat di dalam batas lahan survei; null = survei tanpa lahan.")
+    revision: int
+    created_at: dt.datetime
+    updated_at: dt.datetime
+
+
+class MapDetectionPage(BaseModel):
+    items: list[MapDetection]
+    total: int
+    limit: int
+    offset: int
+    counts: RasterDetectionCounts
+
+
+class MapDetectionUpdate(StrictIn):
+    review_status: ReviewStatus | None = None
+    kind: Kind | None = None
+    note: str | None = Field(None, max_length=2000)
+
+    @model_validator(mode="after")
+    def _not_empty(self):
+        if not self.model_fields_set:
+            raise ValueError("Minimal satu field harus diubah")
+        for f in self.model_fields_set:
+            if getattr(self, f) is None:
+                raise ValueError(f"{f} tidak boleh null")
+        return self
+
+
+class FieldSummary(BaseModel):
+    id: str
+    name: str
+    boundary_source: BoundarySource
+    measures: FieldMeasures
+
+
+class RasterReportRow(BaseModel):
+    raster_id: str
+    name: str
+    product_type: Literal["imported_georeferenced_raster"]
+    approx_gsd_m: float
+    footprint_area_m2: float
+    counts: RasterDetectionCounts
+
+
+class SurveyMapping(BaseModel):
+    field: FieldSummary | None
+    rasters: list[RasterReportRow]
+    counts_are_unique_plants: Literal[False] = Field(
+        False, description="Hitungan per raster TIDAK dijumlahkan antar raster/penerbangan sebagai tanaman unik.")
+
+
+SurveyReport.model_rebuild()

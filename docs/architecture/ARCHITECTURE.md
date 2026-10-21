@@ -1,6 +1,6 @@
 # WALLACEA — Arsitektur
 
-Pemilik: Claude. Kontrak API: revisi 1 (`packages/contracts/openapi.yaml`, `info.version` 1.1.0).
+Pemilik: Claude. Kontrak API: revisi 5 (`packages/contracts/openapi.yaml`, `info.version` 1.5.0).
 
 ## Gambaran
 
@@ -9,14 +9,47 @@ Pemilik: Claude. Kontrak API: revisi 1 (`packages/contracts/openapi.yaml`, `info
    │  /api/*  ──proxy Vite──▶  FastAPI (apps/api, 127.0.0.1:8000, prefix /api/v1)
    │                              ├─ SQLAlchemy 2 + Alembic ─▶ SQLite  apps/api/var/wallacea.db
    │                              ├─ Storage lokal            ─▶ apps/api/var/uploads/xx/<uuid>.<ext>
+   │                              │                              (raster: <uuid>_raster.tif asli + _rdisplay.tif)
+   │                              ├─ app/geo (revisi 5)       ─▶ batas lahan (shapely+pyproj.Geod), raster
+   │                              │                              (rasterio/GDAL), tile XYZ, jendela AI → WGS84
    │                              └─ Detector (interface)
    │                                   ├─ UnconfiguredDetector  (default → 503 MODEL_NOT_CONFIGURED)
-   │                                   └─ UltralyticsDetector   (bobot .pt lokal, opsional)
+   │                                   ├─ UltralyticsDetector   (bobot YOLO .pt tim, opsional)
+   │                                   ├─ DeepForestDetector    (folder bobot weecology/deepforest-tree lokal,
+   │                                                             kandidat TAJUK POHON, CPU, opsional)
+   │                                   └─ SimulationDetector    (WALLACEA_DETECTOR=simulation: kotak deterministik,
+   │                                                             SIMULASI — BUKAN AI, hanya uji alur UI)
    ▼
  Foto drone disalin manual dari kartu/aplikasi K919 → diunggah per berkas.
 ```
 
 Tidak ada antrean (Redis/Celery). Analisis satu foto berjalan **sinkron** dengan batas waktu.
+
+## Mapping (revisi 5)
+
+```
+ Field (lahan, GeoJSON WGS84) 1─* Survey 1─* Photo        (koordinat 0–1 gambar, tidak berubah)
+                                       1─* RasterAsset    (GeoTIFF impor, CRS nyata) 1─* RasterAnalysisRun
+                                                                                    1─* MapDetection (piksel + WGS84)
+```
+
+- **Field**: geometri disimpan apa adanya setelah validasi (`app/geo/boundary.py`); `area_m2`, `perimeter_m`
+  dihitung `pyproj.Geod(ellps="WGS84")` — tidak pernah `shapely.area` pada derajat. Validitas topologi = Shapely planar
+  pada lon/lat (cukup untuk lahan; antimeridian ditolak).
+- **RasterAsset** terpisah dari Photo agar makna koordinat foto lama tidak berubah. Validasi (`app/geo/raster.py`):
+  driver GTiff, 3/4 band uint8, CRS geografis/proyeksi, transform bukan identitas (GCP-only ditolak), footprint
+  WGS84 finite & dalam ±85°, ukuran/dimensi/cakupan dibatasi. Turunan tampilan RGBA (alpha = dataset mask) ditulis per
+  blok + overview rata-rata; tile = `WarpedVRT(EPSG:3857)` + pembacaan tereduksi (overview), tidak memuat raster utuh.
+  Akses hanya lewat ID aset (`Storage` regex key), tidak ada path/URL dari pengguna.
+- **Analisis raster** (`app/geo/detection.py`, `routers/rasters.py`): jendela ber-overlap → `detector.detect`
+  (adapter yang sama dengan foto) → bbox ternormalisasi × ukuran jendela asli + offset → buang kotak di tepi dalam
+  jendela → NMS per kind (IoU/IoS) → buang pusat ber-mask 0 → `PixelGeo` (affine eksplisit, pyproj `always_xy`).
+  Satu run `running` per raster (indeks unik parsial). Run terputus → `INTERRUPTED` saat startup.
+- **Migrasi 0002**: tabel baru + `ALTER TABLE surveys ADD COLUMN field_id … REFERENCES fields ON DELETE SET NULL`
+  tanpa batch-recreate (batch SQLite = DROP TABLE → ON DELETE CASCADE ke photos). Downgrade SQLite mengosongkan kolom
+  (tidak menghapusnya). `app.db.include_object` menutup false-positive refleksi FK inline di autogenerate.
+- **Capabilities**: `field_boundaries`/`georeferenced_raster_import`/`map_ai_detections` = paket terpasang;
+  `georeferencing` (foto) & `orthomosaic`/`orthomosaic_generation` = false.
 
 ## Struktur repo
 
@@ -26,6 +59,9 @@ Tidak ada antrean (Redis/Celery). Analisis satu foto berjalan **sinkron** dengan
 | `apps/api/alembic/` | Migrasi skema | Claude |
 | `apps/api/tests/` | pytest (kontrak, validasi, persistensi, pipeline) | Claude |
 | `apps/api/scripts/export_contract.py` | Generate snapshot OpenAPI + fixtures dari API sungguhan | Claude |
+| `apps/api/scripts/*.ps1`, `check_model.py` | Onboarding model Windows: periksa `.pt`, jalankan API dengan model / simulasi | Claude |
+| `apps/api/ml/` | Scaffold training minimal: dataset YOLO pengguna → `best.pt` + validasi | Claude |
+| `ml/` | Workspace ML (Python + JupyterLab, venv terpisah): katalog dataset, validasi anotasi, prepare COCO→YOLO, split tanpa kebocoran, training, evaluasi via adapter API, notebook 01–04 | Claude |
 | `packages/contracts/` | `openapi.yaml`, `fixtures/`, `CHANGELOG.md` | Claude |
 | `apps/web/` | Frontend React | Codex |
 | `legacy/starter-v01/` | Starter asli (referensi migrasi, jangan dihapus) | — |
@@ -96,8 +132,31 @@ POST /photos/{id}/analyze {on_existing}
 Saat startup, run yang masih `running` (server mati di tengah) ditandai `failed / INTERRUPTED`.
 Catatan: thread inferensi yang melewati timeout tidak bisa dibunuh paksa; hasilnya dibuang.
 
-`model_version` adaptor Ultralytics = `sha256:` 16 hex pertama dari berkas bobot, jadi run berulang
-dengan bobot berbeda tidak dianggap sama.
+`model_version` = `sha256:` 16 hex pertama berkas bobot (Ultralytics: `.pt`; DeepForest: `model.safetensors`),
+jadi run berulang dengan bobot berbeda tidak dianggap sama.
+
+Detector memuat model **sekali** (lazy saat analisis pertama, atau saat startup dengan `WALLACEA_MODEL_PRELOAD`) dan
+tidak pernah mengunduh. DeepForest: konstruktor 2.1.0 akan mengunduh `config.model.name` dari Hub bila berupa
+repo ID, jadi adapter selalu memberi folder lokal, menyalakan `HF_HUB_OFFLINE`, dan mengarahkan `TORCH_HOME` ke
+folder model (backbone torchvision sudah diunduh skrip). Input = array RGB dari gambar terorientasi API (bukan
+path — DeepForest membaca path tanpa EXIF transpose). Label asli `Tree` → `kind=plant` eksplisit, `model_label=Tree`;
+`/health` menyebut `target=tree_crown` agar UI menamai hasil sebagai kandidat tajuk pohon.
+
+## Status model dan diagnosis (revisi 4)
+
+`/health.model` = `DetectorInfo` adapter aktif: `state` (`not_configured|configured|loaded|error`), `mode`
+(`manual|model|simulation`), dan `diagnostic_code` (mis. `MODEL_FILE_NOT_FOUND`, `DEPENDENCY_MISSING`,
+`LABEL_MAP_MISMATCH`, `NOT_DETECTION_MODEL`, `GENERIC_COCO_MODEL`, `SIMULATION_ACTIVE`; daftar lengkap di
+`app/inference/base.py` dan `packages/contracts/CHANGELOG.md`). Pemeriksaan tanpa memuat bobot (path, ekstensi,
+paket) terlihat langsung. Kegagalan saat memuat (label map, task, berkas rusak) diingat per berkas (ukuran+mtime),
+sehingga `/health` menjadi `error` setelah percobaan pertama, bukan tetap `configured`. 503 dari `/analyze` membawa
+`details.diagnostic_code` yang sama.
+
+Mode simulasi tidak pernah dipilih otomatis. Kandidatnya `pending`, `confidence=null`,
+`model_label="SIMULASI — BUKAN AI"`, `run.target=simulation`; laporan survei yang memuatnya mendapat disclaimer.
+
+`.env`: `python -m app` memuat `apps/api/.env` tanpa menimpa env yang sudah ada (`app/envfile.py`).
+`load_settings()` sendiri hanya membaca `os.environ`, sehingga test tetap deterministik.
 
 ## Error
 
@@ -155,11 +214,15 @@ jalankan `alembic upgrade head`. Belum diuji di PostgreSQL — perlu uji sebelum
 | `WALLACEA_DATABASE_URL` | `sqlite:///<DATA_DIR>/wallacea.db` |
 | `WALLACEA_ALLOWED_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` |
 | `WALLACEA_AUTO_MIGRATE` | `true` (migrasi saat startup) |
-| `WALLACEA_MODEL_PATH` | kosong → mode manual |
+| `WALLACEA_DETECTOR` | kosong = otomatis (ultralytics bila MODEL_PATH ada) · `none` · `ultralytics` · `deepforest` · `simulation` (dev, BUKAN AI; tidak pernah otomatis) |
+| `WALLACEA_MODEL_PATH` | kosong → mode manual (DeepForest: folder hasil `scripts/download_deepforest.py`) |
 | `WALLACEA_MODEL_ID` | stem nama berkas bobot |
-| `WALLACEA_LABEL_MAP_JSON` | `{"plant":"plant","check":"check","gap":"gap"}` |
+| `WALLACEA_LABEL_MAP_JSON` | `{"plant":"plant","check":"check","gap":"gap"}`; JSON atau bentuk sederhana `kelas=plant,kelas2=check` |
 | `WALLACEA_CONFIDENCE` / `WALLACEA_IMGSZ` | `0.35` / `1280` |
 | `WALLACEA_INFERENCE_TIMEOUT_S` | `120` |
+| `WALLACEA_DEVICE` | `cpu` (DeepForest; `cuda`/`auto` opsional) |
+| `WALLACEA_PATCH_SIZE` / `WALLACEA_PATCH_OVERLAP` | `400` / `0.05` (tile DeepForest) |
+| `WALLACEA_MODEL_PRELOAD` | `false` (`true` = muat model di thread latar saat startup) |
 
 ## Catatan untuk frontend
 

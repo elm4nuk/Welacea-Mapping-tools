@@ -7,6 +7,7 @@ dan bisa dipakai secara manual. Bukan alat kontrol drone, bukan peta GPS, bukan 
 | Bagian | Path | Stack | Pemilik |
 |---|---|---|---|
 | API | `apps/api` | FastAPI, SQLAlchemy 2, Alembic, SQLite, Pillow | Claude |
+| ML | `ml` | Python + JupyterLab, Ultralytics (opsional, venv terpisah) | Claude |
 | Kontrak | `packages/contracts` | OpenAPI 3.1 (generated) + fixtures | Claude |
 | Web | `apps/web` | React 19 + TypeScript 6 + Vite 8 (pnpm) | Codex |
 | Starter lama | `legacy/starter-v01` | HTML/CSS/JS + IndexedDB (referensi) | — |
@@ -19,14 +20,31 @@ dan bisa dipakai secara manual. Bukan alat kontrol drone, bukan peta GPS, bukan 
 
 ## Menjalankan lokal
 
-Terminal 1 — API (lihat `apps/api/README.md`):
+Terminal 1 — API (detail: `apps/api/README.md`). Setup sekali:
 
 ```powershell
-cd apps/api
+cd apps\api
 py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.lock.txt
-.venv\Scripts\python -m app          # http://127.0.0.1:8000/api/v1/docs
 ```
+
+Lalu pilih **satu** dari tiga cara (tetap di folder `apps\api`):
+
+```powershell
+# A. Manual tanpa model (default). Pesan "Model tanaman belum dikonfigurasi" = normal, bukan error.
+.venv\Scripts\python -m app
+
+# B. Simulasi development: kotak kandidat buatan berlabel "SIMULASI — BUKAN AI". Hanya uji alur UI.
+powershell -ExecutionPolicy Bypass -File .\scripts\run-simulation.ps1
+
+# C. Model YOLO tanaman asli (berkas best.pt hasil training; pasang requirements-ai.txt dulu).
+powershell -ExecutionPolicy Bypass -File .\scripts\check-model.ps1 -ModelPath .\models\best.pt -LabelMap 'jagung=plant'
+powershell -ExecutionPolicy Bypass -File .\scripts\run-with-model.ps1 -ModelPath .\models\best.pt -LabelMap 'jagung=plant'
+```
+
+`models\best.pt` adalah **path berkas** untuk `-ModelPath`, bukan perintah. Mengetiknya sendirian di PowerShell
+menghasilkan error "is not recognized". Belum ada model tanaman terlatih di repo ini. Cara membuatnya dari foto
+drone berlabel: `apps/api/ml/README.md`. API: <http://127.0.0.1:8000/api/v1/docs>.
 
 Terminal 2 — Web:
 
@@ -36,6 +54,7 @@ pnpm dev:web                         # http://127.0.0.1:5173 (proxy /api → 127
 ```
 
 Build/typecheck web: `pnpm build:web`, `pnpm typecheck:web`. Tes API: `cd apps/api; .venv\Scripts\python -m pytest`.
+Tes ML: `cd ml; .venv\Scripts\python -m pytest` (setup & notebook: `ml/README.md`).
 
 ## Data dan backup
 
@@ -56,5 +75,9 @@ Build/typecheck web: `pnpm build:web`, `pnpm typecheck:web`. Tes API: `cd apps/a
 ## Batas produk
 
 Tidak ada: blockchain, autopilot, sprayer, sensor tambahan, diagnosis penyakit, dosis pupuk, estimasi
-panen, luas lahan otomatis. Koordinat foto bukan GPS. Hitungan antar foto bertumpang tindih bukan
-jumlah tanaman unik. Detail: `docs/architecture/PROJECT_BRIEF.md`.
+panen. Koordinat penanda foto bukan GPS. Hitungan antar foto/raster bertumpang tindih bukan jumlah tanaman unik.
+
+**Mapping (revisi 5, 2026-10-20):** batas lahan GeoJSON WGS84 dengan luas/keliling geodesik dihitung backend; impor
+GeoTIFF RGB yang **sudah** bergeoreferensi + tile peta; analisis model per jendela raster → kandidat berkoordinat
+WGS84. **Belum ada** pembuatan orthomosaic dari foto K919 (tahap berikutnya, ODM/NodeODM); impor GeoTIFF bukan
+fotogrametri. Detail: `docs/architecture/PROJECT_BRIEF.md`, `apps/api/README.md` § Mapping.

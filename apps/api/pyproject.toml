@@ -11,6 +11,11 @@ dependencies = [
   "alembic>=1.13,<2",
   "python-multipart>=0.0.18,<1.0",
   "Pillow>=11,<14",
+  # Mapping (revisi 5)
+  "rasterio>=1.4,<1.6",
+  "pyproj>=3.6,<4",
+  "shapely>=2.0,<3",
+  "numpy>=2,<3",
 ]
 
 [project.optional-dependencies]

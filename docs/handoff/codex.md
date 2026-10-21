@@ -1,155 +1,112 @@
-# Codex frontend handoff — 18 October 2026
+# Codex frontend handoff — 20 Oktober 2026
 
-Status: FRONTEND_READY for the manual-survey MVP and API integration below.
+## Delivery
 
-## Branch, commits and contract
+- Branch: `agent/codex-frontend`
+- Worktree: `D:\coding\wallacea-worktrees\codex-frontend`
+- Titik awal branch: `678ff41`
+- Implementasi onboarding/status awal: `be46aabb7807eb4efd42fa91aa7ef03c87049b25`
+- Integrasi kontrak revision 4 dan command final: `9e487376325e45d915477f63172dba0a329efb54`
+- Baseline frontend yang dibawa ke branch ini: `34b3572`, `b3fc2c0`, `2a0f7ff`,
+  `fc505df`, dan `2afbf36` (cherry-pick dari pekerjaan Codex yang sudah ada).
+- Sumber kebenaran backend/kontrak yang sudah **commit** dan dibaca:
+  `agent/claude-backend` @ `1ecda6c4eef476aaed84a212623c9ade9e696846`, OpenAPI revision 4
+  (`cfacdda`).
+- Tidak ada perubahan backend, OpenAPI, model, dataset, push, deploy, atau merge ke `main`.
 
-- Branch: agent/codex-frontend.
-- Worktree: D:\coding\wallacea-worktrees\codex-frontend.
-- BASE_COMMIT: 15a7408312eff3fe03995c58de4dc46659fcc890.
-- Implementation SHA: 339792d1b2a135930b774e8b24d238ef19a180b6.
-- This handoff is committed after the implementation. Resolve the complete delivery
-  SHA with: git rev-parse agent/codex-frontend.
-- Read Claude's committed handoff at agent/claude-backend (9925e1e at final check).
-- API v1 revision 1 / OpenAPI info.version 1.1.0. Types generated inside apps/web.
-- No merge, push, deployment, backend edit, migration edit or contract edit performed.
+## Perubahan UX
 
-## Delivered files and behavior
+Status koneksi API tetap terpisah dari status model. Status model kini diturunkan dari
+health response dan tampil sebagai salah satu dari:
 
-- src/App.tsx: API survey create/edit/delete, pagination, separately labelled demo
-  surveys, photo selection/deletion, multi-file upload, measured transfer progress
-  per file, server-validation status, health-provided limits, rejection messages,
-  duplicate warnings, backup import and confirmation for destructive operations.
-- src/components/SurveyForm.tsx: React Hook Form + Zod with contract field limits,
-  Indonesian labels and API-confirmed save feedback.
-- src/api/client.ts and schema.d.ts: centralized generated API types, base origin,
-  network/API errors, AbortSignal for queries, XHR upload progress and If-Match.
-- features/editor/PhotoEditor.tsx: React Konva oriented image canvas; fit, anchored
-  zoom, pan, select, point/box creation, normalized correction, category/note edit,
-  review and deletion. Coordinate forms support keyboard point/box creation;
-  arrow keys pan the focused canvas in Geser mode. Numbered T/P/K markers and
-  text legend supplement colors; pending uses dashed strokes.
-- features/editor/model.ts: pure transforms, normalized box geometry, bounded
-  per-photo undo/redo snapshots, validation, accepted-only counts and safe CSV.
-- features/editor/adapter.ts: API check maps to inspect; bbox uses top-left/size,
-  while API x/y for bbox is its centre. Bbox PATCH omits x/y.
-- features/editor/EditorSession.tsx: only display_url is used, oriented dimensions
-  checked, explicit draft/save, revisions, partial-save handling, conflict details,
-  fresh server baseline on returning to a photo and cache invalidation after save.
-  Manual deletion undo recreates a manual annotation with a new server ID.
-  Model candidates are rejected instead of deleted to preserve their source.
-- AI: real analyze request and synchronous processing status; honest 503
-  MODEL_NOT_CONFIGURED handling; run/model metadata and confidence shown as model
-  output, never as field accuracy. No fabricated inference fallback.
-- components/Report.tsx and editor/export.ts: actual API counts per photo,
-  inspection notes/review/disclaimers, API CSV, annotated PNG with survey/date/
-  legend/review status and browser print / Save as PDF stylesheet.
-- Backup import: schemaVersion 1 checked locally then sent unchanged to the real
-  multipart endpoint. API imports copies, preserves demo labels and returns warnings.
-- app.css/editor.css: dark green/earth/light green identity, desktop photo/editor/
-  findings layout, stacked smaller layouts, horizontal thumbnail strip, visible
-  focus, touch-sized controls and print stylesheet.
-- Tailwind plus small shadcn/ui-style Button adaptation. THIRD_PARTY.md records
-  provenance and licenses. No full admin template, map, invented GPS or extra GIS.
-- EditorPreview.tsx is explicit development-only, in-memory source. It is not the
-  default application entry, mock service, offline mode or default data adapter.
+- **Mode manual — model belum dikonfigurasi**;
+- **Model ditemukan — siap dimuat**;
+- **Model aktif**;
+- **Konfigurasi model bermasalah**;
+- **SIMULASI — BUKAN AI** sebagai banner permanen berkontras tinggi.
 
-## Setup, commands and environment
+Panel responsif **Cara mengaktifkan AI** menjelaskan bahwa `best.pt` adalah file,
+bukan command; lokasi `apps\api\models\best.pt`; dependency PyTorch CPU 2.11 /
+torchvision 0.26 dan `requirements-ai.txt`; contoh command final
+`check-model.ps1` dan `run-with-model.ps1` dengan tombol salin; keterbatasan model
+COCO umum; dan kebutuhan training menggunakan dataset beranotasi. UI tidak menawarkan
+unggah bobot melalui browser.
 
-Node 24.18.0 / pnpm 12.9.1. Baseline React 19.3.1, TypeScript 6.0.3, Vite 8.3.4
-retained. Exact dependency pins and one root pnpm-lock.yaml. API generator lives
-in apps/web/tools/api-types with TypeScript 5.9.3 to satisfy its peer dependency;
-the web application compiler remains baseline TypeScript 6.
+Tombol analisis mengikuti keadaan nyata: manual mengarahkan pengguna ke setup,
+configured/loaded dapat menganalisis bila guard foto/draf/API terpenuhi, error
+menampilkan alasan ramah pengguna dan aksi periksa ulang, dan simulation tetap aktif
+namun tidak pernah disebut hasil AI. Pesan khusus mencakup bobot hilang, dependency
+Ultralytics, label map, timeout, inference failed, dan API terputus.
 
-From the frontend worktree root:
+Kandidat model/simulasi tetap `pending` sampai pengguna memilih Terima atau Tolak.
+Koreksi kategori, catatan, dan koordinat tetap tersedia. Hanya tanaman nyata/model
+`accepted` masuk hitungan tanaman final; simulation yang diterima ditampilkan sebagai
+hitungan simulasi terpisah. Confidence diberi label **Skor model**, bukan akurasi. Sumber
+simulasi ditampilkan eksplisit. Aksi duplikat “Tolak” dihapus tanpa mengubah reducer,
+transformasi koordinat, atau persistence.
 
-    pnpm install --frozen-lockfile
-    pnpm dev:web
+## Kontrak dan request
+
+Kontrak committed Claude revision 4 menyediakan empat state model, `mode`,
+`diagnostic_code`, metadata adapter, target, target label, device, limitations, serta
+target analysis run. Frontend memakai `mode=simulation` / target `simulation` secara
+typed dan memakai kode diagnosis untuk pesan setup; ia tidak menebak dari nama model
+atau teks bebas.
+
+`docs/requests/codex-model-onboarding.md` menandai CR-FE-004 **dipenuhi** oleh revision 4:
+
+1. discriminator simulation pada health dan analysis run;
+2. `ModelStatus.diagnostic_code` untuk penyebab setup;
+3. interface final script PowerShell.
+
+Tipe frontend sudah diregenerasi dari OpenAPI revision 4. Command panel sama dengan
+script committed Claude, termasuk `-ModelPath .\models\best.pt` dan
+`-LabelMap 'plant=plant'`.
+
+## Verifikasi aktual
+
+Perintah yang lulus:
+
     pnpm typecheck:web
-    pnpm build:web
     pnpm --filter @wallacea/web test
-    pnpm --filter @wallacea/web generate:api
+    pnpm build:web
     pnpm peers check
+    git diff --check
 
-Start API independently using apps/api/README.md. Default web URL:
-http://127.0.0.1:5173, development proxy /api to http://127.0.0.1:8000.
+Hasil:
 
-- VITE_API_BASE_URL: empty by default = same origin. No secrets in VITE variables.
-- API_PROXY_TARGET: dev proxy target, default http://127.0.0.1:8000.
-- E2E: WALLACEA_E2E_WEB_URL defaults to http://127.0.0.1:5174.
-- E2E: WALLACEA_E2E_API_URL defaults to http://127.0.0.1:18080.
-- E2E: WALLACEA_E2E_PYTHON = Python executable with Pillow.
-- Production needs an /api reverse proxy or configured VITE_API_BASE_URL.
-  Vite preview does not provide the development API proxy.
+- TypeScript typecheck: lulus.
+- Vitest: 23/23 lulus dalam 4 file.
+- Production build: lulus; hanya peringatan chunk Vite >500 kB yang sudah ada.
+- Peer dependency check: lulus.
+- Playwright: 21 lulus, 3 dilewati pada desktop 1440×900, tablet 820×1180, dan
+  mobile 390×844. Tiga yang dilewati adalah smoke test DeepForest nyata karena
+  `WALLACEA_E2E_REAL_MODEL`/bobot tidak diaktifkan pada API QA.
+- Status manual/configured/loaded/error/simulation dan panel setup diuji di ketiga
+  viewport. Workspace nyata juga menguji upload, EXIF, draf, undo/redo, save/reload,
+  candidate review, konflik revision, proteksi navigasi, API offline/retry,
+  CSV/PNG/PDF, edit/delete survei, dan validasi upload.
+- Focused E2E onboarding revision 4: 3/3 lulus pada ketiga viewport.
+- Real simulation E2E terhadap FastAPI revision 4: 3/3 lulus pada ketiga viewport.
+  Alur membuat survei, mengunggah foto QA, menjalankan simulation, memastikan kandidat
+  pending tanpa confidence, menerima kandidat, menyimpan, dan memastikan hitungan
+  tetap `0 Tanaman terkonfirmasi` + `1 simulasi diterima`.
+- Simulation tersebut adalah kotak deterministik QA dari backend dan selalu dilabeli
+  **SIMULASI — BUKAN AI**, bukan hasil deteksi atau bukti akurasi.
 
-Full E2E server/data-directory commands are in apps/web/README.md. Browser setup:
+Tipe frontend diregenerasi langsung dari revision 4 committed pada branch Claude.
 
-    pnpm --filter @wallacea/web exec playwright install chromium
-    pnpm --filter @wallacea/web test:e2e
+## Urutan integrasi ke `integration/wallacea-mvp`
 
-## Actual verification
+1. Integrasikan commit Claude `1ecda6c` lebih dahulu ke `integration/wallacea-mvp`.
+2. Integrasikan commit Codex `be46aab`, `9e48737`, dan commit dokumentasi setelahnya. Bila lima
+   commit baseline frontend belum ada di integration, cherry-pick berurutan:
+   `34b3572 b3fc2c0 2a0f7ff fc505df 2afbf36 be46aab 9e48737`.
+3. Pastikan `apps/web/src/api/schema.d.ts` tetap identik dengan OpenAPI Claude final;
+   jangan mengubah kontrak dari sisi frontend.
+4. Jalankan export/check kontrak, seluruh pytest backend/ML yang relevan, lalu
+   typecheck, Vitest, build, dan Playwright frontend termasuk real simulation serta
+   real-model smoke bila bobot tersedia.
 
-Windows, Node 24.18.0, pnpm 12.9.1, Chromium 156 via Playwright.
-
-- Frozen-lockfile install: passed; peer check: no issues.
-- OpenAPI type generation, typecheck and production build: passed.
-- Lazy editor/report loading removes large-chunk warnings. Main JS ~418 kB;
-  editor chunk ~351 kB, before gzip.
-- Vitest: 13 tests passed in 2 files. Coordinates at zoom/pan/resize and oriented
-  dimensions, boxes, review counts, isolated undo/redo, snapshot immutability,
-  validation, CSV, API adapters and fresh history after conflict reload.
-- Final Playwright run: 15 tests passed in 58.1 seconds, five scenarios repeated
-  at desktop 1600x1000, tablet 820x1180 and mobile 390x844.
-- Actual uvicorn/FastAPI from baseline 15a7408, port 18080, dedicated temporary
-  data directory, no configured model. No mock API.
-- Survey create/edit; JPEG EXIF Orientation 6 and WebP multi-upload; actual
-  oriented display/dimensions; PNG upload; duplicate warning; corrupt image;
-  21 MB client rejection; photo delete cancel/confirm.
-- Add/edit/undo/redo/save; immediate photo switch and return; browser reload;
-  saved annotations; pointer coordinates after zoom/pan; no accidental pan marker;
-  resize/refit; keyboard box create/correct; pointer box draw; delete/save/undo/save.
-- Synthetic candidates imported through real detections/import endpoint:
-  pending excluded from accepted counts, accept/reject saved, actual If-Match
-  conflict, retained draft, explicit server reload and reset undo history.
-- Actual MODEL_NOT_CONFIGURED/503; network failures simulated by aborting browser
-  API requests, then retry. API process was not shut down for that network test.
-- Invalid backup rejected by API; valid backup imported as labelled demo copy;
-  survey edit and destructive confirmation checked against actual API responses.
-- Actual PNG/CSV downloads and Chromium PDF generation with print media.
-  Desktop/tablet/mobile screenshots reviewed; no horizontal page overflow.
-- git diff --check: passed. Main worktree remained clean.
-
-Images are generated synthetic PNG/WebP/JPEG, not drone photos. Imported
-candidates are synthetic contract data, not trained model inference.
-Screenshots/downloads/traces remain under ignored apps/web/test-results.
-QA surveys were cleaned up. Runtime database and QA images are not committed.
-
-## Limits and requests
-
-- No real K919 photo/quality/EXIF/flight test, physical mobile-device test,
-  model training, actual model inference or accuracy measurement.
-- Saves are sequential, not atomic. Failure can leave partial server changes:
-  draft stays exportable as CSV, further saves are blocked until explicit reload,
-  and a 409 displays server details. No blind retry or conflict overwrite.
-- Undo/redo is per-photo session state and resets when changing photo or loading
-  fresh server data. Undo of manual deletion changes its server ID.
-- Drafts do not survive browser reload. No offline-first/background sync claims.
-  Export existing starter IndexedDB through the old UI before importing it.
-- PDF uses browser printing; Chromium was exercised, not Firefox/Safari.
-- PNG caps its longest image side at 6000 px and adds metadata footer. API originals
-  remain untouched.
-- No new-format backup export endpoint; use Claude's runtime backup procedure.
-- CR-FE-001 in docs/requests/codex-api.md requests clearer optional-but-non-null
-  PATCH schema restrictions. Non-blocking; frontend uses runtime-valid requests.
-- Codex did not rerun backend unit tests; Claude's report is separate.
-- Final integration with the completed backend branch is Claude's responsibility.
-
-## Integration
-
-Read committed handoff:
-
-    git show agent/codex-frontend:docs/handoff/codex.md
-
-Integrate the completed frontend and backend only on the separate integration
-branch described in Claude's handoff. Rerun real API E2E there. No merge into main
-or public deployment is included.
+Commit Claude revision 4 perlu diintegrasikan **lebih dahulu**. Jangan merge ke `main`
+sebelum review dan izin eksplisit.

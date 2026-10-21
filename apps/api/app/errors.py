@@ -23,6 +23,9 @@ ERROR_CODES = (
     "DETECTION_MISMATCH", "ANALYSIS_EXISTS", "ANALYSIS_IN_PROGRESS",
     "MODEL_NOT_CONFIGURED", "MODEL_UNAVAILABLE", "INFERENCE_FAILED", "INFERENCE_TIMEOUT",
     "INVALID_BACKUP", "INTERNAL_ERROR",
+    # Revisi 5 — mapping
+    "INVALID_GEOMETRY", "INVALID_RASTER", "UNSUPPORTED_RASTER", "RASTER_NOT_GEOREFERENCED", "RASTER_TOO_LARGE",
+    "MAPPING_UNAVAILABLE",
 )
 
 
@@ -37,7 +40,8 @@ class ApiError(Exception):
 
 
 def not_found(entity: str, entity_id: str) -> ApiError:
-    labels = {"survey": "Survei", "photo": "Foto", "annotation": "Penanda", "analysis_run": "Analysis run"}
+    labels = {"survey": "Survei", "photo": "Foto", "annotation": "Penanda", "analysis_run": "Analysis run",
+              "field": "Lahan", "raster": "Raster", "map_detection": "Deteksi peta"}
     return ApiError(404, "NOT_FOUND", f"{labels.get(entity, entity)} tidak ditemukan.",
                     {"entity": entity, "id": entity_id})
 

@@ -1,0 +1,5 @@
+# Environment ML WALLACEA (Python 3.12). Tanpa PyTorch; untuk training lihat requirements-train.txt.
+# Dependensi API disertakan agar preprocessing (orientasi EXIF) & adapter detektor yang dipakai
+# evaluasi adalah kode backend yang sama, dengan versi Pillow yang sama.
+-r ../apps/api/requirements.lock.txt
+-e .[notebook,dev]

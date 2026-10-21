@@ -36,6 +36,19 @@ class Base(DeclarativeBase):
     pass
 
 
+def include_object(obj, name, type_, reflected, compare_to) -> bool:
+    """Filter autogenerate/compare_metadata Alembic.
+
+    surveys.field_id ditambahkan dengan ALTER TABLE ADD COLUMN … REFERENCES (migrasi 0002, tanpa membuat ulang tabel
+    karena itu memicu ON DELETE CASCADE di SQLite). Refleksi SQLAlchemy untuk SQLite tidak membaca ON DELETE dari FK
+    inline semacam itu, sehingga perbandingan selalu melihat drift palsu. FK aslinya diuji lewat PRAGMA di
+    tests/test_mapping_migration.py."""
+    if type_ == "foreign_key_constraint" and obj.table.name == "surveys" and \
+            [c.name for c in obj.columns] == ["field_id"]:
+        return False
+    return True
+
+
 def make_engine(url: str) -> Engine:
     kwargs = {}
     if url.startswith("sqlite"):

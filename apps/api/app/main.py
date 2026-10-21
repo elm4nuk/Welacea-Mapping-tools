@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import threading
 import uuid
 from contextlib import asynccontextmanager
 
@@ -17,7 +18,7 @@ from .config import API_ROOT, Settings, load_settings
 from .db import make_engine, make_sessionmaker, utcnow
 from .errors import REQUEST_ID_HEADER, RequestIdMiddleware, install_error_handlers
 from .inference import Detector, build_detector
-from .routers import analysis, annotations, health, imports, photos, reports, surveys
+from .routers import analysis, annotations, fields, health, imports, photos, rasters, reports, samples, surveys
 from .storage import Storage
 
 log = logging.getLogger("wallacea")
@@ -47,12 +48,22 @@ def run_migrations(engine, url: str) -> None:
         command.upgrade(cfg, "head")
 
 
+def _preload(detector: Detector) -> None:
+    try:
+        detector.preload()
+        log.info("Model dimuat saat startup: %s", detector.info().model_id)
+    except Exception:  # noqa: BLE001 — status error terlihat di /health; analyze tetap memberi 503
+        log.exception("Preload model gagal")
+
+
 def mark_interrupted_runs(sessionmaker) -> int:
     with sessionmaker() as db:
         res = db.execute(update(m.AnalysisRun).where(m.AnalysisRun.status == "running")
                          .values(status="failed", error_code="INTERRUPTED", finished_at=utcnow()))
+        res2 = db.execute(update(m.RasterAnalysisRun).where(m.RasterAnalysisRun.status == "running")
+                          .values(status="failed", error_code="INTERRUPTED", finished_at=utcnow()))
         db.commit()
-        return res.rowcount or 0
+        return (res.rowcount or 0) + (res2.rowcount or 0)
 
 
 class BodyLimitMiddleware:
@@ -65,6 +76,8 @@ class BodyLimitMiddleware:
             (re.compile(rf"^{PREFIX}/surveys/[^/]+/photos$"), settings.max_upload_bytes + mb),
             (re.compile(rf"^{PREFIX}/imports/starter-backup$"), settings.max_backup_bytes + mb),
             (re.compile(rf"^{PREFIX}/photos/[^/]+/detections/import$"), settings.max_detection_payload_bytes),
+            (re.compile(rf"^{PREFIX}/surveys/[^/]+/rasters$"), settings.max_raster_bytes + mb),
+            (re.compile(rf"^{PREFIX}/fields/import$"), settings.max_field_import_bytes + mb),
         ]
         self.default = mb
 
@@ -120,6 +133,9 @@ def create_app(settings: Settings | None = None, detector: Detector | None = Non
         n = mark_interrupted_runs(app.state.sessionmaker)
         if n:
             log.warning("%d analysis run terputus ditandai failed (INTERRUPTED)", n)
+        if settings.model_preload and app.state.detector.info().available:
+            # Thread latar: server tetap menerima request; /health menunjukkan state=loaded setelah selesai.
+            threading.Thread(target=_preload, args=(app.state.detector,), name="model-preload", daemon=True).start()
         yield
         app.state.engine.dispose()
 
@@ -142,6 +158,6 @@ def create_app(settings: Settings | None = None, detector: Detector | None = Non
         allow_headers=["Content-Type", "If-Match", REQUEST_ID_HEADER],
         expose_headers=["ETag", REQUEST_ID_HEADER, "Content-Disposition"],
     )
-    for r in (health, surveys, photos, annotations, analysis, reports, imports):
+    for r in (health, surveys, photos, annotations, analysis, reports, imports, samples, fields, rasters):
         app.include_router(r.router, prefix=PREFIX)
     return app

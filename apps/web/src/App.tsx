@@ -1,15 +1,29 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, apiUrl, uploadPhoto } from './api/client';
-import type { Survey, Photo } from './api/client';
-import { Button } from './components/ui/button';
+import { CloudOff, UploadCloud } from 'lucide-react';
+import { api, uploadPhoto } from './api/client';
+import type { Photo, Survey } from './api/client';
+import { AppSidebar } from './components/AppSidebar';
+import { PhotoFilmstrip, UploadControl } from './components/PhotoFilmstrip';
 import { SurveyForm } from './components/SurveyForm';
-const Report = lazy(() => import('./components/Report').then(m => ({ default: m.Report })));
-const EditorSession = lazy(() => import('./features/editor/EditorSession').then(m => ({ default: m.EditorSession })));
+import { WorkflowSteps } from './components/WorkflowSteps';
+import { WorkspaceHeader } from './components/WorkspaceHeader';
+import { ModelSetupSheet, ModelStatusBanner } from './components/ModelOnboarding';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogTitle } from './components/ui/alert-dialog';
+import { Button } from './components/ui/button';
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from './components/ui/sheet';
+import { modelStatus } from './features/editor/analysis';
+import { workflowStage } from './features/workflow';
 import './app.css';
+
+const Report = lazy(() => import('./components/Report').then(module => ({ default: module.Report })));
+const EditorSession = lazy(() => import('./features/editor/EditorSession').then(module => ({ default: module.EditorSession })));
 const client = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 export function App() { return <QueryClientProvider client={client}><Workspace /></QueryClientProvider>; }
+
 type Upload = { id: string; name: string; progress: number; state: string; error?: boolean };
+type Confirmation = { title: string; description: string; confirmLabel: string; destructive?: boolean; run: () => void };
+
 function Workspace() {
   const cache = useQueryClient();
   const health = useQuery({ queryKey: ['health'], queryFn: ({ signal }) => api.health(signal) });
@@ -25,168 +39,185 @@ function Workspace() {
   const [message, setMessage] = useState('');
   const [dirty, setDirty] = useState(false);
   const [uploads, setUploads] = useState<Upload[]>([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [mobilePhotosOpen, setMobilePhotosOpen] = useState(false);
+  const [utilitiesOpen, setUtilitiesOpen] = useState(false);
+  const [modelSetupOpen, setModelSetupOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState<Confirmation>();
   const dirtyRef = useRef(false);
-  const onDirty = useCallback((value: boolean) => { dirtyRef.current = value; setDirty(value); }, []);
+  const importRef = useRef<HTMLInputElement>(null);
   const controller = useRef<AbortController | null>(null);
+  const onDirty = useCallback((value: boolean) => { dirtyRef.current = value; setDirty(value); }, []);
   useEffect(() => () => controller.current?.abort(), []);
-  const allSurveys = surveys.data?.pages.flatMap(p => p.items) ?? [];
-  const survey = allSurveys.find(s => s.id === surveyId);
+
+  const allSurveys = surveys.data?.pages.flatMap(result => result.items) ?? [];
+  const survey = allSurveys.find(item => item.id === surveyId);
   const photos = useInfiniteQuery({ queryKey: ['photos', surveyId], enabled: Boolean(surveyId), initialPageParam: 0,
     queryFn: ({ pageParam, signal }) => api.photos(surveyId, pageParam, signal),
     getNextPageParam: last => last.offset + last.items.length < last.total ? last.offset + last.items.length : undefined });
-  const allPhotos = photos.data?.pages.flatMap(p => p.items) ?? [];
-  const photo = allPhotos.find(p => p.id === photoId);
-  function leave() { return !dirtyRef.current || window.confirm('Perubahan lokal belum disimpan. Tinggalkan draf foto ini?'); }
-  function chooseSurvey(s: Survey) {
-    if (busy || s.id === surveyId || !leave()) return;
-    onDirty(false); setSurveyId(s.id); setPhotoId(''); setPage('editor'); setForm(undefined);
-    setUploads([]); setError(''); setMessage('');
+  const allPhotos = photos.data?.pages.flatMap(result => result.items) ?? [];
+  const photo = allPhotos.find(item => item.id === photoId);
+  const model = health.data ? modelStatus(health.data.model) : undefined;
+  const stage = workflowStage(photos.data?.pages[0]?.total ?? 0, page);
+
+  function confirmOrRun(config: Confirmation, protectDraft = false) {
+    if (protectDraft && dirtyRef.current) {
+      setConfirmation({ title: 'Draf belum disimpan', description: 'Perubahan lokal pada foto aktif akan hilang. Simpan terlebih dahulu jika masih diperlukan.',
+        confirmLabel: 'Buang draf dan lanjutkan', destructive: true, run: config.run });
+      return;
+    }
+    if (config.destructive) setConfirmation(config); else config.run();
+  }
+  function resetWorkspace(nextSurveyId = '') {
+    onDirty(false); setSurveyId(nextSurveyId); setPhotoId(''); setPage('editor'); setForm(undefined);
+    setUploads([]); setError(''); setMessage(''); setMobileNavOpen(false);
+  }
+  function chooseSurvey(next: Survey) {
+    if (busy || next.id === surveyId) return;
+    confirmOrRun({ title: '', description: '', confirmLabel: '', run: () => resetWorkspace(next.id) }, true);
+  }
+  function choosePhoto(next: Photo) {
+    if (busy || next.id === photoId) return;
+    confirmOrRun({ title: '', description: '', confirmLabel: '', run: () => { onDirty(false); setPhotoId(next.id); setMobilePhotosOpen(false); } }, true);
   }
   async function action(work: () => Promise<void>) {
     if (busy) return;
     setBusy(true); setError(''); setMessage('');
-    try { await work(); } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    try { await work(); } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
     finally { setBusy(false); }
   }
-  async function removePhoto(p: Photo) {
-    if (!leave() || !window.confirm('Hapus foto "' + p.original_name + '" beserta seluruh anotasinya?')) return;
-    await action(async () => {
-      await api.deletePhoto(p); if (p.id === photoId) { setPhotoId(''); onDirty(false); }
-      await cache.invalidateQueries({ queryKey: ['photos', surveyId] });
-      await cache.invalidateQueries({ queryKey: ['surveys'] });
-      await cache.invalidateQueries({ queryKey: ['report', surveyId] });
-      setMessage('Foto dihapus.');
-    });
+  function removePhoto(target: Photo) {
+    confirmOrRun({ title: 'Hapus foto?', description: `Foto “${target.original_name}” dan seluruh anotasinya akan dihapus permanen.`,
+      confirmLabel: 'Hapus foto', destructive: true, run: () => void action(async () => {
+        await api.deletePhoto(target); if (target.id === photoId) { setPhotoId(''); onDirty(false); }
+        await Promise.all([cache.invalidateQueries({ queryKey: ['photos', surveyId] }), cache.invalidateQueries({ queryKey: ['surveys'] }),
+          cache.invalidateQueries({ queryKey: ['report', surveyId] })]);
+        setMessage('Foto dihapus.');
+      }) }, dirtyRef.current && target.id === photoId);
+  }
+  function removeSurvey() {
+    if (!survey) return;
+    confirmOrRun({ title: 'Hapus survei?', description: `Survei “${survey.name}”, semua foto, dan anotasinya akan dihapus permanen.`,
+      confirmLabel: 'Hapus survei', destructive: true, run: () => void action(async () => {
+        await api.deleteSurvey(survey); resetWorkspace(); await cache.invalidateQueries({ queryKey: ['surveys'] }); setMessage('Survei dihapus.');
+      }) }, dirtyRef.current);
+  }
+  async function createDemo() {
+    await action(async () => { const demo = await api.createDemoSurvey(); await surveys.refetch(); resetWorkspace(demo.id);
+      setMessage('Contoh ilustrasi dibuat sebagai data baca-saja. Ini bukan foto drone dan bukan hasil analisis AI.'); });
   }
   async function upload(files: FileList | null) {
     if (!files || !survey || !health.data || busy) return;
     const target = survey.id;
     const batch = Array.from(files).map(file => ({ file, id: crypto.randomUUID() }));
     setUploads(batch.map(({ file, id }) => ({ id, name: file.name, progress: 0, state: 'Menunggu' })));
-    const update = (id: string, patch: Partial<Upload>) => setUploads(rows => rows.map(r => r.id === id ? { ...r, ...patch } : r));
+    const update = (id: string, patch: Partial<Upload>) => setUploads(rows => rows.map(row => row.id === id ? { ...row, ...patch } : row));
     setBusy(true); setError(''); controller.current = new AbortController();
     for (const { file, id } of batch) {
       if (controller.current.signal.aborted) break;
-      const limits = health.data.limits;
-      if (file.size > limits.max_upload_bytes) { update(id, { state: 'Ditolak: ukuran melebihi batas API.', error: true }); continue; }
-      if (!limits.allowed_mime_types.includes(file.type)) {
-        update(id, { state: 'Ditolak: gunakan JPG, PNG, atau WebP.', error: true }); continue;
-      }
+      if (file.size > health.data.limits.max_upload_bytes) { update(id, { state: 'Ditolak: ukuran melebihi batas API.', error: true }); continue; }
+      if (!health.data.limits.allowed_mime_types.includes(file.type)) { update(id, { state: 'Ditolak: gunakan JPG, PNG, atau WebP.', error: true }); continue; }
       update(id, { state: 'Mengunggah' });
       try {
-        const result = await uploadPhoto(target, file, progress => update(id, {
-          progress, state: progress === 100 ? 'Memvalidasi di server...' : 'Mengunggah',
-        }), controller.current.signal);
-        update(id, { progress: 100, state: 'Tersimpan. ' + result.warnings.map(w => w.message).join(' ') });
-      } catch (e) {
-        update(id, { state: e instanceof Error ? e.message : String(e), error: true });
-      }
+        const result = await uploadPhoto(target, file, progress => update(id, { progress,
+          state: progress === 100 ? 'Memvalidasi di server...' : 'Mengunggah' }), controller.current.signal);
+        update(id, { progress: 100, state: 'Tersimpan. ' + result.warnings.map(warning => warning.message).join(' ') });
+      } catch (reason) { update(id, { state: reason instanceof Error ? reason.message : String(reason), error: true }); }
     }
-    await cache.invalidateQueries({ queryKey: ['photos', target] });
-    await cache.invalidateQueries({ queryKey: ['surveys'] });
-    await cache.invalidateQueries({ queryKey: ['report', target] });
+    await Promise.all([cache.invalidateQueries({ queryKey: ['photos', target] }), cache.invalidateQueries({ queryKey: ['surveys'] }),
+      cache.invalidateQueries({ queryKey: ['report', target] })]);
     setBusy(false);
   }
-  return <div className="app-shell">
-    <aside className="app-sidebar no-print">
-      <div className="brand"><span className="brand-mark" aria-hidden="true">W</span><div><b>WALLACEA</b><small>Ruang kerja survei</small></div></div>
-      <p className="sidebar-caption">FOTO / PENANDAAN / PEMERIKSAAN</p>
-      <Button disabled={busy} onClick={() => setForm('create')}>+ Survei baru</Button>
-      <h2>Survei</h2>
-      {surveys.isPending && <p role="status">Memuat survei...</p>}
-      {surveys.isError && <p role="alert">{surveys.error.message}<button onClick={() => void surveys.refetch()}>Coba lagi</button></p>}
-      {allSurveys.length === 0 && !surveys.isPending && !surveys.isError && <p>Belum ada survei. Buat survei pertama Anda.</p>}
-      <nav aria-label="Daftar survei">{allSurveys.map(s => <button className="survey-item" key={s.id} disabled={busy}
-        aria-current={surveyId === s.id ? 'page' : undefined} onClick={() => chooseSurvey(s)}>
-        <b>{s.name}</b><span>{s.crop_type} / {s.survey_date}</span><small>{s.is_demo ? 'CONTOH / ILUSTRASI' : 'Survei nyata'} / {s.photo_count} foto</small>
-      </button>)}</nav>
-      {surveys.hasNextPage && <button disabled={surveys.isFetchingNextPage} onClick={() => void surveys.fetchNextPage()}>Survei lainnya</button>}
-      <div className="sidebar-footer"><p>Foto diunggah setelah penerbangan.</p><p>Tanpa kontrol drone atau data GPS buatan.</p>
-        <label className="import-label">Impor backup starter<input type="file" accept=".json,application/json" disabled={busy || !health.data}
-          onChange={e => {
-            const file = e.target.files?.[0]; e.target.value = ''; if (!file) return;
-            void action(async () => {
-              if (file.size > (health.data?.limits.max_backup_bytes ?? 0)) throw new Error('Backup melebihi batas API.');
-              const parsed: unknown = JSON.parse(await file.text());
-              if (!parsed || typeof parsed !== 'object' || !('schemaVersion' in parsed) || parsed.schemaVersion !== 1) {
-                throw new Error('Backup harus memiliki schemaVersion 1. Data belum diimpor.');
-              }
-              const result = await api.importBackup(file);
-              await cache.invalidateQueries({ queryKey: ['surveys'] });
-              setMessage('Diimpor sebagai salinan: ' + result.surveys.length + ' survei. ' + result.warnings.map(w => w.message).join(' '));
-            });
-          }} /></label>
-      </div>
-    </aside>
+  async function importBackup(file: File) {
+    await action(async () => {
+      if (file.size > (health.data?.limits.max_backup_bytes ?? 0)) throw new Error('Backup melebihi batas API.');
+      const parsed: unknown = JSON.parse(await file.text());
+      if (!parsed || typeof parsed !== 'object' || !('schemaVersion' in parsed) || parsed.schemaVersion !== 1) throw new Error('Backup harus memiliki schemaVersion 1. Data belum diimpor.');
+      const result = await api.importBackup(file); await surveys.refetch();
+      setUtilitiesOpen(false);
+      if (result.surveys[0]) resetWorkspace(result.surveys[0].id);
+      setMessage(`Diimpor sebagai salinan: ${result.surveys.length} survei. ${result.warnings.map(warning => warning.message).join(' ')}`);
+    });
+  }
+  function openPage(next: 'editor' | 'report') {
+    if (page === next || busy) return;
+    confirmOrRun({ title: '', description: '', confirmLabel: '', run: () => { onDirty(false); setPage(next); } }, true);
+  }
+
+  return <div className="app-shell" data-sidebar-collapsed={sidebarCollapsed} data-draft={dirty}>
+    <AppSidebar surveys={allSurveys} activeId={surveyId} collapsed={sidebarCollapsed} mobileOpen={mobileNavOpen} busy={busy}
+      loading={surveys.isPending} error={surveys.isError ? surveys.error.message : undefined} hasNextPage={surveys.hasNextPage}
+      fetchingMore={surveys.isFetchingNextPage} onCollapsedChange={setSidebarCollapsed} onMobileOpenChange={setMobileNavOpen}
+      onCreate={() => { setForm('create'); setMobileNavOpen(false); }} onDemo={() => void createDemo()} onSelect={chooseSurvey}
+      onMore={() => void surveys.fetchNextPage()} onUtilities={() => { setMobileNavOpen(false); setUtilitiesOpen(true); }} />
     <main className="app-main">
-      <header className="topbar no-print"><div><span className="eyebrow">SURVEI PERTANIAN / SETELAH PENERBANGAN</span>
-        <h1>{survey?.name ?? 'Mulai dari foto lahan Anda'}</h1></div>
-        <span className="status-pill">{health.isPending ? 'Memeriksa API...' : health.isError ? 'API tidak terjangkau' : 'API tersedia / Mode manual'}</span></header>
-      {health.isError && <p role="alert" className="error no-print">{health.error.message} <Button onClick={() => void health.refetch()}>Coba koneksi lagi</Button></p>}
-      {health.data && <p className="model-status no-print">{health.data.model.available
-        ? 'Model: ' + health.data.model.model_id + ' / ' + health.data.model.model_version
-        : 'Model tanaman belum dikonfigurasi. Penandaan manual dapat digunakan.'}</p>}
-      {error && <p role="alert" className="error no-print">{error}</p>}
-      {message && <p role="status" className="success no-print">{message}</p>}
-      {busy && <p role="status" className="no-print">Memproses permintaan...</p>}
+      <WorkspaceHeader survey={survey} apiState={health.isPending ? 'checking' : health.isError ? 'offline' : 'connected'}
+        modelLabel={model?.label ?? 'Model diperiksa'} modelState={model?.state} onOpenMenu={() => setMobileNavOpen(true)}
+        onEdit={() => setForm('edit')} onDelete={removeSurvey} onImport={() => setUtilitiesOpen(true)} />
+      {model && <ModelStatusBanner model={model} onSetup={() => setModelSetupOpen(true)} onRefresh={() => void health.refetch()} />}
+      {health.isError && <div role="alert" className="banner banner--error no-print"><CloudOff aria-hidden="true" /><div><b>API tidak dapat dijangkau</b>
+        <p>{health.error.message}</p></div><Button variant="outline" onClick={() => void health.refetch()}>Coba lagi</Button></div>}
+      {error && <p role="alert" className="banner banner--error no-print">{error}</p>}
+      {message && <p role="status" className="banner banner--success no-print">{message}</p>}
       {form && <SurveyForm key={form + (form === 'edit' ? surveyId : '')} survey={form === 'edit' ? survey : undefined}
-        busy={busy} onCancel={() => setForm(undefined)} onSave={async values => {
-          await action(async () => {
-            if (form === 'edit' && survey) await api.updateSurvey(survey, values);
-            else await api.createSurvey(values);
-            await cache.invalidateQueries({ queryKey: ['surveys'] });
-            await cache.invalidateQueries({ queryKey: ['report', surveyId] });
-            setForm(undefined); setMessage('Survei tersimpan di server.');
-          });
-        }} />}
-      {!survey && !form && <section className="empty-state"><span className="eyebrow">PENGAMATAN YANG BISA DITINJAU</span>
-        <h2>Satu foto, satu pemeriksaan yang jelas.</h2><p>Buat atau pilih survei, unggah foto asli, lalu tandai tanaman dan temuan untuk diperiksa.</p>
-        <p>Hitungan dimulai dari anotasi yang Anda terima. Tidak ada hasil AI contoh yang dianggap nyata.</p>
-        <Button onClick={() => setForm('create')}>Buat survei</Button></section>}
+        busy={busy} onCancel={() => setForm(undefined)} onSave={async values => { await action(async () => {
+          if (form === 'edit' && survey) await api.updateSurvey(survey, values); else await api.createSurvey(values);
+          await cache.invalidateQueries({ queryKey: ['surveys'] }); await cache.invalidateQueries({ queryKey: ['report', surveyId] });
+          setForm(undefined); setMessage('Survei tersimpan di server.'); }); }} />}
+      {!survey && !form && <section className="dashboard-empty"><div><span className="eyebrow">Mulai survei pertama</span>
+        <h2>Dari foto udara menjadi temuan yang dapat ditinjau.</h2><p>Buat survei, unggah foto setelah penerbangan, lalu tandai atau tinjau kandidat model sebelum membuat laporan.</p>
+        <div className="button-row"><Button onClick={() => setForm('create')}>Buat survei</Button>
+          <Button variant="outline" disabled={!health.data || busy} onClick={() => void createDemo()}>Lihat contoh ilustrasi</Button></div></div>
+        <div className="dashboard-empty__principles"><b>Data tetap jujur</b><p>Hitungan hanya memakai tanaman yang dikonfirmasi. Koordinat gambar bukan GPS.</p></div></section>}
       {survey && <>
-        <div className="toolbar survey-toolbar no-print">
-          <Button variant={page === 'editor' ? 'default' : 'outline'} disabled={busy} onClick={() => { if (page !== 'editor' && leave()) { onDirty(false); setPage('editor'); } }}>Foto & editor</Button>
-          <Button variant={page === 'report' ? 'default' : 'outline'} disabled={busy} onClick={() => { if (page !== 'report' && leave()) { onDirty(false); setPage('report'); } }}>Laporan</Button>
-          {!survey.is_demo && <Button variant="outline" disabled={busy} onClick={() => setForm('edit')}>Edit survei</Button>}
-          <Button variant="outline" disabled={busy} onClick={() => {
-            if (!leave() || !window.confirm('Hapus survei "' + survey.name + '" beserta semua foto dan anotasi?')) return;
-            void action(async () => {
-              await api.deleteSurvey(survey); setSurveyId(''); setPhotoId(''); onDirty(false);
-              await cache.invalidateQueries({ queryKey: ['surveys'] }); setMessage('Survei dihapus.');
-            });
-          }}>Hapus survei</Button>
-        </div>
-        {survey.is_demo && <p className="notice">CONTOH / ILUSTRASI - terpisah dari survei nyata; editor contoh hanya baca.</p>}
+        <WorkflowSteps active={stage} hasPhotos={(photos.data?.pages[0]?.total ?? 0) > 0} onSelect={next => {
+          if (next === 'report') openPage('report'); else openPage('editor');
+        }} />
+        {survey.is_demo && <p className="banner banner--warning">Contoh / ilustrasi · terpisah dari survei nyata dan hanya dapat dibaca.</p>}
         <Suspense fallback={<p role="status">Memuat ruang kerja...</p>}>
-        {page === 'report' ? <Report surveyId={survey.id} /> : <div className="photo-workspace">
-          <aside className="photo-sidebar no-print" aria-label="Daftar foto">
-            <h2>Foto survei <small>{photos.data?.pages[0].total ?? 0}</small></h2>
-            <label className="upload-zone">+ Pilih foto untuk diunggah<input type="file" multiple accept="image/jpeg,image/png,image/webp"
-              disabled={busy || survey.is_demo || !health.data} onChange={e => { void upload(e.target.files); e.target.value = ''; }} /></label>
-            <p>JPG, PNG, WebP {health.data && 'Maks. ' + Math.round(health.data.limits.max_upload_bytes / 1024 / 1024) + ' MB per foto'}</p>
-            {uploads.map(row => <div className="upload-row" key={row.id}>
-              <b>{row.name}</b><progress aria-label={'Progres unggah ' + row.name} max="100" value={row.progress} />
-              <p className={row.error ? 'error' : ''}>{row.state}</p></div>)}
-            {photos.isPending && <p role="status">Memuat foto...</p>}
-            {photos.isError && <p role="alert">{photos.error.message}<button onClick={() => void photos.refetch()}>Coba lagi</button></p>}
-            {allPhotos.length === 0 && !photos.isPending && !photos.isError && <p>Belum ada foto. Unggah foto asli setelah drone mendarat.</p>}
-            <div className="photo-strip">{allPhotos.map(p => <article className={'photo-card ' + (p.id === photoId ? 'active' : '')} key={p.id}>
-              <button disabled={busy} aria-pressed={p.id === photoId} onClick={() => {
-                if (p.id !== photoId && leave()) { onDirty(false); setPhotoId(p.id); }
-              }}><img loading="lazy" src={apiUrl(p.thumbnail_url)} alt="" />
-                <b>{p.original_name}</b><small>{p.width} / {p.height} / {p.counts.plant_accepted} tanaman diterima</small></button>
-              {p.duplicate_photo_ids.length > 0 && <p className="notice">Peringatan: foto identik ditemukan.</p>}
-              <button disabled={busy} onClick={() => void removePhoto(p)}>Hapus foto</button>
-            </article>)}</div>
-            {photos.hasNextPage && <button disabled={photos.isFetchingNextPage} onClick={() => void photos.fetchNextPage()}>Foto lainnya</button>}
-          </aside>
-          <section className="editor-area">
-            {photo ? <EditorSession key={photo.id} photo={photo} survey={survey} onDirty={onDirty} />
-              : <div className="empty-state"><h2>Pilih foto untuk mulai menandai</h2><p>Foto menjadi pusat pekerjaan. Gunakan titik atau bounding box; tinjau kandidat AI sebelum menerima.</p></div>}
-            {dirty && <p className="no-print">Ada draf lokal pada foto aktif.</p>}
-          </section>
-        </div>}</Suspense>
+          {page === 'report' ? <Report surveyId={survey.id} /> : <section className="survey-workspace">
+            <div className="upload-panel no-print"><div><span className="eyebrow">Tahap 1</span><h2>Foto survei</h2>
+              <p>Unggah foto asli setelah drone mendarat. Foto tidak dianggap sebagai peta atau posisi GPS tanaman.</p></div>
+              <UploadControl disabled={busy || survey.is_demo || !health.data} maxMb={health.data ? Math.round(health.data.limits.max_upload_bytes / 1024 / 1024) : undefined}
+                onFiles={files => void upload(files)} /></div>
+            {uploads.length > 0 && <div className="upload-queue no-print">{uploads.map(row => <div key={row.id}><span><b>{row.name}</b><small className={row.error ? 'text-danger' : ''}>{row.state}</small></span>
+              <progress aria-label={`Progres unggah ${row.name}`} max="100" value={row.progress} /></div>)}</div>}
+            {photos.isError && <p role="alert" className="banner banner--error">{photos.error.message} <Button onClick={() => void photos.refetch()}>Coba lagi</Button></p>}
+            {allPhotos.length === 0 && !photos.isPending ? <div className="workspace-empty"><UploadCloud aria-hidden="true" /><h2>Unggah foto pertama</h2>
+              <p>Editor dan review kandidat akan tersedia setelah foto berhasil disimpan.</p></div> : <>
+              <div className="editor-area">{photo ? <EditorSession key={photo.id} photo={photo} survey={survey} model={health.data?.model}
+                apiConnected={Boolean(health.data)} inferenceTimeoutSeconds={health.data?.limits.inference_timeout_s} onDirty={onDirty}
+                onOpenModelSetup={() => setModelSetupOpen(true)} onRefreshModel={() => void health.refetch()} />
+                : <div className="workspace-empty"><h2>Pilih foto untuk mulai</h2><p>Gunakan filmstrip untuk membuka foto pada kanvas.</p></div>}</div>
+              <PhotoFilmstrip photos={allPhotos} activeId={photoId} busy={busy} onSelect={choosePhoto} onDelete={removePhoto}
+                onOpenMobile={() => setMobilePhotosOpen(true)} hasNextPage={photos.hasNextPage} fetchingMore={photos.isFetchingNextPage}
+                onMore={() => void photos.fetchNextPage()} />
+            </>}
+          </section>}
+        </Suspense>
       </>}
     </main>
+    <Sheet open={mobilePhotosOpen} onOpenChange={setMobilePhotosOpen}><SheetContent side="bottom" className="photo-sheet">
+      <SheetTitle>Pilih foto survei</SheetTitle><SheetDescription>Pilih foto untuk dibuka pada kanvas.</SheetDescription>
+      <PhotoFilmstrip photos={allPhotos} activeId={photoId} busy={busy} onSelect={choosePhoto} onDelete={removePhoto}
+        onOpenMobile={() => undefined} hasNextPage={photos.hasNextPage} fetchingMore={photos.isFetchingNextPage} onMore={() => void photos.fetchNextPage()} />
+    </SheetContent></Sheet>
+    <ModelSetupSheet open={modelSetupOpen} onOpenChange={setModelSetupOpen} />
+    <Sheet open={utilitiesOpen} onOpenChange={setUtilitiesOpen}><SheetContent side="right">
+      <SheetTitle>Pengaturan & utilitas</SheetTitle><SheetDescription>Impor backup starter dan informasi penyimpanan lokal.</SheetDescription>
+      <div className="utility-panel"><h3>Impor backup starter</h3><p>Backup schemaVersion 1 akan diimpor sebagai salinan melalui API.</p>
+        {error && <p role="alert" className="banner banner--error">{error}</p>}
+        <Button variant="outline" disabled={busy || !health.data} onClick={() => importRef.current?.click()}>Pilih berkas JSON</Button>
+        <input ref={importRef} className="sr-only" type="file" accept=".json,application/json" aria-label="Impor backup starter"
+          onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void importBackup(file); }} />
+        <hr /><p>Data tersimpan pada API lokal. Draf anotasi tetap lokal sampai tombol Simpan digunakan.</p></div>
+    </SheetContent></Sheet>
+    <AlertDialog open={Boolean(confirmation)} onOpenChange={open => { if (!open) setConfirmation(undefined); }}>
+      <AlertDialogContent><AlertDialogTitle>{confirmation?.title}</AlertDialogTitle><AlertDialogDescription>{confirmation?.description}</AlertDialogDescription>
+        <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction destructive={confirmation?.destructive}
+          onClick={() => { const run = confirmation?.run; setConfirmation(undefined); run?.(); }}>{confirmation?.confirmLabel}</AlertDialogAction></AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>;
 }

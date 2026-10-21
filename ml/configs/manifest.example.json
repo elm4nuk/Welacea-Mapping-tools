@@ -1,0 +1,22 @@
+{
+  "crop_type": "Jagung",
+  "notes": "CONTOH STRUKTUR SAJA — nilai fiktif, bukan dataset nyata. Ganti dengan foto K919 milik tim.",
+  "label_map": {"plant": 0},
+  "images": [
+    {"image": "images/lahanA/f1/DJI_0001.JPG", "sha256": "0000000000000000000000000000000000000000000000000000000000000001",
+     "field_id": "lahanA", "flight_id": "2026-10-20-pagi", "width": 4000, "height": 3000,
+     "labels": "labels/lahanA/f1/DJI_0001.txt", "plot_id": "A-petak1", "sequence": 1},
+    {"image": "images/lahanA/f1/DJI_0002.JPG", "sha256": "0000000000000000000000000000000000000000000000000000000000000002",
+     "field_id": "lahanA", "flight_id": "2026-10-20-pagi", "width": 4000, "height": 3000,
+     "labels": "labels/lahanA/f1/DJI_0002.txt", "plot_id": "A-petak1", "sequence": 2},
+    {"image": "tiles/lahanA/f1/DJI_0001_t0.jpg", "sha256": "0000000000000000000000000000000000000000000000000000000000000003",
+     "field_id": "lahanA", "flight_id": "2026-10-20-pagi", "width": 1280, "height": 1280,
+     "labels": "labels/tiles/DJI_0001_t0.txt", "parent_image": "images/lahanA/f1/DJI_0001.JPG"},
+    {"image": "images/lahanB/f1/DJI_0101.JPG", "sha256": "0000000000000000000000000000000000000000000000000000000000000004",
+     "field_id": "lahanB", "flight_id": "2026-10-21-pagi", "width": 4000, "height": 3000,
+     "labels": "labels/lahanB/f1/DJI_0101.txt", "plot_id": "B-petak1", "sequence": 1},
+    {"image": "images/lahanC/f1/DJI_0201.JPG", "sha256": "0000000000000000000000000000000000000000000000000000000000000005",
+     "field_id": "lahanC", "flight_id": "2026-10-22-sore", "width": 4000, "height": 3000,
+     "labels": null, "plot_id": "C-petak1", "sequence": 1}
+  ]
+}

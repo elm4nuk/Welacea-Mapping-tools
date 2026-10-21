@@ -1,6 +1,6 @@
 # WALLACEA — Project brief
 
-Pemilik dokumen: Claude (backend & integrasi). Terakhir diperbarui 2026-10-18.
+Pemilik dokumen: Claude (backend & integrasi). Terakhir diperbarui 2026-10-20 (scope mapping, revisi 5).
 
 ## Masalah dan produk
 
@@ -31,11 +31,29 @@ per foto. Domain produk: pertanian umum. Model pertama dibatasi **satu jenis tan
 
 MVP harus berguna **secara manual** walaupun model belum ada.
 
+## Perubahan scope 2026-10-20 — pemetaan lahan (diotorisasi pengguna)
+
+Instruksi pengguna menambahkan pemetaan. Yang **masuk** scope sekarang:
+
+8. **Batas lahan berkoordinat nyata**: GeoJSON Polygon/MultiPolygon WGS84 [lon, lat], CRUD, impor/ekspor, validasi
+   ketat tanpa perbaikan otomatis. **Luas (m²/ha) dan keliling dihitung backend secara geodesik** dari batas itu —
+   ini menggantikan larangan lama "luas lahan otomatis" *hanya* untuk luas dari batas yang diberikan pengguna.
+9. **Impor raster GeoTIFF RGB yang sudah bergeoreferensi** (mis. ekspor WebODM/QGIS/Agisoft milik pengguna), tile &
+   preview web, penyimpanan berkas asli + checksum. Georeferensi diambil apa adanya; tidak diverifikasi.
+10. **AI ke peta**: model aktif dijalankan per jendela raster, kandidat dikonversi ke WGS84 lewat transform & CRS
+   raster, tetap `pending`, hitungan per raster.
+
+Yang **tetap di luar** scope (tidak berubah): orthomosaic dari foto K919 di dalam aplikasi (tahap berikutnya, lewat
+ODM/NodeODM — impor GeoTIFF tidak boleh disebut fotogrametri) · mengubah anotasi foto biasa menjadi titik GPS (EXIF
+GPS = posisi kamera) · koordinat tiruan · luas lahan dari foto biasa · penjumlahan hitungan antar foto/raster/penerbangan
+sebagai tanaman unik · semua batas lain di bawah.
+
 ## Di luar lingkup (jangan dibangun)
 
 Blockchain · kontrol autopilot · sprayer · sensor tambahan · diagnosis penyakit · rekomendasi dosis
-pupuk · estimasi hasil panen · luas lahan otomatis · orthomosaic dari foto biasa · koordinat GPS
-tiruan · penjumlahan hitungan antar foto bertumpang tindih sebagai jumlah tanaman unik.
+pupuk · estimasi hasil panen · luas lahan dari foto biasa (luas hanya dari batas lahan, lihat poin 8) ·
+pembuatan orthomosaic di aplikasi (belum; tahap ODM) · koordinat GPS tiruan · anotasi foto → titik GPS ·
+penjumlahan hitungan antar foto/raster bertumpang tindih sebagai jumlah tanaman unik.
 
 ## Prinsip kejujuran data
 
@@ -49,5 +67,7 @@ tiruan · penjumlahan hitungan antar foto bertumpang tindih sebagai jumlah tanam
 
 1. AI satu tanaman: dataset, label, split berdasarkan lahan/penerbangan, evaluasi vs hitungan lapangan.
 2. Kualitas: uji SAHI setelah baseline; DeepForest hanya pembanding kanopi pohon.
-3. Pemetaan: uji ketajaman/overlap foto K919, engine fotogrametri terpisah, baru Leaflet.
+3. Pemetaan lanjutan: uji ketajaman/overlap/GPS foto K919, lalu orthomosaic lewat engine fotogrametri terpisah
+   (ODM/NodeODM) yang hasilnya diimpor sebagai raster dengan provenance terverifikasi. Batas lahan + impor GeoTIFF
+   sudah ada (revisi 5).
 4. Penggunaan bersama: PostgreSQL, object storage, autentikasi, backup, audit.

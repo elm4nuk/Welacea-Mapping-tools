@@ -1,0 +1,22 @@
+# Baseline deteksi satu kelas yang kompatibel dengan adapter API (app/inference/ultralytics_adapter.py).
+# Bobot awal HARUS berkas lokal; tidak ada unduhan otomatis oleh wallacea_ml.
+# Bobot pretrained Ultralytics (COCO) berlisensi AGPL-3.0/Enterprise — hanya titik awal fine-tune.
+name: baseline
+weights: artifacts/pretrained/yolo11n.pt
+seed: 20261018
+deterministic: true
+epochs: 150
+patience: 40
+imgsz: 1280          # SAMA dengan WALLACEA_IMGSZ di API: API memprediksi foto penuh pada ukuran ini
+batch: 4             # RTX 4060 8 GB @1280
+workers: 2
+device: 0            # GPU pertama; "cpu" bila tanpa GPU
+# Augmentasi hanya diterapkan Ultralytics pada split train. Rotasi/flip aman untuk foto nadir.
+augment:
+  fliplr: 0.5
+  flipud: 0.5
+  degrees: 0.0
+  mosaic: 1.0
+  hsv_h: 0.015
+  hsv_s: 0.5
+  hsv_v: 0.3

@@ -1,7 +1,7 @@
-import { test } from 'vitest';
+import { expect, test } from 'vitest';
 import assert from 'node:assert/strict';
 import {
-  boxBetween, counts, csvCell, editorReducer, fitImage, normalizedPointer, photoCsv,
+  boxBetween, counts, csvCell, editorReducer, findingStatus, fitImage, normalizedPointer, photoCsv,
   validFinding, zoomAt,
 } from './model.ts';
 import type { EditorState, Finding } from './model.ts';
@@ -62,6 +62,20 @@ test('pending candidates do not count; accept and reject change counts', () => {
   assert.equal(counts([{ ...pending, review: 'accepted' }]).plants, 1);
   assert.equal(counts([{ ...pending, review: 'rejected' }]).plants, 0);
   assert.equal(counts([finding('inspect', 'a', { kind: 'inspect' })]).plants, 0);
+});
+
+test('manual, pending, accepted and rejected findings have distinct honest labels', () => {
+  expect(findingStatus(finding('manual')).source).toBe('Penanda manual');
+  expect(findingStatus(finding('pending', 'a', { source: 'model', review: 'pending' }))).toEqual({
+    source: 'Kandidat tanaman', review: 'Menunggu review', confirmed: '',
+  });
+  expect(findingStatus(finding('accepted', 'a', { source: 'model' })).confirmed).toBe('Tanaman terkonfirmasi');
+  expect(findingStatus(finding('rejected', 'a', { source: 'model', review: 'rejected' }))).toMatchObject({ review: 'Ditolak', confirmed: '' });
+  expect(findingStatus(finding('crown', 'a', { source: 'model', review: 'pending' }), true).source).toBe('Kandidat tajuk pohon');
+  expect(findingStatus(finding('accepted-crown', 'a', { source: 'model' }), true).confirmed).toBe('Tajuk pohon terkonfirmasi');
+  expect(findingStatus(finding('simulated', 'a', { source: 'model', review: 'pending' }), false, true).source).toBe('Kandidat simulasi — bukan AI');
+  expect(findingStatus(finding('simulated-accepted', 'a', { source: 'model' }), false, true).confirmed)
+    .toBe('Simulasi dikonfirmasi — bukan tanaman');
 });
 
 test('add/edit/undo/redo is isolated per photo; a new edit clears redo', () => {

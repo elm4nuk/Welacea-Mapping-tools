@@ -1,6 +1,6 @@
 {
-  "id": "2e216d636d3a4f12b45cb6e3c6168952",
-  "photo_id": "652038478d264e26a0a7287c56218228",
+  "id": "ac5e598feeba40dc85beb117190ec2c2",
+  "photo_id": "71e1981cd19f4a398adcc7aabb535319",
   "analysis_run_id": null,
   "kind": "plant",
   "geometry_type": "point",
@@ -13,6 +13,6 @@
   "model_label": null,
   "note": "",
   "revision": 1,
-  "created_at": "2026-10-18T10:25:17.749113Z",
-  "updated_at": "2026-10-18T10:25:17.749113Z"
+  "created_at": "2026-10-20T14:26:56.664491Z",
+  "updated_at": "2026-10-20T14:26:56.664491Z"
 }

@@ -1,0 +1,16 @@
+# HANYA bila tanaman percobaan SAWIT. Split RESMI geografis dipertahankan (official_split).
+# Unduh eksplisit (1.1 GB):  python -m wallacea_ml datasets download oilpalm-ganoderma-v2 Ganoderma_UAV_RGB_Dataset_v2_PUBLIC_RELEASE_FINAL.zip --yes
+name: oilpalm_census
+crop_type: oil_palm
+domain: public:oilpalm-ganoderma-v2
+label_map: {plant: 0}
+class_map: class_maps/oilpalm_census.yaml
+empty_images_are_negative: false
+sources:
+  - annotations: data/raw/palm/Ganoderma_UAV_RGB_Dataset_v2/annotations/instances_{split}.json
+    splits: {train: train, validation: val, test: test}   # berkas resmi → split WALLACEA
+    images_dir: "data/raw/palm/Ganoderma_UAV_RGB_Dataset_v2/images/{split_raw}"
+    match_on: file_name
+    match: '^(?P<tile>P6G_T\d+)'
+    field_id: "official-{split}"     # blok asli dianonimkan oleh penerbit; split resmi = unit grup
+    flight_id: "2023-08"

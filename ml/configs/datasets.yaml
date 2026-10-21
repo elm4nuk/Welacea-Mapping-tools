@@ -1,0 +1,134 @@
+# Katalog dataset publik WALLACEA ML.
+# Diperiksa 2026-10-18 langsung ke sumber asli (Zenodo REST API, Mendeley public API, GitHub API) dan dari
+# isi arsip yang dibaca lewat HTTP Range (tanpa mengunduh seluruh arsip). Bukan nasihat hukum.
+#
+# status:
+#   diperiksa        = metadata + struktur arsip + anotasi (sampel) sudah dibaca dan divalidasi
+#   diunduh-sebagian = subset diunduh eksplisit (lihat `downloaded`)
+#   belum-tersedia   = belum bisa diakses / belum dibaca
+#
+# Lisensi KODE, DATASET, dan BOBOT dicatat terpisah. Atribusi wajib untuk CC-BY-4.0.
+
+datasets:
+  - id: uavmulticrop
+    title: "Plant detection and counting from high-resolution RGB images acquired from UAVs (UAVmulticrop)"
+    url: https://zenodo.org/records/4890370
+    source: {kind: zenodo, record: 4890370}
+    version: "1 (Zenodo, 2021-06-01)"
+    doi_record: 10.5281/zenodo.4890370
+    paper: "David, E. et al. (2021) bioRxiv 10.1101/2021.04.27.441631"
+    crops: [maize, sugarbeet, sunflower]
+    task: "deteksi bbox tanaman individual (awal pertumbuhan), satu kelas `plant` per tanaman"
+    platform: "UAV RGB nadir; gambar = potongan plot (PNG) dari foto drone, bukan orthomosaic"
+    annotation_format: "COCO JSON per sesi (ekspor COCO Annotator: `isbbox`, `segmentation` persegi); bbox piksel [x,y,w,h]; category id 1 = 'plant'"
+    files:
+      - {name: UAVmulticrop.zip, size_bytes: 844365126, checksum: "md5:ddd2d8a7d29b77fb8e868b31fd52bb49"}
+    verified_counts:  # dihitung dari semua 27 JSON (validate_coco: 0 error, 0 warning)
+      maize: {sessions: 9, sites: 9, images: 51, boxes: 5257, png_mb: 194}
+      sugarbeet: {sessions: 9, images: 60, boxes: 5647, png_mb: 137}
+      sunflower: {sessions: 9, images: 78, boxes: 5218, png_mb: 560}
+      total_boxes: 16122   # paper menyebut 16247; rilis publik berbeda — pakai angka rilis
+    splits: "TIDAK ada split resmi. Nama sesi = <prefiks>_<situs>_<tahun>_<n>. WALLACEA membuat split per SITUS (group=field)."
+    license: {dataset: CC-BY-4.0, code: "tidak ada kode dalam rekaman", weights: "tidak ada bobot"}
+    attribution: "David, E. (2021). Plant detection and counting from high-resolution RGB images acquired from UAVs … (dataset, v1). Zenodo. doi:10.5281/zenodo.4890370 — creator tunggal di rekaman Zenodo; kutip juga paper bioRxiv 10.1101/2021.04.27.441631"
+    fit_k919_rgb: "Cocok sebagian: RGB nadir drone, tanaman baris muda. Resolusi/GSD & sensor berbeda dari K919; hanya plot terpotong, bukan foto penuh."
+    limitations:
+      - "Hanya tahap awal pertumbuhan (tanaman kecil, kanopi belum menutup)."
+      - "Gambar adalah crop plot; tidak mewakili tepi lahan, jalan, gulma di luar plot."
+      - "Arti prefiks 1_/2_/3_ pada nama sesi belum terverifikasi dari dokumentasi (diduga tahap/kelompok)."
+      - "Lokasi Prancis; tanah, cahaya, varietas berbeda dari lahan Indonesia."
+    status: diunduh-sebagian
+    downloaded: "Semua JSON anotasi (4 MB); PNG jagung diambil eksplisit lewat `datasets sample` bila diperlukan."
+    recommended_use: "UTAMA untuk baseline jagung satu kelas (9 situs → split held-out per situs)."
+
+  - id: matchplant
+    title: "MatchPlant: UAV-Based Single-Plant Detection from Undistorted Images with Orthomosaic Projection"
+    url: https://zenodo.org/records/14856123
+    repo: https://github.com/JacobWashburn-USDA/MatchPlant
+    source: {kind: zenodo, record: 14856123}
+    version: "satu versi Zenodo (2025-02-12); repo kode aktif (push terakhir 2026-10-18)"
+    doi_record: 10.5281/zenodo.14856123
+    paper: "Sangjan, W., Pandey, P., Best, N. B., Washburn, J. D. (2026) Smart Agricultural Technology 15:102421, doi:10.1016/j.atech.2026.102421"
+    crops: [maize]
+    task: "deteksi bbox jagung individual (lahan riset genetika, musim 2021)"
+    platform: "UAV RGB 20 MP nadir; gambar sudah di-undistort oleh OpenDroneMap (TIFF 5472×3648)"
+    annotation_format: "COCO JSON PER GAMBAR (`<nama>.JPG.tif_annotations.json`); bbox piksel [x,y,w,h]; category id 1 = 'maize'"
+    files:
+      - {name: "Annotation file.zip", size_bytes: 181806, checksum: "md5:4e2d88390b8c1ca67219b9cdf2d12f5b"}
+      - {name: "UAV images.zip", size_bytes: 1211808694, checksum: "md5:a6fc21c6430bd05e879c18feb21d7e8d"}
+      - {name: "Pre-trained model_Faster R-CNN.pt", size_bytes: 345579577, checksum: "md5:5c4d1723a9e5722d6e35aa4faa75d787"}
+    verified_counts: {images: 27, boxes: 8701, image_size: "5472x3648", bbox_median_px: "67x61", bbox_min_px: 1}
+    splits: "TIDAK ada split resmi di dataset. Nama berkas membentuk 3 kelompok nomor DJI (0014–0065, 0309–0364, 0647–0700), 9 gambar per kelompok; dugaan penerbangan/blok berbeda, BELUM terverifikasi."
+    license: {dataset: CC-BY-4.0, code: MIT, weights: "CC-BY-4.0 (bagian rekaman Zenodo)"}
+    weights_note: >-
+      Bobot `Pre-trained model_Faster R-CNN.pt` adalah Faster R-CNN (repo memakai PyTorch, modul 6-1/6-2/7),
+      BUKAN checkpoint Ultralytics walau berekstensi .pt. Tidak bisa dimuat `UltralyticsDetector`/`YOLO()`.
+      Memakainya di API butuh adapter Detector terpisah (belum dibuat). Anotasinya bisa dipakai untuk training YOLO.
+    attribution: "Sangjan, W., Pandey, P., Best, N. B., Washburn, J. D. (2025). MatchPlant dataset. Zenodo. doi:10.5281/zenodo.14856123"
+    fit_k919_rgb: "Cocok: RGB nadir 20 MP dari drone. Tetapi gambar sudah di-undistort ODM (geometri beda dari JPEG mentah K919)."
+    limitations:
+      - "Satu lahan riset, satu musim (2021), AS."
+      - "Box minimum 1 px — box sangat kecil dibuang saat konversi (min_size_px)."
+      - "Gambar TIFF 48 MB/berkas; API WALLACEA tidak menerima TIFF (konversi diperlukan untuk uji API)."
+      - "Foto berurutan bertumpang tindih; jangan split acak per foto."
+    status: diperiksa
+    downloaded: "Semua JSON anotasi (2.7 MB). Gambar BELUM diunduh (1.2 GB)."
+    recommended_use: "Uji LINTAS-DATASET (eksternal) untuk model jagung; atau sumber training kedua setelah grup split diverifikasi."
+
+  - id: oilpalm-ganoderma-v2
+    title: "UAV RGB Image Dataset for Object Detection of Ganoderma-Affected Oil Palm Trees (v2)"
+    url: https://data.mendeley.com/datasets/s23jvbpnr3/2
+    source: {kind: mendeley, dataset: s23jvbpnr3, version: 2}
+    version: "2 (dipublikasi 2026-09-06; berkas 2026-09-04)"
+    doi_record: 10.17632/s23jvbpnr3.2
+    crops: [oil_palm]
+    task: "deteksi tajuk sawit; 2 kelas status lapangan (ganoderma_affected_palm, survey_negative_normal_palm)"
+    platform: "Tile 640×640 dari orthomosaic UAV RGB Agustus 2023, GSD ±0.0408 m/px"
+    annotation_format: "COCO JSON (all/train/validation/test); bbox piksel; category 1 = ganoderma_affected_palm, 2 = survey_negative_normal_palm"
+    files:
+      - {name: Ganoderma_UAV_RGB_Dataset_v2_PUBLIC_RELEASE_FINAL.zip, size_bytes: 1119535606, checksum: "sha256:650c5f62ccd96c19844ad65367e349cce4753d345a27bbf78a26cb248e3fbe11"}
+      - {name: Ganoderma_UAV_RGB_Dataset_v2_REPRODUCIBILITY_PACKAGE.zip, size_bytes: 6835, checksum: "sha256:831814c8a9cb31e1d49b88546ae323f99c31e1d7bead3505b972fe02f88403d5"}
+    verified_counts: {images: 1352, boxes: 9400, split_images: {train: 1128, validation: 106, test: 118}, split_boxes: {train: 8001, validation: 759, test: 640}}
+    splits: "RESMI, geografis: blok kebun terpisah, dibekukan sebelum ekstraksi tile. WAJIB dipertahankan."
+    license: {dataset: CC-BY-4.0, code: "tidak ada", weights: "tidak ada"}
+    attribution: "Mimboro, P., Soeparno, H., Soewito, B., Budiharto, W. (2026). UAV RGB Image Dataset for Object Detection of Ganoderma-Affected Oil Palm Trees, v2. Mendeley Data. doi:10.17632/s23jvbpnr3.2"
+    fit_k919_rgb: "Hanya bila tanaman percobaan SAWIT. Tile orthomosaic ≠ foto tunggal K919."
+    class_merge_for_census: >-
+      Untuk eksperimen SENSUS (hitung pohon), kedua kelas digabung menjadi `plant` lewat
+      configs/class_maps/oilpalm_census.yaml. Ini MENGHAPUS informasi status Ganoderma; model hasilnya
+      tidak boleh dipakai untuk diagnosis. Status penyakit berasal dari survei lapangan, bukan dari RGB.
+    limitations:
+      - "Satu perkebunan, satu bulan akuisisi."
+      - "`survey_negative_normal_palm` ≠ sehat terkonfirmasi laboratorium."
+      - "39 kandidat ditolak QC tidak ada di COCO; tajuk tersebut mungkin tetap terlihat tanpa label."
+      - "Diagnosis penyakit di luar ruang lingkup WALLACEA."
+    status: diperiksa
+    downloaded: "README, DATASET_CARD, DATA_DICTIONARY, dataset_summary.json, instances_validation/test.json (sampel)."
+    recommended_use: "HANYA bila tanaman percobaan sawit; sensus satu kelas dengan split resmi."
+
+  - id: neon-tree-evaluation
+    title: "NeonTreeEvaluation Benchmark (data)"
+    url: https://zenodo.org/records/5914554
+    repo: https://github.com/weecology/NeonTreeEvaluation
+    source: {kind: zenodo, record: 5914554}
+    version: "0.2.2 (Zenodo, 2022-01-27; versi lama 0.1–0.2.1)"
+    doi_record: 10.5281/zenodo.5914554
+    crops: [tree_canopy]
+    task: "deteksi tajuk pohon individual (hutan), kelas `Tree`"
+    platform: "Citra RGB PESAWAT NEON AOP (±10 cm/px), bukan UAV; + LiDAR, hiperspektral, CHM"
+    annotation_format: "Pascal VOC XML per tile (`<object><name>Tree</name><bndbox>xmin..</bndbox>`), piksel"
+    files:
+      - {name: annotations.zip, size_bytes: 560984, checksum: "md5:f577f0948a259d474ee0199fb8d76524"}
+      - {name: training.zip, size_bytes: 4496639377, checksum: "md5:8d71412f3dfe9f055e8183f5faed905f"}
+      - {name: evaluation.zip, size_bytes: 3853532101, checksum: "md5:f0c444fc59cf0115ce8c981a576fab77"}
+    splits: "Training vs evaluation resmi per tile; tidak semua tile evaluasi beranotasi."
+    license: {dataset: "CC-BY-4.0 (Zenodo)", code: "CC0-1.0 (repo NeonTreeEvaluation)", weights: "tidak ada"}
+    attribution: "Weinstein, B., Marconi, S., White, E. (2022). Data for the NeonTreeEvaluation Benchmark (0.2.2). Zenodo. doi:10.5281/zenodo.5914554"
+    fit_k919_rgb: "Rendah untuk tanaman pertanian: resolusi & platform berbeda. Hanya pembanding tajuk pohon."
+    limitations:
+      - "Hutan AS, bukan tanaman pertanian."
+      - "Format XML VOC — dibaca oleh `wallacea_ml.voc.load_voc` (dipakai notebook 05 untuk sampel DeepForest)."
+      - "Arsip besar (8 GB); jangan diunduh tanpa kebutuhan konkret."
+    status: diperiksa
+    downloaded: "3 XML anotasi (sampel struktur)."
+    recommended_use: "OPSIONAL: pembanding untuk tanaman pohon/kanopi. Bukan pilihan utama."

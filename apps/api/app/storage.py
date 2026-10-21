@@ -6,7 +6,7 @@ import re
 import uuid
 from pathlib import Path
 
-_KEY = re.compile(r"^[0-9a-f]{2}/[0-9a-f]{32}(_display|_thumb)?\.(jpg|png|webp)$")
+_KEY = re.compile(r"^[0-9a-f]{2}/[0-9a-f]{32}(?:(_display|_thumb)?\.(jpg|png|webp)|_(raster|rdisplay)\.tif)$")
 
 
 class Storage:
@@ -39,6 +39,18 @@ class Storage:
 
     def read(self, key: str) -> bytes:
         return self.path(key).read_bytes()
+
+    def temp_path(self) -> Path:
+        """Berkas sementara di dalam root (rename atomik ke key final pada volume yang sama)."""
+        tmp = self.root / "_tmp"
+        tmp.mkdir(parents=True, exist_ok=True)
+        return tmp / f"{uuid.uuid4().hex}.part"
+
+    def adopt(self, key: str, src: Path) -> None:
+        """Pindahkan berkas sementara (sudah ditulis/di-hash secara streaming) ke key final."""
+        p = self.path(key)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(src, p)
 
     def delete(self, *keys: str | None) -> None:
         for key in keys:

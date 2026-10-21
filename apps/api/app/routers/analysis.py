@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
 
 from fastapi import APIRouter, Body, Depends, Request
 from sqlalchemy import delete, func, or_, select
@@ -19,6 +20,7 @@ from .. import models as m
 from .. import schemas as s
 from .. import services as svc
 from ..db import utcnow
+from ..inference.simulation import NOTICE as SIMULATION_NOTICE
 from ..deps import PageParams, get_db
 from ..errors import ApiError
 from ..imaging import oriented_from_bytes
@@ -27,6 +29,7 @@ from .annotations import ensure_capacity
 from . import errors
 
 router = APIRouter(tags=["analysis"])
+log = logging.getLogger("wallacea.inference")
 
 NOTICE = ("Kandidat model berstatus pending dan belum masuk hitungan. Tinjau setiap kandidat: terima, koreksi, "
           "atau tolak. Confidence adalah keluaran model, bukan akurasi survei.")
@@ -88,8 +91,10 @@ def _apply_candidates(db: Session, photo: m.Photo, run: m.AnalysisRun, detection
 
 
 def _result(run: m.AnalysisRun, created: list[m.Annotation], replaced: list[str]) -> s.AnalysisResult:
-    return s.AnalysisResult(run=svc.run_out(run), candidates=[svc.annotation_out(a) for a in created],
-                            replaced_annotation_ids=replaced, notice=NOTICE)
+    out = svc.run_out(run)
+    return s.AnalysisResult(run=out, candidates=[svc.annotation_out(a) for a in created],
+                            replaced_annotation_ids=replaced,
+                            notice=SIMULATION_NOTICE if out.target == "simulation" else NOTICE)
 
 
 @router.post(
@@ -99,7 +104,11 @@ def _result(run: m.AnalysisRun, created: list[m.Annotation], replaced: list[str]
     description="Sinkron: request menunggu sampai inferensi selesai atau melewati `limits.inference_timeout_s` "
                 "(default 120 s) → 504 INFERENCE_TIMEOUT. Latensi bergantung CPU/GPU dan resolusi; tidak ada progres "
                 "persentase. Tidak ada run yang dibuat bila model belum dikonfigurasi. Run yang terputus karena "
-                "server restart ditandai failed (error_code=INTERRUPTED) saat startup.",
+                "server restart ditandai failed (error_code=INTERRUPTED) saat startup. Revisi 4: 503 "
+                "MODEL_NOT_CONFIGURED/MODEL_UNAVAILABLE membawa `details.diagnostic_code` (= health.model."
+                "diagnostic_code, mis. MODEL_FILE_NOT_FOUND, DEPENDENCY_MISSING, LABEL_MAP_MISMATCH). Dengan "
+                "WALLACEA_DETECTOR=simulation, run.target=simulation, model_id=simulation-not-ai dan `notice` "
+                "menyatakan SIMULASI — BUKAN AI.",
 )
 async def analyze_photo(photo_id: str, request: Request, body: s.AnalyzeRequest | None = Body(None)):
     st = request.app.state
@@ -111,13 +120,18 @@ async def analyze_photo(photo_id: str, request: Request, body: s.AnalyzeRequest 
             photo = _guard_photo(db, photo_id)
             info = detector.info()
             if info.state == "not_configured":
-                raise ApiError(503, "MODEL_NOT_CONFIGURED", info.message + " Mode manual tetap dapat dipakai.")
+                raise ApiError(503, "MODEL_NOT_CONFIGURED", info.message,
+                               {"model_state": info.state, "diagnostic_code": info.diagnostic_code})
             if not info.available:
-                raise ApiError(503, "MODEL_UNAVAILABLE", info.message, {"model_state": info.state})
+                raise ApiError(503, "MODEL_UNAVAILABLE", info.message,
+                               {"model_state": info.state, "diagnostic_code": info.diagnostic_code})
             _check_existing(db, photo, info.model_id, info.model_version, on_existing)
             run = m.AnalysisRun(photo_id=photo.id, run_type="inference", model_id=info.model_id,
                                 model_version=info.model_version, input_sha256=photo.sha256, status="running",
-                                started_at=utcnow(), parameters_json=json.dumps({"on_existing": on_existing}))
+                                started_at=utcnow(),
+                                # adapter/target dicatat sejak awal agar run gagal pun membawa semantiknya
+                                parameters_json=json.dumps({"on_existing": on_existing, "adapter": info.adapter,
+                                                            "target": info.target}))
             db.add(run)
             try:
                 db.commit()
@@ -149,16 +163,19 @@ async def analyze_photo(photo_id: str, request: Request, body: s.AnalyzeRequest 
                        {"run_id": run_id})
     except ModelNotConfigured as exc:
         await run_in_threadpool(fail, run_id, "MODEL_NOT_CONFIGURED")
-        raise ApiError(503, "MODEL_NOT_CONFIGURED", str(exc), {"run_id": run_id})
+        raise ApiError(503, "MODEL_NOT_CONFIGURED", str(exc), {"run_id": run_id, "diagnostic_code": "MODEL_PATH_NOT_SET"})
     except ModelUnavailable as exc:
         await run_in_threadpool(fail, run_id, "MODEL_UNAVAILABLE")
-        raise ApiError(503, "MODEL_UNAVAILABLE", str(exc), {"run_id": run_id})
+        raise ApiError(503, "MODEL_UNAVAILABLE", str(exc),
+                       {"run_id": run_id, "diagnostic_code": exc.diagnostic_code, "model_state": "error"})
     except InferenceFailed as exc:
         await run_in_threadpool(fail, run_id, "INFERENCE_FAILED")
         raise ApiError(500, "INFERENCE_FAILED", str(exc), {"run_id": run_id})
     except Exception:
+        log.exception("Unexpected inference error")
         await run_in_threadpool(fail, run_id, "INFERENCE_FAILED")
-        raise ApiError(500, "INFERENCE_FAILED", "Inferensi gagal. Periksa log server.", {"run_id": run_id})
+        raise ApiError(500, "INFERENCE_FAILED", "Inferensi gagal karena error tak terduga. Periksa log server.",
+                       {"run_id": run_id})
 
     def finish():
         with st.sessionmaker() as db:
@@ -166,7 +183,9 @@ async def analyze_photo(photo_id: str, request: Request, body: s.AnalyzeRequest 
             photo = svc.get_photo(db, photo_id)
             run.model_id = output.model_id or run.model_id
             run.model_version = output.model_version or run.model_version
-            run.parameters_json = json.dumps({**output.parameters, "on_existing": on_existing})
+            # gabung (bukan timpa): adapter/target dari info tetap ada bila adapter tidak mengirimnya
+            initial = {k: v for k, v in json.loads(run.parameters_json or "{}").items() if v is not None}
+            run.parameters_json = json.dumps({**initial, **output.parameters, "on_existing": on_existing})
             try:
                 created, replaced = _apply_candidates(db, photo, run, output.detections, on_existing,
                                                       settings.max_annotations_per_photo)
