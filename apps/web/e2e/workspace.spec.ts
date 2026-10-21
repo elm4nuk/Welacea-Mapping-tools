@@ -130,7 +130,7 @@ test('real API: survey, multi upload, EXIF, edit, undo/redo, save, reload, PNG/C
   await expect(page.getByRole('button', { name: 'Urungkan', exact: true })).toBeDisabled();
   await page.screenshot({ path: info.outputPath('editor.png'), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByRole('button', { name: /Laporan/ }).click();
+  await page.getByRole('navigation', { name: 'Ruang kerja survei' }).getByRole('button', { name: 'Laporan', exact: true }).click();
   await expect(page.getByText('Tahap 3 · Laporan survei', { exact: true })).toBeVisible();
   await expect(page.locator('.report')).toContainText('1 tanaman terkonfirmasi');
   const csvPromise = page.waitForEvent('download');

@@ -1,8 +1,8 @@
 # WALLACEA web
 
 React frontend for API v1. Generated types consume the additive contract revision
-4 from Claude's latest backend handoff while remaining compatible with revisions
-1–3. No
+5 from Claude's latest backend handoff while remaining compatible with revisions
+1–4. No
 mock service is enabled by default. The application needs the real FastAPI service.
 
 ## Run
@@ -25,6 +25,21 @@ Vite preview does not provide the development API proxy.
 
 ## Editing and storage
 
+- Each survey now has explicit **Peta lahan**, **Foto & AI**, and **Laporan**
+  workspaces. The map workspace uses MapLibre and Terra Draw for an honest local
+  boundary draft, and accepts exactly one valid WGS84 Polygon/MultiPolygon GeoJSON.
+- Boundary area/perimeter shown before save are clearly labelled **Preview Turf**.
+  After save, revision-5 backend geodesic measurements become authoritative. Boundary
+  create/update/delete uses revision checks and conflict recovery, while GeoJSON import
+  and export preserve WGS84 longitude/latitude geometry.
+- The default basemap is the online OpenStreetMap standard raster service with
+  visible attribution. It is not satellite imagery and is not available offline.
+  If tiles fail, local boundary geometry remains usable over a neutral background.
+- GeoTIFF is intentionally separate from ordinary JPG/PNG photo upload. Revision 5
+  stores the raster server-side and exposes bounded tiles; the browser does not pretend
+  an ungeoreferenced image belongs at a map location. Imported raster georeferencing is
+  displayed as supplied and is not claimed to be verified or an orthomosaic generated
+  by WALLACEA.
 - The primary flow is **Buat survei → Unggah foto → Analisis & review → Laporan**.
   Desktop uses a collapsible survey sidebar and persistent review panel. Tablet
   and mobile use Sheets for navigation, photo selection, and candidate review.
@@ -51,9 +66,10 @@ Vite preview does not provide the development API proxy.
 - Reports use real API counts per photo. CSV comes from the API. PNG annotates
   the currently displayed photo with survey/date/review legend. PDF uses the
   browser's Print / Save as PDF flow and the report print stylesheet.
-- Georeferencing remains a separate future feature, gated by real API
-  capabilities/data. No map package, invented coordinates, or photogrammetry
-  claims are included.
+- Geographic raster candidates remain pending until review. Only accepted plant
+  candidates enter each raster's confirmed count; counts from overlapping rasters or
+  flights are not presented as unique plants. No invented coordinates, automatic
+  photo georeferencing, or photogrammetry claims are included.
 
 ## Photo analysis and review
 

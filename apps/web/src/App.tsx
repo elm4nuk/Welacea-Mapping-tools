@@ -8,6 +8,7 @@ import { PhotoFilmstrip, UploadControl } from './components/PhotoFilmstrip';
 import { SurveyForm } from './components/SurveyForm';
 import { WorkflowSteps } from './components/WorkflowSteps';
 import { WorkspaceHeader } from './components/WorkspaceHeader';
+import { WorkspaceNav, type WorkspacePage } from './components/WorkspaceNav';
 import { ModelSetupSheet, ModelStatusBanner } from './components/ModelOnboarding';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogTitle } from './components/ui/alert-dialog';
 import { Button } from './components/ui/button';
@@ -18,6 +19,7 @@ import './app.css';
 
 const Report = lazy(() => import('./components/Report').then(module => ({ default: module.Report })));
 const EditorSession = lazy(() => import('./features/editor/EditorSession').then(module => ({ default: module.EditorSession })));
+const LandMapWorkspace = lazy(() => import('./features/mapping/LandMapWorkspace').then(module => ({ default: module.LandMapWorkspace })));
 const client = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 export function App() { return <QueryClientProvider client={client}><Workspace /></QueryClientProvider>; }
 
@@ -32,7 +34,7 @@ function Workspace() {
     getNextPageParam: last => last.offset + last.items.length < last.total ? last.offset + last.items.length : undefined });
   const [surveyId, setSurveyId] = useState('');
   const [photoId, setPhotoId] = useState('');
-  const [page, setPage] = useState<'editor' | 'report'>('editor');
+  const [page, setPage] = useState<WorkspacePage>('photos');
   const [form, setForm] = useState<'create' | 'edit'>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -59,18 +61,18 @@ function Workspace() {
   const allPhotos = photos.data?.pages.flatMap(result => result.items) ?? [];
   const photo = allPhotos.find(item => item.id === photoId);
   const model = health.data ? modelStatus(health.data.model) : undefined;
-  const stage = workflowStage(photos.data?.pages[0]?.total ?? 0, page);
+  const stage = workflowStage(photos.data?.pages[0]?.total ?? 0, page === 'report' ? 'report' : 'editor');
 
   function confirmOrRun(config: Confirmation, protectDraft = false) {
     if (protectDraft && dirtyRef.current) {
-      setConfirmation({ title: 'Draf belum disimpan', description: 'Perubahan lokal pada foto aktif akan hilang. Simpan terlebih dahulu jika masih diperlukan.',
+      setConfirmation({ title: 'Draf belum disimpan', description: 'Perubahan lokal pada ruang kerja aktif akan hilang. Simpan terlebih dahulu jika masih diperlukan.',
         confirmLabel: 'Buang draf dan lanjutkan', destructive: true, run: config.run });
       return;
     }
     if (config.destructive) setConfirmation(config); else config.run();
   }
   function resetWorkspace(nextSurveyId = '') {
-    onDirty(false); setSurveyId(nextSurveyId); setPhotoId(''); setPage('editor'); setForm(undefined);
+    onDirty(false); setSurveyId(nextSurveyId); setPhotoId(''); setPage('photos'); setForm(undefined);
     setUploads([]); setError(''); setMessage(''); setMobileNavOpen(false);
   }
   function chooseSurvey(next: Survey) {
@@ -140,7 +142,7 @@ function Workspace() {
       setMessage(`Diimpor sebagai salinan: ${result.surveys.length} survei. ${result.warnings.map(warning => warning.message).join(' ')}`);
     });
   }
-  function openPage(next: 'editor' | 'report') {
+  function openPage(next: WorkspacePage) {
     if (page === next || busy) return;
     confirmOrRun({ title: '', description: '', confirmLabel: '', run: () => { onDirty(false); setPage(next); } }, true);
   }
@@ -155,7 +157,7 @@ function Workspace() {
       <WorkspaceHeader survey={survey} apiState={health.isPending ? 'checking' : health.isError ? 'offline' : 'connected'}
         modelLabel={model?.label ?? 'Model diperiksa'} modelState={model?.state} onOpenMenu={() => setMobileNavOpen(true)}
         onEdit={() => setForm('edit')} onDelete={removeSurvey} onImport={() => setUtilitiesOpen(true)} />
-      {model && <ModelStatusBanner model={model} onSetup={() => setModelSetupOpen(true)} onRefresh={() => void health.refetch()} />}
+      {page === 'photos' && model && <ModelStatusBanner model={model} onSetup={() => setModelSetupOpen(true)} onRefresh={() => void health.refetch()} />}
       {health.isError && <div role="alert" className="banner banner--error no-print"><CloudOff aria-hidden="true" /><div><b>API tidak dapat dijangkau</b>
         <p>{health.error.message}</p></div><Button variant="outline" onClick={() => void health.refetch()}>Coba lagi</Button></div>}
       {error && <p role="alert" className="banner banner--error no-print">{error}</p>}
@@ -171,12 +173,14 @@ function Workspace() {
           <Button variant="outline" disabled={!health.data || busy} onClick={() => void createDemo()}>Lihat contoh ilustrasi</Button></div></div>
         <div className="dashboard-empty__principles"><b>Data tetap jujur</b><p>Hitungan hanya memakai tanaman yang dikonfirmasi. Koordinat gambar bukan GPS.</p></div></section>}
       {survey && <>
-        <WorkflowSteps active={stage} hasPhotos={(photos.data?.pages[0]?.total ?? 0) > 0} onSelect={next => {
-          if (next === 'report') openPage('report'); else openPage('editor');
-        }} />
+        <WorkspaceNav active={page} onSelect={openPage} />
+        {page === 'photos' && <WorkflowSteps active={stage} hasPhotos={(photos.data?.pages[0]?.total ?? 0) > 0} onSelect={next => {
+          if (next === 'report') openPage('report'); else openPage('photos');
+        }} />}
         {survey.is_demo && <p className="banner banner--warning">Contoh / ilustrasi · terpisah dari survei nyata dan hanya dapat dibaca.</p>}
         <Suspense fallback={<p role="status">Memuat ruang kerja...</p>}>
-          {page === 'report' ? <Report surveyId={survey.id} /> : <section className="survey-workspace">
+          {page === 'map' ? <LandMapWorkspace survey={survey} health={health.data} apiConnected={Boolean(health.data)}
+            onDirty={onDirty} /> : page === 'report' ? <Report surveyId={survey.id} /> : <section className="survey-workspace">
             <div className="upload-panel no-print"><div><span className="eyebrow">Tahap 1</span><h2>Foto survei</h2>
               <p>Unggah foto asli setelah drone mendarat. Foto tidak dianggap sebagai peta atau posisi GPS tanaman.</p></div>
               <UploadControl disabled={busy || survey.is_demo || !health.data} maxMb={health.data ? Math.round(health.data.limits.max_upload_bytes / 1024 / 1024) : undefined}

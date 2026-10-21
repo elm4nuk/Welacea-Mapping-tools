@@ -1,4 +1,94 @@
-# Codex frontend handoff — 20 Oktober 2026
+# Codex frontend handoff — workspace pemetaan, 20 Oktober 2026
+
+## Delivery pemetaan revision 5
+
+- Branch/worktree: `agent/codex-mapping` / `D:\coding\wallacea-worktrees\codex-mapping`.
+- Base frontend: `1cb6d5183eebb458c4e341981503e0d70a164537`.
+- Commit shell awal: `472fe7563ba18b4866f8255eeab396a07ae82aed`, disusul
+  `0c327c2`, `e04ae04`, `834f411`, dan `a3c9a2c`.
+- Sumber kebenaran Claude: backend `40ba48764e9107f3aafb253b8bf9a4431a4e9977`,
+  OpenAPI revision 5 `f2e770f7f9a4b51b0923ccc49971c0c6c7ffc2c2`, dan docs
+  `1d1d36ce858bbc2a1d2b1a468bdcd56e1ef910d2`. Handoff `CONTRACT_READY`
+  terbaru dibaca pada `a911f30d4c620f2bd49881065884b824e3fa4c7c`; Claude juga mencatat
+  baseline integrasi backend revision 5 di `integration/wallacea-mapping` @ `ca67ffe`.
+- Commit integrasi revision 5: `e0c598d` (`feat(web): integrate revision 5 mapping
+  API`). Commit dokumentasi/screenshot menyusul commit ini. Tidak ada push, merge
+  `main`, deploy, perubahan backend/OpenAPI, model, atau dataset.
+
+### Sebelum / sesudah
+
+Sebelum revision 5, workspace hanya memiliki draf batas lokal: simpan dan GeoTIFF
+dinonaktifkan karena kontrak belum tersedia. Sesudah integrasi, frontend memakai API
+nyata untuk CRUD/impor batas, tautan `Survey.field_id`, metrik geodesik authoritative,
+`If-Match` dan pemulihan konflik; upload/progress/tile GeoTIFF dengan bounds dan CRS;
+serta run dan kandidat geografis pending/accepted/rejected.
+
+Map tetap menjadi fokus. Panel desktop dapat diringkas; tablet/HP memakai Sheet. Terra
+Draw menangani gambar/edit Polygon, Turf hanya memberi preview sebelum save, dan
+MapLibre menampilkan tile raster serta kandidat berdasarkan geometri WGS84 dari API.
+Foto biasa tidak diproyeksikan. Impor GeoTIFF tidak diklaim sebagai orthomosaic atau
+georeferensi yang diverifikasi WALLACEA.
+
+Simulasi memakai banner permanen **SIMULASI — BUKAN AI**, kandidat dimulai sebagai
+pending, skor disebut skor model, dan hanya kandidat `kind=plant` yang accepted masuk
+hitungan per-raster. Laporan menambahkan batas dan ringkasan tiap raster serta menolak
+klaim bahwa hitungan lintas raster/penerbangan adalah tanaman unik.
+
+Basemap memakai tile standar OpenStreetMap dengan atribusi terlihat dan penjelasan
+bahwa layanan memerlukan internet serta bukan citra satelit. Kegagalan tile tidak
+menyembunyikan boundary/raster lokal. CR-FE-005 kini ditandai dipenuhi; tidak ada
+request kontrak baru.
+
+### Verifikasi aktual
+
+- `pnpm --filter @wallacea/web generate:api`: lulus dari OpenAPI revision 5.
+- `pnpm install --frozen-lockfile`: lulus; lockfile supply-chain check lulus.
+- `pnpm typecheck:web`: lulus.
+- `pnpm --filter @wallacea/web test`: **26/26 lulus** dalam 5 file.
+- `pnpm build:web`: lulus. Vite hanya memperingatkan chunk MapLibre/editor >500 kB;
+  workspace GIS sudah lazy-loaded dan menjadi chunk terpisah.
+- `pnpm peers check`: lulus tanpa masalah peer dependency.
+- `git diff --check`: lulus.
+- Backend revision 5 `python -m pytest`: **244 lulus, 2 skip**, dengan dua warning
+  Rasterio yang memang berasal dari fixture raster tanpa georeferensi/GCP.
+- Playwright status model: **3/3 lulus**; manual, configured, loaded, error, dan
+  simulasi diperiksa jujur pada desktop/tablet/mobile.
+- Playwright UI pemetaan terisolasi: **8 lulus, 1 skip**. Skip adalah emulasi gestur
+  gambar sentuh mobile; impor GeoJSON, validasi, Sheet, dan responsivitas mobile lulus.
+- Playwright API revision 5: **6/6 lulus** pada Chromium 1440×900, 820×1180, dan
+  390×844. Alur mencakup save/reload batas, metrik backend, konflik/reload, cancel,
+  ekspor/hapus, upload GeoTIFF nyata, TileJSON/bounds, simulasi pending→accepted,
+  laporan accepted-only, dan penghapusan raster.
+- Regresi workspace foto terhadap API revision 5 mode manual: **18/18 lulus** pada
+  ketiga viewport. Ini mencakup demo, multi-upload/EXIF/invalid, draf/undo/redo,
+  save/reload, konflik, proteksi navigasi, API offline/retry, canvas zoom/pan,
+  ekspor, backup, laporan, serta edit/delete survei.
+- Inferensi model asli tidak dijalankan karena bobot tanaman terlatih tidak tersedia.
+  Pengujian kandidat geografis memakai detector simulasi backend dan selalu diberi
+  label data QA/bukan AI.
+
+Screenshot baseline shell lokal: `docs/handoff/screenshots/mapping/desktop.png`,
+`tablet.png`, `mobile.png`. Screenshot revision 5 dengan raster/kandidat dan keadaan
+review setara: `rev5-desktop.png`, `rev5-tablet.png`, `rev5-mobile.png`. Semuanya telah
+diperiksa pada ukuran viewport yang tepat; basemap sengaja digagalkan agar fallback,
+raster lokal, atribusi, dan pesan offline dapat diverifikasi deterministik.
+
+### Urutan integrasi yang aman
+
+1. Cherry-pick Claude `40ba487`, lalu `f2e770f`, `1d1d36c`, dan handoff `a911f30` ke
+   `integration/wallacea-mvp` jika commit itu belum ada.
+2. Cherry-pick rangkaian Codex `472fe75`, `0c327c2`, `e04ae04`, `834f411`,
+   `a3c9a2c`, lalu `e0c598d`, kemudian commit dokumentasi/screenshot sesudahnya.
+3. Jalankan export/check kontrak, migrasi DB sementara, seluruh pytest backend,
+   typecheck, Vitest, build, peer check, serta kedua suite Playwright API nyata.
+
+Alternatif yang lebih pendek: bila `integration/wallacea-mapping` @ `ca67ffe` dipakai
+sebagai baseline resmi, langsung cherry-pick rangkaian Codex pada langkah 2; jangan
+mengulang commit Claude yang sudah terkandung di baseline itu.
+
+---
+
+## Handoff frontend AI sebelumnya
 
 ## Delivery
 
